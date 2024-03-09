@@ -6,6 +6,8 @@
 # Modified by REIS0
 
 PLUGIN=mimid
+WITH_LTO=true
+NOOPT=true
 
 include dpf/Makefile.base.mk
 
