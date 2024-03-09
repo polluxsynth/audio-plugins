@@ -216,7 +216,9 @@ Type jlimit (Type lowerLimit,
              Type upperLimit,
              Type valueToConstrain) noexcept
 {
+#if 0
     jassert (lowerLimit <= upperLimit); // if these are in the wrong order, results are unpredictable..
+#endif
 
     return (valueToConstrain < lowerLimit) ? lowerLimit
                                            : ((upperLimit < valueToConstrain) ? upperLimit
