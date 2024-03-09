@@ -13,7 +13,7 @@ NAME = MiMi-d
 # Files to build
 
 FILES_DSP = \
-	MiMi-d.cpp
+	MiMi-d.cpp lib/juce_Random.cpp
 
 FILES_UI =
 

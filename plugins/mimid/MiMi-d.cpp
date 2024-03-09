@@ -20,6 +20,14 @@
  */
 
 #include "DistrhoPlugin.hpp"
+
+// Stuff needed to bring in juce_Random.h
+#define JUCE_API
+#define JUCE_LEAK_DETECTOR(FOO) DISTRHO_LEAK_DETECTOR(FOO)
+#include "lib/juce_MathsFunctions.h" // Need jmin,jmax,jlimit,int64
+#include "lib/juce_Random.h"
+using namespace juce;
+
 #include "Engine/SynthEngine.h"
 #include "Engine/Params.h"
 
