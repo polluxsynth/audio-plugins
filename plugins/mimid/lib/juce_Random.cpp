@@ -20,6 +20,13 @@
   ==============================================================================
 */
 
+// Needed to build freestanding within DPF
+#include "DistrhoPlugin.hpp"
+#define JUCE_LEAK_DETECTOR(FOO) DISTRHO_LEAK_DETECTOR(FOO)
+#define JUCE_API
+#include "juce_MathsFunctions.h"
+#include "juce_Random.h"
+
 namespace juce
 {
 
@@ -50,11 +57,13 @@ void Random::setSeedRandomly()
 {
     static int64 globalSeed = 0;
 
-    combineSeed (globalSeed ^ (int64) (pointer_sized_int) this);
+    combineSeed (globalSeed ^ (int64) this);
+#if 0 // TODO: Fix this later
     combineSeed (Time::getMillisecondCounter());
     combineSeed (Time::getHighResolutionTicks());
     combineSeed (Time::getHighResolutionTicksPerSecond());
     combineSeed (Time::currentTimeMillis());
+#endif
     globalSeed ^= seed;
 }
 
@@ -74,15 +83,17 @@ int Random::nextInt() noexcept
 
 int Random::nextInt (const int maxValue) noexcept
 {
+#if 0
     jassert (maxValue > 0);
+#endif
     return (int) ((((unsigned int) nextInt()) * (uint64) maxValue) >> 32);
 }
-
+#if 0
 int Random::nextInt (Range<int> range) noexcept
 {
     return range.getStart() + nextInt (range.getLength());
 }
-
+#endif
 int64 Random::nextInt64() noexcept
 {
     return (int64) ((((uint64) (unsigned int) nextInt()) << 32) | (uint64) (unsigned int) nextInt());
@@ -102,7 +113,7 @@ double Random::nextDouble() noexcept
 {
     return static_cast<uint32> (nextInt()) / (std::numeric_limits<uint32>::max() + 1.0);
 }
-
+#if 0
 BigInteger Random::nextLargeNumber (const BigInteger& maximumValue)
 {
     BigInteger n;
@@ -150,7 +161,7 @@ void Random::fillBitsRandomly (BigInteger& arrayToChange, int startBit, int numB
     while (--numBits >= 0)
         arrayToChange.setBit (startBit + numBits, nextBool());
 }
-
+#endif
 //==============================================================================
 #if JUCE_UNIT_TESTS
 

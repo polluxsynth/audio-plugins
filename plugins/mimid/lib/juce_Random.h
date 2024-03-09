@@ -61,12 +61,12 @@ public:
         @returns a random integer between 0 (inclusive) and maxValue (exclusive).
     */
     int nextInt (int maxValue) noexcept;
-
+#if 0
     /** Returns the next random number, limited to a given range.
         @returns a random integer between the range start (inclusive) and its end (exclusive).
     */
     int nextInt (Range<int> range) noexcept;
-
+#endif
     /** Returns the next 64-bit random number.
         @returns a random integer from the full range 0x8000000000000000 to 0x7fffffffffffffff
     */
@@ -84,7 +84,7 @@ public:
 
     /** Returns the next random boolean value. */
     bool nextBool() noexcept;
-
+#if 0
     /** Returns a BigInteger containing a random number.
         @returns a random value in the range 0 to (maximumValue - 1).
     */
@@ -95,7 +95,7 @@ public:
 
     /** Sets a range of bits in a BigInteger to random values. */
     void fillBitsRandomly (BigInteger& arrayToChange, int startBit, int numBits);
-
+#endif
     //==============================================================================
     /** Resets this Random object to a given seed value. */
     void setSeed (int64 newSeed) noexcept;
