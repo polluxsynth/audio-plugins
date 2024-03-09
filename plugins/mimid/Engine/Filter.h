@@ -115,7 +115,7 @@ public:
 		}
 		return mc;
         }
-	inline float NR24(float sample,float g,float ml,float lpc)
+	inline float NR24(float sample,float ml,float lpc)
 	{
 		float S = (lpc*(lpc*(lpc*s1 + s2) + s3) +s4)*ml;
 		// Alternate position for soft clip to avoid oscillation blowup.
@@ -145,7 +145,7 @@ public:
 
 		float ml = 1 / (1 + g);
 		float lpc = ml * g;
-		float y0 = NR24(sample,g,ml,lpc);
+		float y0 = NR24(sample,ml,lpc);
 
 		// Subtle amplitude limiting to avoid filter blowing up
 		// when resonating, using Taylor approximation truncated
