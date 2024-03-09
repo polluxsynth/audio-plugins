@@ -46,6 +46,8 @@ private:
 public:
 	MiMid() : Plugin(PARAM_COUNT, 0, 0)
 	{
+		synth.setSampleRate(44100);
+
 		// Set up setfuncs array
 
 #define SEFUNC(FUNCNAME) &SynthEngine::FUNCNAME
@@ -129,6 +131,84 @@ private:
 	                setParameterValue(i, parameters.values[i]);
 	}
 
+	inline void processMidiEvent(const MidiEvent *midiEvent)
+	{
+		(void) midiEvent;
+		if (midiEvent->size > 3) // sysex?
+			return;
+		uint8_t status = midiEvent->data[0];
+		uint8_t data1 = midiEvent->data[1];
+		uint8_t data2 = midiEvent->data[2];
+#define note data1
+#define vel data2
+#define cc data1
+#define ccval data2
+#define atval data1
+
+#define MIDI_NOTE_ON 144
+#define MIDI_NOTE_OFF 128
+#define MIDI_CC 176
+#define MIDI_BEND 224
+#define MIDI_AT 208
+
+		switch (status & 0xf0)
+		{
+		case MIDI_NOTE_ON:
+			if (vel) {
+				synth.procNoteOn(note, vel * (1/127.0));
+				break;
+			}
+			[[fallthrough]]; // C++17 rules!
+		case MIDI_NOTE_OFF:
+			synth.procNoteOff(note);
+			break;
+		case MIDI_BEND:
+			synth.procPitchWheel(((int)data2 * 128 + data1 - 8192) * (1/8192.0));
+			break;
+		case MIDI_CC:
+			switch (cc)
+			{
+				case 1: // mod wheel
+					synth.procModWheel(ccval * (1/127.0));
+					break;
+				case 64: // sustain pedal
+					if (ccval)
+						synth.sustainOn();
+					else
+						synth.sustainOff();
+					break;
+				case 120: // all sound off
+					synth.sustainOff();
+					synth.allNotesOff();
+					break;
+				case 123: // all notes off
+					synth.allNotesOff();
+					break;
+				default:
+					break;
+			}
+			break;
+		case MIDI_AT:
+			synth.procAfterTouch(atval * (1/127.0));
+			break;
+		default:
+			break;
+		}
+#undef note
+#undef vel
+#undef cc
+#undef ccval
+#undef atval
+	}
+
+	inline void processMidiPerSample(const MidiEvent *midiEvents, uint32_t &midiEventIndex, const uint32_t midiEventCount, const uint32_t &samplePos)
+	{
+		while (midiEventIndex < midiEventCount && midiEvents[midiEventIndex].frame <= samplePos) {
+			processMidiEvent(&midiEvents[midiEventIndex]);
+			midiEventIndex++;
+		}
+	}
+
 protected:
 	void run(const float **inputs,
 		 float **outputs,
@@ -136,12 +216,29 @@ protected:
 		 const MidiEvent *midiEvents,
 		 uint32_t midiEventCount) override
 	{
-		// Just a stub for now
-		(void) inputs;
-		(void) outputs;
-		(void) frames;
-		(void) midiEvents;
-		(void) midiEventCount;
+		float *outL = outputs[0];
+		float *outR = outputs[1];
+		(void) inputs; // synth has no audio inputs
+		uint32_t samplePos = 0;
+		uint32_t midiEventIndex = 0;
+#if 0 // TODO: Fix playhead managment = LFO tempo sync
+		if (getPlayHead() != 0 && getPlayHead()->getCurrentPosition (pos))
+			synth.setPlayHead(pos.bpm,pos.ppqPosition);
+#endif
+
+		while (samplePos < frames)
+		{
+			processMidiPerSample(midiEvents, midiEventIndex, midiEventCount, samplePos);
+
+			synth.processSample(outL + samplePos, outR + samplePos);
+
+			samplePos++;
+		}
+	}
+
+	void sampleRateChanged(double newSampleRate) override
+	{
+		synth.setSampleRate(newSampleRate);
 	}
 
 	DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MiMid);
