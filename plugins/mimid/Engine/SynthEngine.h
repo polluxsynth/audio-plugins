@@ -25,7 +25,6 @@
  */
 #pragma once
 
-#include "../PluginProcessor.h"
 #include "Voice.h"
 #include "Motherboard.h"
 #include "Params.h"

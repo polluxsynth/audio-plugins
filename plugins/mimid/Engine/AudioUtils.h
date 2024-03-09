@@ -40,6 +40,11 @@ inline int roundToInt(float f)
 	return (int) (f + 0.5);
 }
 
+inline void zeromem(void *memory, size_t numBytes) noexcept
+{
+	memset(memory, 0, numBytes);
+}
+
 inline static float getPitch(float index)
 {
 	//Lookup table is not that effective compared to SSE exp
