@@ -27,10 +27,10 @@
 #include "Voice.h"
 #include "ParamsEnum.h"
 
-#define PARAM(PARAMNO, NAME, MIN, MAX, DEFAULT, SETFUNC) \
+#define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 	values[PARAMNO] = DEFAULT;
 
-#define PARAM_NULL(PARAMNO, NAME) \
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 	values[PARAMNO] = 0;
 
 class Params

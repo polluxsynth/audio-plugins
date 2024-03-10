@@ -41,9 +41,9 @@ public:
 		// Set up setfuncs array
 
 #define SEFUNC(FUNCNAME) &SynthEngine::FUNCNAME
-#define PARAM(PARAMNO, NAME, MIN, MAX, DEFAULT, SETFUNC) \
+#define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		setfuncs[PARAMNO] = SEFUNC(SETFUNC);
-#define PARAM_NULL(PARAMNO, NAME) \
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 		setfuncs[PARAMNO] = NULL;
 #include "Engine/ParamDefs.h"
 #undef PARAM
@@ -76,19 +76,18 @@ protected:
 	{
 		switch(paramno) {
 
-// TODO: decapitalize .symbol
-#define PARAM(PARAMNO, NAME, MIN, MAX, DEFAULT, SETFUNC) \
+#define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
-			parameter.symbol = NAME; \
+			parameter.symbol = SYMBOL; \
 			parameter.ranges.def = DEFAULT; \
 			parameter.ranges.min = MIN; \
 			parameter.ranges.max = MAX; \
 			break;
-#define PARAM_NULL(PARAMNO, NAME) \
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 		case PARAMNO: \
 			parameter.name = NAME; \
-			parameter.symbol = NAME; \
+			parameter.symbol = SYMBOL; \
 			parameter.ranges.def = 0.0 ; \
 			parameter.ranges.min = 0.0 ; \
 			parameter.ranges.max = 1.0 ; \
