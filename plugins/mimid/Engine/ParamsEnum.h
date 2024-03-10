@@ -30,8 +30,8 @@ enum Parameters
 {
 	UNDEFINED,
 
-#define PARAM(PARAMNO, NAME, MIN, MAX, DEFAULT, SETFUNC) PARAMNO,
-#define PARAM_NULL(PARAMNO, NAME) PARAMNO,
+#define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) PARAMNO,
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL) PARAMNO,
 
 // This brings in the parameters as enum members
 #include "ParamDefs.h"
