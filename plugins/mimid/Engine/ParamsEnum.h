@@ -41,3 +41,17 @@ enum Parameters
 
 	PARAM_COUNT,
 };
+
+enum ParameterGroups
+{
+#define PARAMGROUP(PGID, NAME, SYMBOL) PGID,
+#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL)
+
+// This brings in the parameter groups as enum members
+#include "ParamDefs.h"
+
+#undef PARAMGROUP
+#undef PARAM
+#undef PARAM_NULL
+};
