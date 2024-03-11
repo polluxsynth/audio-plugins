@@ -22,10 +22,37 @@
 	// Parameter definitions. This file is pulled into various other
 	// files using individual specific macros to extract the relevant
 	// information for each case.
-	// ParamsEnum.h just extracts the parameter symbol in order to create
-	// the Parameters enum (order is important).
-	// PluginProcessor sets up the process callbacks and names of the
-	// parameters (and in this case the order is not important).
+	// ParamsEnum.h extracts the symbol (first parameter) in the macros
+	// in order to create enums, like the Parameters enum (order is
+	// important), 
+	// MiMi-d.cpp sets up the process callbacks, and names and symbols
+	// of the parameters (and in this case the order is not important).
+
+	// Parameter groups
+	// TODO: Remove PG_UNUSED (used by PARAM_NULL)
+	PARAMGROUP(PG_UNUSED, "Unused", "g000_unused")
+	PARAMGROUP(PG_MAIN, "Main", "g101_main")
+	PARAMGROUP(PG_KEYASGN, "Key Assign", "g102_keyassign")
+	PARAMGROUP(PG_VEL, "Velocity Sens.", "g202_velocity")
+	PARAMGROUP(PG_LFO1, "LFO1", "g301_mod_lfo1")
+	PARAMGROUP(PG_LFO2, "LFO2", "g302_mod_lfo2")
+	PARAMGROUP(PG_BEND, "Bend", "g303_bend")
+	PARAMGROUP(PG_CONTR, "Controllers", "g503_controllers")
+	PARAMGROUP(PG_OSC1, "Oscillator 1", "g401_osc")
+	PARAMGROUP(PG_OSC2, "Oscillator 2", "g402_osc")
+	PARAMGROUP(PG_OSC_COM, "Osc Common", "g404_osc_com")
+	PARAMGROUP(PG_MIXER, "Mixer", "g405_mixer")
+	PARAMGROUP(PG_FILTER, "Filter", "g501_filter")
+	PARAMGROUP(PG_FILTERCFG, "Filter Config", "g502_filter_config")
+	PARAMGROUP(PG_VCA, "VCA", "g503_vca")
+	PARAMGROUP(PG_FENV, "Filter Env", "g601_filter_env")
+	PARAMGROUP(PG_LENV, "Loudness Env", "g602_loudn_env")
+	PARAMGROUP(PG_REL, "Env Release", "g603_release")
+	PARAMGROUP(PG_SPREAD, "Spread", "g701_spread")
+	PARAMGROUP(PG_DSP, "DSP Control", "g703_dsp")
+	PARAMGROUP(PG_MISC, "Miscellaneous", "g704_misc")
+
+	// Parameters
 
 	PARAM(UNUSED_1, "Unused 1", "unused_1", 0.0, 1.0, 0.0, procUnused1)
 	PARAM(VOLUME, "Volume", "volume", 0.0, 1.0, 0.5, processVolume)
