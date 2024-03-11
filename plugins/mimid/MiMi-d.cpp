@@ -84,6 +84,27 @@ protected:
 		Plugin::initAudioPort(input, index, port);
 	}
 
+	void initPortGroup(uint32_t groupId, PortGroup &portGroup) override
+	{
+		switch(groupId) {
+
+#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL)
+#define PARAMGROUP(PGID, NAME, SYMBOL) \
+		case PGID: \
+			portGroup.name = NAME; \
+			portGroup.symbol = SYMBOL; \
+			break;
+#include "Engine/ParamDefs.h"
+#undef PARAM
+#undef PARAM_NULL
+#undef PARAMGROUP
+
+		default:
+			break;
+		}
+	}
+
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
 		switch(paramno) {
@@ -93,6 +114,7 @@ protected:
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
+			parameter.groupId = PG; \
 			parameter.ranges.def = DEFAULT; \
 			parameter.ranges.min = MIN; \
 			parameter.ranges.max = MAX; \
@@ -101,11 +123,15 @@ protected:
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
+			parameter.groupId = PG_NOTUSED; \
 			parameter.ranges.def = 0.0 ; \
 			parameter.ranges.min = 0.0 ; \
 			parameter.ranges.max = 1.0 ; \
 			break;
 #include "Engine/ParamDefs.h"
+#undef PARAM_NULL
+#undef PARAM
+#undef PARAMGROUP
 
 		default:
 			break;
