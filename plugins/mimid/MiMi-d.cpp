@@ -52,7 +52,7 @@ public:
 
 #define SEFUNC(FUNCNAME) &SynthEngine::FUNCNAME
 #define PARAMGROUP(PGID, NAME, SYMBOL)
-#define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
+#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		setfuncs[PARAMNO] = SEFUNC(SETFUNC);
 #define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 		setfuncs[PARAMNO] = NULL;
@@ -89,7 +89,7 @@ protected:
 		switch(paramno) {
 
 #define PARAMGROUP(PGID, NAME, SYMBOL)
-#define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
+#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
