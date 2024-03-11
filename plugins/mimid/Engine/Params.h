@@ -27,6 +27,8 @@
 #include "Voice.h"
 #include "ParamsEnum.h"
 
+#define PARAMGROUP(PGID, NAME, SYMBOL)
+
 #define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 	values[PARAMNO] = DEFAULT;
 
@@ -48,6 +50,7 @@ public:
 // Including "ParamDefs" with PARAM and PARAM_NULL set as above will initalize
 // all defined parameters to default values
 #include "ParamDefs.h"
+#undef PARAMGROuP
 #undef PARAM
 #undef PARAM_NULL
 	}

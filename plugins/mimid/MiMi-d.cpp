@@ -51,11 +51,13 @@ public:
 		// Set up setfuncs array
 
 #define SEFUNC(FUNCNAME) &SynthEngine::FUNCNAME
+#define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		setfuncs[PARAMNO] = SEFUNC(SETFUNC);
 #define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 		setfuncs[PARAMNO] = NULL;
 #include "Engine/ParamDefs.h"
+#undef PARAMGROUP
 #undef PARAM
 #undef PARAM_NULL
 
@@ -86,6 +88,7 @@ protected:
 	{
 		switch(paramno) {
 
+#define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
