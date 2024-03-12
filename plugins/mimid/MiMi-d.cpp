@@ -34,15 +34,91 @@ using namespace juce;
 START_NAMESPACE_DISTRHO
 
 typedef void (SynthEngine::*SetFuncType)(float);
+typedef void (*ScalePointType)(ParameterEnumerationValues &enumValues);
 
 // Plugin class parameters are #params, #programs, #states .
+
+// Set up enumValue member of Parameter struct from min and max value
+// Used in lambda call, hence put outside class
+static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int min, int max)
+{
+	int nvalues = max + 1 - min;
+	if (nvalues <= 1)
+		return; // Leave &enumValues in its default state
+	float increment = 1.0f / (nvalues - 1);
+	float value = 0;
+	ParameterEnumerationValue *ev =
+		new ParameterEnumerationValue[nvalues];
+
+	enumValues.values = ev;
+	enumValues.count = nvalues;
+	enumValues.deleteLater = true;
+	enumValues.restrictedMode = true;
+
+	for (int dispVal = min; dispVal <= max; dispVal++) {
+		ev->label = String(dispVal);
+		if (dispVal == max)
+			value = 1.0f; // fixate last value
+		ev++->value = value;
+		value += increment;
+	}
+}
+
+// Set up enumValue member of Parameter struct from varargs list of strings
+// Used in lambda call, hence put outside class
+static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues, ...)
+{
+	va_list args;
+
+	// Count number of values = number of varargs
+	// Since there is no built in sentinel in varargs, we trust
+	// our caller to have a NULL pointer at the end of the
+	// argument list.
+	int argcount = 0;
+	va_start(args, enumValues);
+	while (va_arg(args, char *))
+		argcount++;
+	va_end(args);
+
+	// Get out now if we only have one value in our list.
+	// It wouldn't make sense, and causes division by zero
+	// later on.
+	// We don't touch &enumValues, so it will remain in its
+	// default state.
+	if (argcount == 1)
+		return;
+
+	float increment = 1.0 / (argcount - 1);
+
+	ParameterEnumerationValue *ev =
+		new ParameterEnumerationValue[argcount];
+
+	enumValues.values = ev;
+	enumValues.count = argcount;
+	enumValues.deleteLater = true;
+	enumValues.restrictedMode = true;
+
+	float value = 0;
+
+	// Go through argument list again, generating strings
+	// for the individual values.
+	va_start(args, enumValues);
+	for (int argno = 0; argno < argcount; argno++) {
+		ev->label = va_arg(args, char *);
+		ev++->value = value;
+		value += increment;
+	}
+	va_end(args);
+}
 
 class MiMid : public Plugin {
 private:
 	Params parameters;
 	SetFuncType setfuncs[PARAM_COUNT];
+	ScalePointType scalepoints[SP_COUNT];
 	SynthEngine synth;
 
+protected:
 public:
 	MiMid() : Plugin(PARAM_COUNT, 0, 0)
 	{
@@ -51,11 +127,38 @@ public:
 		// Set up setfuncs array
 
 #define SEFUNC(FUNCNAME) &SynthEngine::FUNCNAME
+
+#define PARAMPOINTS(SPID, ...)
+#define PARAMRANGE(SPID, MIN, MAX)
 #define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		setfuncs[PARAMNO] = SEFUNC(SETFUNC);
 #define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 		setfuncs[PARAMNO] = NULL;
+#include "Engine/ParamDefs.h"
+
+		// Set up scalepoints array.
+		// scalepoints is an array of function pointers to lambda
+		// functions, one per scale point set, which are used
+		// when inializing the Scale Points for relevant parameters.
+		// Each lambda contains values from the corresponding
+		// macro call, calling setParameterEnumerationValues()
+		// with the correspnding values.
+
+// The NULL is important as it works as a sentinel for the list of char *'
+#define PARAMPOINTS(SPID, ...) \
+	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
+	{ \
+		setParameterEnumerationValues(enumValues, __VA_ARGS__, NULL); \
+	};
+#define PARAMRANGE(SPID, MIN, MAX) \
+	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
+	{ \
+		setParameterEnumerationValues(enumValues, MIN, MAX); \
+	};
+#define PARAMGROUP(PGID, NAME, SYMBOL)
+#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
+#define PARAM_NULL(PARAMNO, NAME, SYMBOL)
 #include "Engine/ParamDefs.h"
 
 		initAllParams();
@@ -85,6 +188,8 @@ protected:
 	{
 		switch(groupId) {
 
+#define PARAMPOINTS(SPID, ...)
+#define PARAMRANGE(SPID, MIN, MAX)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
 #define PARAM_NULL(PARAMNO, NAME, SYMBOL)
 #define PARAMGROUP(PGID, NAME, SYMBOL) \
@@ -102,13 +207,15 @@ protected:
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
 		switch(paramno) {
-
+#define PARAMPOINTS(SPID, ...)
+#define PARAMRANGE(SPID, MIN, MAX)
 #define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
 			parameter.groupId = PG; \
+			scalepoints[SP](parameter.enumValues); \
 			parameter.ranges.def = DEFAULT; \
 			parameter.ranges.min = MIN; \
 			parameter.ranges.max = MAX; \
