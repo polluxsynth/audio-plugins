@@ -50,9 +50,6 @@ public:
 // Including "ParamDefs" with PARAM and PARAM_NULL set as above will initalize
 // all defined parameters to default values
 #include "ParamDefs.h"
-#undef PARAMGROuP
-#undef PARAM
-#undef PARAM_NULL
 	}
 	~Params()
 	{

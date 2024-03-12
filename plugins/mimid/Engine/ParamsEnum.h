@@ -35,10 +35,6 @@ enum Parameters
 // This brings in the parameters as enum members
 #include "ParamDefs.h"
 
-#undef PARAMGROUP
-#undef PARAM
-#undef PARAM_NULL
-
 	PARAM_COUNT,
 };
 
@@ -51,7 +47,4 @@ enum ParameterGroups
 // This brings in the parameter groups as enum members
 #include "ParamDefs.h"
 
-#undef PARAMGROUP
-#undef PARAM
-#undef PARAM_NULL
 };

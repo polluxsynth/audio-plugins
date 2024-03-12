@@ -200,3 +200,8 @@
 	// 121
 	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_ONOFF, "FenvLinear", "fenvlinear", 0.0, 1.0, 0.0, procFenvLinear)
 	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "EnvMode", "envmode", 0.0, 1.0, 0.0, procEnvMode)
+
+// Clean up for potential re-inclusion of file with new definitions
+#undef PARAMGROUP
+#undef PARAM
+#undef PARAM_NULL
