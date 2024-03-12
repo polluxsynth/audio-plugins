@@ -52,6 +52,33 @@
 	PARAMGROUP(PG_DSP, "DSP Control", "g703_dsp")
 	PARAMGROUP(PG_MISC, "Miscellaneous", "g704_misc")
 
+	// Scale Points
+
+	PARAMPOINTS(SP_NONE, "") /* No scale points */
+	PARAMPOINTS(SP_ONOFF, "OFF", "ON")
+	PARAMRANGE(SP_OCTAVE, 1, 5)
+	PARAMRANGE(SP_VOICECOUNT, 1, 8)
+	PARAMPOINTS(SP_UNISON, "POLY", "UNI")
+	PARAMRANGE(SP_BENDRANGE, 0, 12)
+	PARAMPOINTS(SP_BENDDEST, " Off ", " Osc1 ", "Osc1+2")
+	PARAMPOINTS(SP_LFOWAVE, " Off ", " Saw ", " Fall ", " Tri ", " Rise ", " RSaw ", "Pul ", " Squ ", " RPul ", " S/H ")
+	PARAMPOINTS(SP_POLARITY, " Norm ", " Inv ", " Uni ", "InvUni")
+	PARAMPOINTS(SP_LFODEST, "Off", "Osc1", "Osc1+2", "Osc2", "PW1", "PW1+2", "PW2", "Filt", "Peak", "Bmod")
+	PARAMPOINTS(SP_KEYSYNC, " Free ", "KeySync")
+	PARAMRANGE(SP_OSCFREQ, 0, 72)
+	PARAMPOINTS(SP_OSCWAVE, " Off ", " Saw ", " Pul ", " Tri ")
+	PARAMPOINTS(SP_OSC3WAVE, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
+	PARAMPOINTS(SP_FILTERTYPE, " 24 ", "SVF", "SVF+", "SVFN") /* not used */
+	PARAMPOINTS(SP_LFOSYNC, " Off ", "Clock", " Key ", "OneShot")
+	PARAMPOINTS(SP_LFOCONTR, " None ", " Modw ", "Aftert", " Vel ")
+	PARAMPOINTS(SP_CYCRSZ, " CYC ", " RSZ ")
+	PARAMPOINTS(SP_ASGNMEM, " Off ", " Mem ")
+	PARAMPOINTS(SP_ASGNROB, " Off ", "Rob O", "Rob NL")
+	PARAMPOINTS(SP_ASGNRES, " Off ", " Res ")
+	PARAMPOINTS(SP_ASGNSTRG, " Off ", " N Off ", " N On+Off ")
+	PARAMPOINTS(SP_ENVRST, "FreeRun", "AtkReset")
+	PARAMPOINTS(SP_ENVMODE, " Exp ", " Lin ", "LinExp", "LinX5")
+
 	// Parameters
 
 	PARAM(UNUSED_1, PG_MISC, SP_NONE, "Unused 1", "unused_1", 0.0, 1.0, 0.0, procUnused1)
@@ -142,16 +169,16 @@
 	PARAM(OSC1FLTMOD, PG_OSC_COM, SP_NONE, "Osc1FilterMod", "osc1filtermod", 0.0, 1.0, 0.0, processOsc1FltMod)
 
         // ReSet to Zero (lowest) voice (default cyclic)
-	PARAM(ASGN_RSZ, PG_KEYASGN, SP_ONOFF, "KeyAssignRsz", "keyassignrsz", 0.0, 1.0, 0.0, procKeyAsgnRsz)
+	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "KeyAssignRsz", "keyassignrsz", 0.0, 1.0, 0.0, procKeyAsgnRsz)
         // Prefer assign to voice previously with same note
-	PARAM(ASGN_MEM, PG_KEYASGN, SP_ONOFF, "KeyAssignMem", "keyassignmem", 0.0, 1.0, 0.0, procKeyAsgnMem)
+	PARAM(ASGN_MEM, PG_KEYASGN, SP_ASGNMEM, "KeyAssignMem", "keyassignmem", 0.0, 1.0, 0.0, procKeyAsgnMem)
         // Rob a playing voice if no unplaying available
         // two modes: oldest (O) and next-to-lowest (NL)
-	PARAM(ASGN_ROB, PG_KEYASGN, SP_ROB, "KeyAssignRob", "keyassignrob", 0.0, 1.0, 0.0, procKeyAsgnRob)
+	PARAM(ASGN_ROB, PG_KEYASGN, SP_ASGNROB, "KeyAssignRob", "keyassignrob", 0.0, 1.0, 0.0, procKeyAsgnRob)
         // Restore mode: Store notes until voice available
-	PARAM(ASGN_RES, PG_KEYASGN, SP_ONOFF, "KeyAssignRes", "keyassignres", 0.0, 1.0, 0.0, procKeyAsgnRes)
+	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "KeyAssignRes", "keyassignres", 0.0, 1.0, 0.0, procKeyAsgnRes)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_STRG, PG_KEYASGN, SP_ONOFF, "KeyAssignStrg", "keyassignstrg", 0.0, 1.0, 0.0, procKeyAsgnStrg)
+	PARAM(ASGN_STRG, PG_KEYASGN, SP_ASGNSTRG, "KeyAssignStrg", "keyassignstrg", 0.0, 1.0, 0.0, procKeyAsgnStrg)
 
 	PARAM(LFO2SYNC, PG_LFO2, SP_LFOSYNC, "Lfo2Sync", "lfo2sync", 0.0, 1.0, 0.0, procLfo2Sync)
 
@@ -195,13 +222,15 @@
 
 	// 119
 	PARAM(OSC_KEY_SYNC, PG_OSC_COM, SP_ONOFF, "OscKeySync", "osckeysync", 0.0, 1.0, 0.0, procOscKeySync)
-	PARAM(ENV_RST, PG_KEYASGN, SP_ONOFF, "EnvRst", "envrst", 0.0, 1.0, 0.0, procEnvRst)
+	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "EnvRst", "envrst", 0.0, 1.0, 0.0, procEnvRst)
 
 	// 121
 	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_ONOFF, "FenvLinear", "fenvlinear", 0.0, 1.0, 0.0, procFenvLinear)
 	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "EnvMode", "envmode", 0.0, 1.0, 0.0, procEnvMode)
 
 // Clean up for potential re-inclusion of file with new definitions
+#undef PARAMPOINTS
+#undef PARAMRANGE
 #undef PARAMGROUP
 #undef PARAM
 #undef PARAM_NULL

@@ -27,6 +27,8 @@
 #include "Voice.h"
 #include "ParamsEnum.h"
 
+#define PARAMPOINTS(SPID, ...)
+#define PARAMRANGE(SPID, MIN, MAX)
 #define PARAMGROUP(PGID, NAME, SYMBOL)
 
 #define PARAM(PARAMNO, NAME, PG, SP, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
