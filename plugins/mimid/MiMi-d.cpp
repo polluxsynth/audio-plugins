@@ -57,9 +57,6 @@ public:
 #define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
 		setfuncs[PARAMNO] = NULL;
 #include "Engine/ParamDefs.h"
-#undef PARAMGROUP
-#undef PARAM
-#undef PARAM_NULL
 
 		initAllParams();
 	}
@@ -96,9 +93,6 @@ protected:
 			portGroup.symbol = SYMBOL; \
 			break;
 #include "Engine/ParamDefs.h"
-#undef PARAM
-#undef PARAM_NULL
-#undef PARAMGROUP
 
 		default:
 			break;
@@ -129,9 +123,6 @@ protected:
 			parameter.ranges.max = 1.0 ; \
 			break;
 #include "Engine/ParamDefs.h"
-#undef PARAM_NULL
-#undef PARAM
-#undef PARAMGROUP
 
 		default:
 			break;
