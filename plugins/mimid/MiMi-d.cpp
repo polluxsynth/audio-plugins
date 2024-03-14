@@ -133,8 +133,6 @@ public:
 #define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		setfuncs[PARAMNO] = SEFUNC(SETFUNC);
-#define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
-		setfuncs[PARAMNO] = NULL;
 #include "Engine/ParamDefs.h"
 
 		// Set up scalepoints array.
@@ -158,7 +156,6 @@ public:
 	};
 #define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
-#define PARAM_NULL(PARAMNO, NAME, SYMBOL)
 #include "Engine/ParamDefs.h"
 
 		initAllParams();
@@ -191,7 +188,6 @@ protected:
 #define PARAMPOINTS(SPID, ...)
 #define PARAMRANGE(SPID, MIN, MAX)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
-#define PARAM_NULL(PARAMNO, NAME, SYMBOL)
 #define PARAMGROUP(PGID, NAME, SYMBOL) \
 		case PGID: \
 			portGroup.name = NAME; \
@@ -219,15 +215,6 @@ protected:
 			parameter.ranges.def = DEFAULT; \
 			parameter.ranges.min = MIN; \
 			parameter.ranges.max = MAX; \
-			break;
-#define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
-		case PARAMNO: \
-			parameter.name = NAME; \
-			parameter.symbol = SYMBOL; \
-			parameter.groupId = PG_NOTUSED; \
-			parameter.ranges.def = 0.0 ; \
-			parameter.ranges.min = 0.0 ; \
-			parameter.ranges.max = 1.0 ; \
 			break;
 #include "Engine/ParamDefs.h"
 
