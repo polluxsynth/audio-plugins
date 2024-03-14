@@ -137,7 +137,7 @@
 	PARAM(OSC2WAVE, PG_OSC2, SP_OSCWAVE, "Osc2Wave", "osc2wave", 0.0, 1.0, 0.25, processOsc2Wave)
 	PARAM(FREL, PG_REL, SP_NONE, "FilterRelease", "filterrelease", 0.0, 1.0, 0.0, processFilterEnvelopeRelease)
 	PARAM(LREL, PG_REL, SP_NONE, "Release", "release", 0.0, 1.0, 0.0, processLoudnessEnvelopeRelease)
-	PARAM(OSC1FLTMOD, PG_OSC_COM, SP_NONE, "Osc1FilterMod", "osc1filtermod", 0.0, 1.0, 0.0, processOsc1FltMod)
+	PARAM(OSC2FLTMOD, PG_OSC_COM, SP_NONE, "Osc2FilterMod", "osc2filtermod", 0.0, 1.0, 0.0, processOsc2FltMod)
 
         // ReSet to Zero (lowest) voice (default cyclic)
 	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "KeyAssignRsz", "keyassignrsz", 0.0, 1.0, 0.0, procKeyAsgnRsz)
