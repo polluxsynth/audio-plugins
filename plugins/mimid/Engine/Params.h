@@ -34,9 +34,6 @@
 #define PARAM(PARAMNO, NAME, PG, SP, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 	values[PARAMNO] = DEFAULT;
 
-#define PARAM_NULL(PARAMNO, NAME, SYMBOL) \
-	values[PARAMNO] = 0;
-
 class Params
 {
 public:
@@ -49,7 +46,7 @@ public:
 	}
 	void setDefaultValues()
 	{
-// Including "ParamDefs" with PARAM and PARAM_NULL set as above will initalize
+// Including "ParamDefs" with PARAM set as above will initalize
 // all defined parameters to default values
 #include "ParamDefs.h"
 	}
