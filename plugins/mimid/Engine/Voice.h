@@ -88,7 +88,7 @@ public:
 	float levelSpreadAmt;
 
 	float brightCoef;
-	float osc1FltMod;
+	float osc2FltMod;
 
 	float hpffreq, hpfcutoff;
 
@@ -152,7 +152,7 @@ public:
 		brightCoef =briHold= 1;
 		hpffreq=4;
 		hpfcutoff=0;
-		osc1FltMod = 0;
+		osc2FltMod = 0;
 		oscpsw = 0;
 		cutoffwas = envelopewas=0;
 		c1=c2=d1=d2=shpf=0;
@@ -262,7 +262,7 @@ public:
 			// the filter frequency to go above ~22 kHz, scale down
 			// the mod amount accordingly.
 			// This gives a seamless transition from the mod value
-			// set by osc1FltMod down to zero as the filter
+			// set by osc2FltMod down to zero as the filter
 			// frequency is increased. The effectiveness of this
 			// mod routing is rather diminished at high filter
 			// frequency settings anyway.
@@ -275,17 +275,17 @@ public:
 			// (without considering oscmod_offset, which gives
 			// us a bit of extra margin, as the final offset is
 			// in fact negative).
-			float maxcutoff = cutoffnote + oscmod_maxpeak * osc1FltMod;
-			float osc1FltModTmp = osc1FltMod + (lfo1bmod?(lfo1Delayed*100):0) + (lfo2bmod?(lfo2Delayed*100):0);
+			float maxcutoff = cutoffnote + oscmod_maxpeak * osc2FltMod;
+			float osc2FltModTmp = osc2FltMod + (lfo1bmod?(lfo1Delayed*100):0) + (lfo2bmod?(lfo2Delayed*100):0);
 			if (cutoffnote > maxallowednote)
 				// outside range; disable modulation
-				osc1FltModTmp = 0;
+				osc2FltModTmp = 0;
 			else if (maxcutoff > maxallowednote)
-				// limit osc1FltMod to keep under max allowed.
+				// limit osc2FltMod to keep under max allowed.
 				// note: divide by peak of mod signal.
-				osc1FltModTmp = (maxallowednote - cutoffnote) *
+				osc2FltModTmp = (maxallowednote - cutoffnote) *
 						oscmod_maxpeak_inv;
-			cutoffnote += (oscmod-oscmod_offset) * osc1FltModTmp;
+			cutoffnote += (oscmod-oscmod_offset) * osc2FltModTmp;
 		}
 		float cutoffcalc = jmin(
 			getPitch(cutoffnote)

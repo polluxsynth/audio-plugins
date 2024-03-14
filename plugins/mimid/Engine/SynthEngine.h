@@ -513,9 +513,9 @@ public:
 	{
 		ForEachVoice(sqdist.setAmount(param * 0.435));
 	}
-	void processOsc1FltMod(float param)
+	void processOsc2FltMod(float param)
 	{
-		ForEachVoice(osc1FltMod = param*100);
+		ForEachVoice(osc2FltMod = param*100);
 	}
 	void processOsc1Det(float param)
 	{
