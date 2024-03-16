@@ -74,7 +74,7 @@ static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues
 	// Since there is no built in sentinel in varargs, we trust
 	// our caller to have a NULL pointer at the end of the
 	// argument list.
-	int argcount = 0;
+	size_t argcount = 0;
 	va_start(args, enumValues);
 	while (va_arg(args, char *))
 		argcount++;
@@ -103,7 +103,7 @@ static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues
 	// Go through argument list again, generating strings
 	// for the individual values.
 	va_start(args, enumValues);
-	for (int argno = 0; argno < argcount; argno++) {
+	for (size_t argno = 0; argno < argcount; argno++) {
 		ev->label = va_arg(args, char *);
 		ev++->value = value;
 		value += increment;
