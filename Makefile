@@ -8,7 +8,7 @@
 PLUGIN=mimid
 PLUGIN_NAME=MiMi-d
 WITH_LTO=true
-NOOPT=true
+NOOPT=false
 
 include dpf/Makefile.base.mk
 
@@ -27,7 +27,7 @@ ifeq ($(HAVE_OPENGL),true)
 endif
 
 plugins: dgl
-	$(MAKE) all -C plugins/$(PLUGIN)
+	$(MAKE) WITH_LTO=$(WITH_LTO) NOOPT=$(NOOPT) all -C plugins/$(PLUGIN)
 
 ifneq ($(CROSS_COMPILING),true)
 gen: plugins dpf/utils/lv2_ttl_generator
