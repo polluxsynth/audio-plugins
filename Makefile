@@ -5,6 +5,12 @@
 #
 # Modified by REIS0
 
+# Convenience command to fetch dpf as git submodule if the dpf subdirectory
+# is empty.
+# We send the output to stderr instead of stdout, else it ends up as a
+# makefile statement with haphazard results.
+$(shell [ -f dpf/Makefile.base.mk ] || git submodule update --init --recursive dpf 1>&2)
+
 PLUGIN=mimid
 PLUGIN_NAME=MiMi-d
 WITH_LTO=true
