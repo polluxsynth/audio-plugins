@@ -131,7 +131,6 @@ public:
 	bool oscmodEnable; // Oscillator modulation output enabled
 
 	bool expvca;
-	bool expapprox;
 
 	int voiceNumber; // Handy to have in the voice itself
 
@@ -179,7 +178,6 @@ public:
 	//	fenvd=new DelayLine(Samples*2);
 		oscmodEnable = false;
 		expvca = false;
-		expapprox = false;
 		lfo2.waveForm = 1; // Triangle
 		voiceNumber = 0; // Until someone else says something else
 		unused1=unused2=0; // TODO: Remove
@@ -312,11 +310,12 @@ public:
 
 		// VCA
 		if (expvca) {
-			if (expapprox)
-				envVal *= envVal * envVal * envVal * envVal; // x5
-			else
-				//envVal *= envVal * envVal; // cube
-				envVal = expf(7.5*(envVal-1)); // 1..0 -> 0..-65 dB
+			// Approximate exponential curve with x**5:
+			// - Faster to calculate yet reasonable approximation
+			// - Actually goes down to zero when envelope goes t0 0
+			// Empirically, MiMi-a exponential VCA would be:
+			// envVal = expf(7.5*(envVal-1)); // 1..0 -> 0..-65 dB
+			envVal *= envVal * envVal * envVal * envVal;
 		}
 		x1 *= envVal;
 		return x1;
