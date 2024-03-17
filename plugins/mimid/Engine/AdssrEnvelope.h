@@ -36,7 +36,7 @@ private:
 	float ua,ud,us,ur; // saved parameter values (not for sustain)
 	float coef;
 	int dir; // decay curve direction (1 => down, -1 = up)
-	enum { HLD, ATK, DEC, SUS, REL, OFF } state;
+	enum { HLD, ATK, DEC, SUS, SUST, REL, OFF } state;
 	float SampleRate;
 	float uf;
 	// In ADSSR mode, the asymptote is lower than the sustain level,
@@ -122,6 +122,8 @@ public:
 		linear = lin;
 		if (state == DEC || state == SUS)
 			coef = coef_dec(decay);
+		else if (state == SUST)
+			coef = coef_rel(sustainTime);
 		else if (state == REL)
 			coef = coef_rel(release);
 		else if (state == ATK)
@@ -161,7 +163,7 @@ public:
 	{
 		us = sust;
 		sustainTime = sust*uf;
-		if (state == SUS)
+		if (state == SUST)
 			coef = coef_rel(sust);
 	}
 	void setRelease(float rel)
@@ -222,7 +224,7 @@ public:
 				if (adsrMode)
 					state = SUS;
 				else {
-					state = REL;
+					state = SUST;
 					coef = coef_rel(sustainTime);
 				}
 			}
@@ -230,6 +232,8 @@ public:
 		case SUS: // Used for ADSR Sustain phase
 			// Leave Value as it is
 			break;
+		case SUST: // Use for ADSSR Sustain phase
+			   // same calculations as for Release phase
 		case REL: // Used for both Release and ADSSR Sustain phases
 			Value -= linear ? coef : Value * coef + dc;
 			if (Value < 20e-6) {
