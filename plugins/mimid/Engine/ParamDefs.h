@@ -74,7 +74,7 @@
 	PARAMPOINTS(SP_KEYSYNC, " Free ", "KeySync")
 	PARAMPOINTS(SP_OSC3WAVE, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
 	PARAMPOINTS(SP_FILTERTYPE, " 24 ", "SVF", "SVF+", "SVFN") /* not used */
-	PARAMPOINTS(SP_ENVMODE, " Exp ", " Lin ", "LinExp", "LinX5")
+	PARAMPOINTS(SP_ENVMODE, " Exp ", " Lin ", "LinExp")
 
 	// Parameters
 
