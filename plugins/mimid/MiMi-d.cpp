@@ -195,17 +195,17 @@ protected:
 
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
-		int maxval;
+		int SP_MAX;
 		switch(paramno) {
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
 			parameter.groupId = PG; \
-			maxval = scalepoints[SP](parameter.enumValues); \
+			SP_MAX = scalepoints[SP](parameter.enumValues); \
 			parameter.ranges.def = DEFAULT; \
-			parameter.ranges.min = maxval ? 0 : MIN; \
-			parameter.ranges.max = maxval ? maxval : MAX; \
+			parameter.ranges.min = MIN; \
+			parameter.ranges.max = MAX; \
 			break;
 #include "Engine/ParamDefs.h"
 
