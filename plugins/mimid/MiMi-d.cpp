@@ -34,19 +34,19 @@ using namespace juce;
 START_NAMESPACE_DISTRHO
 
 typedef void (SynthEngine::*SetFuncType)(float);
-typedef void (*ScalePointType)(ParameterEnumerationValues &enumValues);
+typedef int (*ScalePointType)(ParameterEnumerationValues &enumValues);
 
 // Plugin class parameters are #params, #programs, #states .
 
 // Set up enumValue member of Parameter struct from min and max value
 // Used in lambda call, hence put outside class
-static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int min, int max)
+// Returns maximum value of values in enumValues, so 1 for a two values
+static int setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int min, int max)
 {
 	int nvalues = max + 1 - min;
 	if (nvalues <= 1)
-		return; // Leave &enumValues in its default state
-	float increment = 1.0f / (nvalues - 1);
-	float value = 0;
+		return 0; // Leave &enumValues in its default state
+	int value = 0;
 	ParameterEnumerationValue *ev =
 		new ParameterEnumerationValue[nvalues];
 
@@ -57,16 +57,16 @@ static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues
 
 	for (int dispVal = min; dispVal <= max; dispVal++) {
 		ev->label = String(dispVal);
-		if (dispVal == max)
-			value = 1.0f; // fixate last value
 		ev++->value = value;
-		value += increment;
+		value++;
 	}
+	return nvalues - 1;
 }
 
 // Set up enumValue member of Parameter struct from varargs list of strings
 // Used in lambda call, hence put outside class
-static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues, ...)
+// Returns maximum value of values in enumValues, so 1 for a range of 0-1
+static int setParameterEnumerationValues(ParameterEnumerationValues &enumValues, ...)
 {
 	va_list args;
 
@@ -82,13 +82,11 @@ static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues
 
 	// Get out now if we only have one value in our list.
 	// It wouldn't make sense, and causes division by zero
-	// later on.
+	// later on; we can use it as a null operation however (SP_NONE).
 	// We don't touch &enumValues, so it will remain in its
 	// default state.
 	if (argcount == 1)
-		return;
-
-	float increment = 1.0 / (argcount - 1);
+		return 0;
 
 	ParameterEnumerationValue *ev =
 		new ParameterEnumerationValue[argcount];
@@ -98,7 +96,7 @@ static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues
 	enumValues.deleteLater = true;
 	enumValues.restrictedMode = true;
 
-	float value = 0;
+	int value = 0;
 
 	// Go through argument list again, generating strings
 	// for the individual values.
@@ -106,9 +104,11 @@ static void setParameterEnumerationValues(ParameterEnumerationValues &enumValues
 	for (size_t argno = 0; argno < argcount; argno++) {
 		ev->label = va_arg(args, char *);
 		ev++->value = value;
-		value += increment;
+		value++;
 	}
 	va_end(args);
+
+	return argcount - 1;
 }
 
 class MiMid : public Plugin {
@@ -145,12 +145,12 @@ public:
 #define PARAMPOINTS(SPID, ...) \
 	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
 	{ \
-		setParameterEnumerationValues(enumValues, __VA_ARGS__, NULL); \
+		return setParameterEnumerationValues(enumValues, __VA_ARGS__, NULL); \
 	};
 #define PARAMRANGE(SPID, MIN, MAX) \
 	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
 	{ \
-		setParameterEnumerationValues(enumValues, MIN, MAX); \
+		return setParameterEnumerationValues(enumValues, MIN, MAX); \
 	};
 #include "Engine/ParamDefs.h"
 
@@ -195,16 +195,17 @@ protected:
 
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
+		int maxval;
 		switch(paramno) {
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
 			parameter.groupId = PG; \
-			scalepoints[SP](parameter.enumValues); \
+			maxval = scalepoints[SP](parameter.enumValues); \
 			parameter.ranges.def = DEFAULT; \
-			parameter.ranges.min = MIN; \
-			parameter.ranges.max = MAX; \
+			parameter.ranges.min = maxval ? 0 : MIN; \
+			parameter.ranges.max = maxval ? maxval : MAX; \
 			break;
 #include "Engine/ParamDefs.h"
 
