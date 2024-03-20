@@ -128,11 +128,9 @@ public:
 
 #define SEFUNC(FUNCNAME) &SynthEngine::FUNCNAME
 
-#define PARAMPOINTS(SPID, ...)
-#define PARAMRANGE(SPID, MIN, MAX)
-#define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		setfuncs[PARAMNO] = SEFUNC(SETFUNC);
+
 #include "Engine/ParamDefs.h"
 
 		// Set up scalepoints array.
@@ -154,8 +152,6 @@ public:
 	{ \
 		setParameterEnumerationValues(enumValues, MIN, MAX); \
 	};
-#define PARAMGROUP(PGID, NAME, SYMBOL)
-#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
 #include "Engine/ParamDefs.h"
 
 		initAllParams();
@@ -185,9 +181,6 @@ protected:
 	{
 		switch(groupId) {
 
-#define PARAMPOINTS(SPID, ...)
-#define PARAMRANGE(SPID, MIN, MAX)
-#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
 #define PARAMGROUP(PGID, NAME, SYMBOL) \
 		case PGID: \
 			portGroup.name = NAME; \
@@ -203,9 +196,6 @@ protected:
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
 		switch(paramno) {
-#define PARAMPOINTS(SPID, ...)
-#define PARAMRANGE(SPID, MIN, MAX)
-#define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
