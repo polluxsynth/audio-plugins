@@ -19,6 +19,21 @@
 	==============================================================================
  */
 
+	// Define null macros for those that are not defined by the caller
+
+#ifndef PARAMPOINTS
+#define PARAMPOINTS(SPID, ...)
+#endif
+#ifndef PARAMRANGE
+#define PARAMRANGE(SPID, MIN, MAX)
+#endif
+#ifndef PARAMGROUP
+#define PARAMGROUP(PGID, NAME, SYMBOL)
+#endif
+#ifndef PARAM
+#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
+#endif
+
 	// Parameter definitions. This file is pulled into various other
 	// files using individual specific macros to extract the relevant
 	// information for each case.
