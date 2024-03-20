@@ -118,7 +118,7 @@ public:
 	void procLfo1Sync(float val)
 	{
 		// Off - Tempo - Key - Oneshot
-		int intval = roundToInt(val*3);
+		int intval = roundToInt(val);
 		for(int i = 0 ; i < Motherboard::MAX_VOICES;i++)
 		{
 			synth.voices[i].lfo1.setClockSync(intval == 1);
@@ -129,7 +129,7 @@ public:
 	void procLfo2Sync(float val)
 	{
 		// Off - Tempo - Key - Oneshot
-		int intval = roundToInt(val*3);
+		int intval = roundToInt(val);
 		for(int i = 0 ; i < Motherboard::MAX_VOICES;i++)
 		{
 			synth.voices[i].lfo2.setClockSync(intval == 1);
@@ -140,38 +140,38 @@ public:
 	void procLfo1Polarity(float val)
 	{
 		// Normal - Invert - Unipolar - Unipolar+Invert
-		int intval = roundToInt(val*3);
+		int intval = roundToInt(val);
 		ForEachVoice(lfo1.invert = (intval & 1));
 		ForEachVoice(lfo1.unipolar = (intval & 2));
 	}
 	void procLfo2Polarity(float val)
 	{
 		// Normal - Invert - Unipolar - Unipolar+Invert
-		int intval = roundToInt(val*3);
+		int intval = roundToInt(val);
 		ForEachVoice(lfo2.invert = (intval & 1));
 		ForEachVoice(lfo2.unipolar = (intval & 2));
 	}
 	void procKeyAsgnRsz(float val)
 	{
-		synth.voiceAlloc.rsz = val > 0.5;
+		synth.voiceAlloc.rsz = roundToInt(val);
 	}
 	void procKeyAsgnMem(float val)
 	{
-		synth.voiceAlloc.mem = val > 0.5;
+		synth.voiceAlloc.mem = roundToInt(val);
 	}
 	void procKeyAsgnRob(float val)
 	{
-		int intval = roundToInt(val*2);
+		int intval = roundToInt(val);
 		synth.voiceAlloc.rob_oldest = intval == 1;
 		synth.voiceAlloc.rob_next_to_lowest = intval == 2;
 	}
 	void procKeyAsgnRes(float val)
 	{
-		synth.voiceAlloc.restore = val > 0.5;
+		synth.voiceAlloc.restore = roundToInt(val);
 	}
 	void procKeyAsgnStrg(float val)
 	{
-		int intval = roundToInt(val*2);
+		int intval = roundToInt(val);
 		synth.voiceAlloc.strgNoteOff = intval == 1 || intval == 2;
 		synth.voiceAlloc.strgNoteOn = intval == 2;
 	}
@@ -189,7 +189,7 @@ public:
 	}
 	void procEconomyMode(float val)
 	{
-		synth.economyMode = val>0.5;
+		synth.economyMode = roundToInt(val);
 	}
 
 	// TODO: Remove
@@ -279,17 +279,17 @@ public:
 	}
 	void setVoiceCount(float param)
 	{
-		synth.setVoiceCount(roundToInt((param*7) +1));
+		synth.setVoiceCount(roundToInt(param) + 1);
 	}
 	void procPitchWheelAmount(float param)
 	{
-		int intparam = roundToInt(param * 12);
+		int intparam = roundToInt(param);
 		ForEachVoice(pitchWheelAmt = intparam);
 	}
 	void procPitchWheelDest(float param)
 	{
 		// OFF - OSC1 - OSC1+2
-		int intparam = roundToInt(param * 2);
+		int intparam = roundToInt(param);
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
 			synth.voices[i].pitchWheelOsc1 = intparam >= 1;
@@ -311,7 +311,7 @@ public:
 	{
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
-			synth.voices[i].osc.oct = (roundToInt(param*4) -2)*12;
+			synth.voices[i].osc.oct = (roundToInt(param) - 2) * 12;
 		}
 	}
 	void processFilterKeyFollow(float param)
@@ -342,12 +342,12 @@ public:
 	}
 	void processLfo1Wave(float param)
 	{
-		int intparam = roundToInt(param * 9);
+		int intparam = roundToInt(param);
 		ForEachVoice(lfo1.setWaveForm(intparam));
 	}
 	void processLfo2Wave(float param)
 	{
-		int intparam = roundToInt(param * 9);
+		int intparam = roundToInt(param);
 		ForEachVoice(lfo2.setWaveForm(intparam));
 	}
 	void processLfo1Amt(float param)
@@ -356,7 +356,7 @@ public:
 	}
 	void processLfo1Dest(float param)
 	{
-		int intparam = roundToInt(param*9);
+		int intparam = roundToInt(param);
 		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		bool lfo1o1 = intparam == 1 || intparam == 2;
@@ -379,7 +379,7 @@ public:
 	}
 	void processLfo2Dest(float param)
 	{
-		int intparam = roundToInt(param*9);
+		int intparam = roundToInt(param);
 		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		bool lfo2o1 = intparam == 1 || intparam == 2;
@@ -402,7 +402,7 @@ public:
 	}
 	void procLfo1Controller(float val)
 	{
-		int intval = roundToInt(val*3);
+		int intval = roundToInt(val);
 		// off - modwheel - aftertouch - lfo2
 		ForEachVoice(lfo1modw = (intval == 1));
 		ForEachVoice(lfo1after = (intval == 2));
@@ -414,7 +414,7 @@ public:
 	}
 	void procLfo2Controller(float val)
 	{
-		int intval = roundToInt(val*3);
+		int intval = roundToInt(val);
 		// off - modwheel - aftertouch - lfo1
 		ForEachVoice(lfo2modw = (intval == 1));
 		ForEachVoice(lfo2after = (intval == 2));
@@ -447,17 +447,18 @@ public:
 	}
 	void processInvertFenv(float param)
 	{
-		ForEachVoice(invertFenv = param>0.5);
+		ForEachVoice(invertFenv = roundToInt(param));
 	}
 	void procFenvLinear(float param)
 	{
-		ForEachVoice(fenv.setLinear(param>0.5));
+		ForEachVoice(fenv.setLinear(roundToInt(param)));
 	}
 	void procEnvMode(float param)
 	{
+		int intparam = roundToInt(param);
 		// Exp env / Lin VCA - Lin env / Lin VCA - Lin env / Exp VCA
-		ForEachVoice(env.setLinear(param>0.33));
-		ForEachVoice(expvca = (param>0.67));
+		ForEachVoice(env.setLinear(intparam >= 1));
+		ForEachVoice(expvca = (intparam >= 2));
 	}
 	void processOsc2Xmod(float param)
 	{
@@ -477,14 +478,14 @@ public:
 	{
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
-			synth.voices[i].osc.osc1p = roundToInt(param * 72);
+			synth.voices[i].osc.osc1p = roundToInt(param);
 		}
 	}
 	void processOsc2Pitch(float param)
 	{
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
-			synth.voices[i].osc.osc2p = roundToInt(param * 72);
+			synth.voices[i].osc.osc2p = roundToInt(param);
 		}
 	}
 	void processOsc1Mix(float param)
@@ -533,7 +534,7 @@ public:
 
 	void processOsc1Wave(float param)
 	{
-		int intparam = roundToInt(param*3);
+		int intparam = roundToInt(param);
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
 			synth.voices[i].osc.osc1Saw = intparam == 1;
@@ -546,7 +547,7 @@ public:
 
 	void processOsc2Wave(float param)
 	{
-		int intparam = roundToInt(param*3);
+		int intparam = roundToInt(param);
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
 			synth.voices[i].osc.osc2Saw = intparam == 1;
@@ -556,7 +557,7 @@ public:
 	}
 	void processOsc3Wave(float param)
 	{
-		int intparam = roundToInt(param*4);
+		int intparam = roundToInt(param);
 		// off - -1 square - -2 square - -2 pulse - noise
 		ForEachVoice(osc.osc3Waveform = intparam);
 		//ForEachVoice(osc.noiseEnable = (intparam == 4));
@@ -595,7 +596,7 @@ public:
 	}
 	void processOversampling(float param)
 	{
-		synth.SetOversample(param>0.5);
+		synth.SetOversample(roundToInt(param));
 	}
 	void processFilterEnvelopeAmt(float param)
 	{
@@ -713,11 +714,11 @@ for(int i = 0 ; i < synth.MAX_VOICES;i++)
 	}
 	void procOscKeySync(float param)
 	{
-		ForEachVoice(oscKeySync = param > 0.5);
+		ForEachVoice(oscKeySync = roundToInt(param));
 	}
 	void procEnvRst(float param)
 	{
-		ForEachVoice(envRst = param > 0.5);
+		ForEachVoice(envRst = roundToInt(param));
 	}
 		 
 };
