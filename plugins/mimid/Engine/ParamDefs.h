@@ -97,76 +97,76 @@
 	PARAM(VOLUME, PG_MAIN, SP_NONE, "Volume", "volume", 0.0, 1.0, 0.5, processVolume)
 	PARAM(PORTAMENTO, PG_MAIN, SP_NONE, "Portamento", "portamento", 0.0, 1.0, 0.0, processPortamento)
 	PARAM(TUNE, PG_MAIN, SP_NONE, "Tune", "tune", 0.0, 1.0, 0.5, processTune)
-	PARAM(OCTAVE, PG_MAIN, SP_OCTAVE, "Octave", "octave", 0.0, 1.0, 0.5, processOctave)
+	PARAM(OCTAVE, PG_MAIN, SP_OCTAVE, "Octave", "octave", 0.0, SP_MAX, 2, processOctave)
 
 	// Key assignment #1 (general)
-	PARAM(VOICE_COUNT, PG_KEYASGN, SP_VOICECOUNT, "VoiceCount", "voicecount", 0.0, 1.0, 1.0, setVoiceCount)
-	PARAM(UNISON, PG_KEYASGN, SP_UNISON, "Unison", "unison", 0.0, 1.0, 0.0, processUnison)
+	PARAM(VOICE_COUNT, PG_KEYASGN, SP_VOICECOUNT, "VoiceCount", "voicecount", 0.0, SP_MAX, 5, setVoiceCount)
+	PARAM(UNISON, PG_KEYASGN, SP_UNISON, "Unison", "unison", 0.0, SP_MAX, 0.0, processUnison)
 	// Envelope reset
-	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "EnvRst", "envrst", 0.0, 1.0, 0.0, procEnvRst)
+	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "EnvRst", "envrst", 0.0, SP_MAX, 0.0, procEnvRst)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_STRG, PG_KEYASGN, SP_ASGNSTRG, "KeyAssignStrg", "keyassignstrg", 0.0, 1.0, 0.0, procKeyAsgnStrg)
+	PARAM(ASGN_STRG, PG_KEYASGN, SP_ASGNSTRG, "KeyAssignStrg", "keyassignstrg", 0.0, SP_MAX, 0.0, procKeyAsgnStrg)
 
 	// Key assignment #2 (modes)
         // ReSet to Zero (lowest) voice (default cyclic)
-	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "KeyAssignRsz", "keyassignrsz", 0.0, 1.0, 0.0, procKeyAsgnRsz)
+	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "KeyAssignRsz", "keyassignrsz", 0.0, SP_MAX, 0.0, procKeyAsgnRsz)
         // Prefer assign to voice previously with same note
-	PARAM(ASGN_MEM, PG_KEYASGN, SP_ASGNMEM, "KeyAssignMem", "keyassignmem", 0.0, 1.0, 0.0, procKeyAsgnMem)
+	PARAM(ASGN_MEM, PG_KEYASGN, SP_ASGNMEM, "KeyAssignMem", "keyassignmem", 0.0, SP_MAX, 0.0, procKeyAsgnMem)
         // Rob a playing voice if no unplaying available
         // two modes: oldest (O) and next-to-lowest (NL)
-	PARAM(ASGN_ROB, PG_KEYASGN, SP_ASGNROB, "KeyAssignRob", "keyassignrob", 0.0, 1.0, 0.0, procKeyAsgnRob)
+	PARAM(ASGN_ROB, PG_KEYASGN, SP_ASGNROB, "KeyAssignRob", "keyassignrob", 0.0, SP_MAX, 0.0, procKeyAsgnRob)
         // Restore mode: Store notes until voice available
-	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "KeyAssignRes", "keyassignres", 0.0, 1.0, 0.0, procKeyAsgnRes)
+	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "KeyAssignRes", "keyassignres", 0.0, SP_MAX, 0.0, procKeyAsgnRes)
 
 	// Bend
-	PARAM(BENDRANGE, PG_BEND, SP_BENDRANGE, "BendRange", "bendrange", 0.0, 1.0, 0.0, procPitchWheelAmount)
-	PARAM(BENDDEST, PG_BEND, SP_BENDDEST, "BendDest", "benddest", 0.0, 1.0, 0.0, procPitchWheelDest)
+	PARAM(BENDRANGE, PG_BEND, SP_BENDRANGE, "BendRange", "bendrange", 0.0, SP_MAX, 0.0, procPitchWheelAmount)
+	PARAM(BENDDEST, PG_BEND, SP_BENDDEST, "BendDest", "benddest", 0.0, SP_MAX, 0.0, procPitchWheelDest)
 
 	// LFO1 #1 (main: freq, wave, basic amount)
 	PARAM(LFO1FREQ, PG_LFO1, SP_NONE, "Lfo1Frequency", "lfo1frequency", 0.0, 1.0, 0.0, processLfo1Frequency)
-	PARAM(LFO1WAVE, PG_LFO1, SP_LFOWAVE, "Lfo1Wave", "lfo1wave", 0.0, 1.0, 0.0, processLfo1Wave)
+	PARAM(LFO1WAVE, PG_LFO1, SP_LFOWAVE, "Lfo1Wave", "lfo1wave", 0.0, SP_MAX, 0.0, processLfo1Wave)
 	PARAM(LFO1AMT, PG_LFO1, SP_NONE, "Lfo1Amount", "lfo1amount", 0.0, 1.0, 0.0, processLfo1Amt)
-	PARAM(LFO1DEST, PG_LFO1, SP_LFODEST, "Lfo1Dest", "lfo1dest", 0.0, 1.0, 0.0, processLfo1Dest)
+	PARAM(LFO1DEST, PG_LFO1, SP_LFODEST, "Lfo1Dest", "lfo1dest", 0.0, SP_MAX, 0.0, processLfo1Dest)
 	// LFO1 #2 (secondary: sync, controllers, polarity)
 	PARAM(LFO1_CONTRAMT, PG_LFO1, SP_NONE, "Lfo1ContrAmt", "lfo1contramt", 0.0, 1.0, 0.0, procLfo1ControllerAmt)
-	PARAM(LFO1_AMT_CTRL, PG_LFO1, SP_LFOCONTR, "Lfo1AmtCont", "lfo1amtcont", 0.0, 1.0, 0.0, procLfo1Controller)
-	PARAM(LFO1_POLARITY, PG_LFO1, SP_POLARITY, "Lfo1Polarity", "lfo1polarity", 0.0, 1.0, 0.0, procLfo1Polarity)
-	PARAM(LFO1SYNC, PG_LFO1, SP_LFOSYNC, "Lfo1Sync", "lfo1sync", 0.0, 1.0, 0.0, procLfo1Sync)
+	PARAM(LFO1_AMT_CTRL, PG_LFO1, SP_LFOCONTR, "Lfo1AmtCont", "lfo1amtcont", 0.0, SP_MAX, 0.0, procLfo1Controller)
+	PARAM(LFO1_POLARITY, PG_LFO1, SP_POLARITY, "Lfo1Polarity", "lfo1polarity", 0.0, SP_MAX, 0.0, procLfo1Polarity)
+	PARAM(LFO1SYNC, PG_LFO1, SP_LFOSYNC, "Lfo1Sync", "lfo1sync", 0.0, SP_MAX, 0.0, procLfo1Sync)
 
 	// LFO2 #1 (main: freq, wave, basic amount)
 	PARAM(LFO2FREQ, PG_LFO2, SP_NONE, "Lfo2Frequency", "lfo2frequency", 0.0, 1.0, 0.6, processLfo2Frequency)
-	PARAM(LFO2WAVE, PG_LFO2, SP_LFOWAVE, "Lfo2Wave", "lfo2wave", 0.0, 1.0, 0.0, processLfo2Wave)
+	PARAM(LFO2WAVE, PG_LFO2, SP_LFOWAVE, "Lfo2Wave", "lfo2wave", 0.0, SP_MAX, 0.0, processLfo2Wave)
 	PARAM(LFO2AMT, PG_LFO2, SP_NONE, "Lfo2Amount", "lfo2amount", 0.0, 1.0, 0.0, processLfo2Amt)
-	PARAM(LFO2DEST, PG_LFO2, SP_LFODEST, "Lfo2Dest", "lfo2dest", 0.0, 1.0, 0.0, processLfo2Dest)
+	PARAM(LFO2DEST, PG_LFO2, SP_LFODEST, "Lfo2Dest", "lfo2dest", 0.0, SP_MAX, 0.0, processLfo2Dest)
 	// LFO2 #2 (secondary: sync, controllers, polarity)
 	PARAM(LFO2_CONTRAMT, PG_LFO2, SP_NONE, "Lfo2ContrAmt", "lfo2contramt", 0.0, 1.0, 0.0, procLfo2ControllerAmt)
-	PARAM(LFO2_AMT_CTRL, PG_LFO2, SP_LFOCONTR, "Lfo2AmtCont", "lfo2amtcont", 0.0, 1.0, 0.0, procLfo2Controller)
-	PARAM(LFO2_POLARITY, PG_LFO2, SP_POLARITY, "Lfo2Polarity", "lfo2polarity", 0.0, 1.0, 0.0, procLfo2Polarity)
-	PARAM(LFO2SYNC, PG_LFO2, SP_LFOSYNC, "Lfo2Sync", "lfo2sync", 0.0, 1.0, 0.0, procLfo2Sync)
+	PARAM(LFO2_AMT_CTRL, PG_LFO2, SP_LFOCONTR, "Lfo2AmtCont", "lfo2amtcont", 0.0, SP_MAX, 0.0, procLfo2Controller)
+	PARAM(LFO2_POLARITY, PG_LFO2, SP_POLARITY, "Lfo2Polarity", "lfo2polarity", 0.0, SP_MAX, 0.0, procLfo2Polarity)
+	PARAM(LFO2SYNC, PG_LFO2, SP_LFOSYNC, "Lfo2Sync", "lfo2sync", 0.0, SP_MAX, 0.0, procLfo2Sync)
 
 	// Osc 1
 	PARAM(OSC1_DET, PG_OSC1, SP_NONE, "Oscillator1detune", "oscillator1detune", 0.0, 1.0, 0.0, processOsc1Det)
-	PARAM(OSC1P, PG_OSC1, SP_OSCFREQ, "Osc1Pitch", "osc1pitch", 0.0, 1.0, 0.0, processOsc1Pitch)
+	PARAM(OSC1P, PG_OSC1, SP_OSCFREQ, "Osc1Pitch", "osc1pitch", 0.0, SP_MAX, 0.0, processOsc1Pitch)
 	PARAM(OSC1PW, PG_OSC1, SP_NONE, "Osc1PW", "osc1pw", 0.0, 1.0, 0.0, processOsc1PulseWidth)
-	PARAM(OSC1WAVE, PG_OSC1, SP_OSCWAVE, "Osc1Wave", "osc1wave", 0.0, 1.0, 0.25, processOsc1Wave)
+	PARAM(OSC1WAVE, PG_OSC1, SP_OSCWAVE, "Osc1Wave", "osc1wave", 0.0, SP_MAX, 1.0, processOsc1Wave)
 
 	// Osc 2
 	PARAM(OSC2_DET, PG_OSC2, SP_NONE, "Oscillator2detune", "oscillator2detune", 0.0, 1.0, 0.0, processOsc2Det)
-	PARAM(OSC2P, PG_OSC2, SP_OSCFREQ, "Osc2Pitch", "osc2pitch", 0.0, 1.0, 0.0, processOsc2Pitch)
+	PARAM(OSC2P, PG_OSC2, SP_OSCFREQ, "Osc2Pitch", "osc2pitch", 0.0, SP_MAX, 0.0, processOsc2Pitch)
 	PARAM(OSC2PW, PG_OSC2, SP_NONE, "Osc2PW", "osc2pw", 0.0, 1.0, 0.0, processOsc2PulseWidth)
-	PARAM(OSC2WAVE, PG_OSC2, SP_OSCWAVE, "Osc2Wave", "osc2wave", 0.0, 1.0, 0.25, processOsc2Wave)
+	PARAM(OSC2WAVE, PG_OSC2, SP_OSCWAVE, "Osc2Wave", "osc2wave", 0.0, SP_MAX, 1.0, processOsc2Wave)
 
 	// Osc common (osc modulation and key sync)
 	PARAM(XMOD, PG_OSC_COM, SP_NONE, "Xmod", "xmod", 0.0, 1.0, 0.0, processOsc2Xmod)
 	PARAM(OSC2FLTMOD, PG_OSC_COM, SP_NONE, "Osc2FilterMod", "osc2filtermod", 0.0, 1.0, 0.0, processOsc2FltMod)
 	PARAM(OSCSYNC_LEVEL, PG_OSC_COM, SP_NONE, "SyncLevel", "synclevel", 0.0, 1.0, 0.0, processOsc2SyncLevel)
-	PARAM(OSC_KEY_SYNC, PG_OSC_COM, SP_ONOFF, "OscKeySync", "osckeysync", 0.0, 1.0, 0.0, procOscKeySync)
+	PARAM(OSC_KEY_SYNC, PG_OSC_COM, SP_ONOFF, "OscKeySync", "osckeysync", 0.0, SP_MAX, 0.0, procOscKeySync)
 
 	// Mixer and osc 3
 	PARAM(OSC1MIX, PG_MIXER, SP_NONE, "Osc1Mix", "osc1mix", 0.0, 1.0, 0.0, processOsc1Mix)
 	PARAM(OSC2MIX, PG_MIXER, SP_NONE, "Osc2Mix", "osc2mix", 0.0, 1.0, 1.0, processOsc2Mix)
 	PARAM(OSC3MIX, PG_MIXER, SP_NONE, "Osc3Mix", "osc3mix", 0.0, 1.0, 0.0, processOsc3Mix)
-	PARAM(OSC3WAVE, PG_MIXER, SP_OSC3WAVE, "Osc3Wave", "osc3wave",0.0, 1.0, 0.0, processOsc3Wave)
+	PARAM(OSC3WAVE, PG_MIXER, SP_OSC3WAVE, "Osc3Wave", "osc3wave",0.0, SP_MAX, 0.0, processOsc3Wave)
 
 	// Filter
 	PARAM(CUTOFF, PG_FILTER, SP_NONE, "Cutoff", "cutoff", 0.0, 1.0, 1.0, processCutoff)
@@ -176,8 +176,8 @@
 
 	// Filter configuration
 	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Response", "response", 0.0, 1.0, 0.0, processResponse)
-	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "FenvInvert", "fenvinvert", 0.0, 1.0, 0.0, processInvertFenv)
-	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_ONOFF, "FenvLinear", "fenvlinear", 0.0, 1.0, 0.0, procFenvLinear)
+	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "FenvInvert", "fenvinvert", 0.0, SP_MAX, 0.0, processInvertFenv)
+	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_ONOFF, "FenvLinear", "fenvlinear", 0.0, SP_MAX, 0.0, procFenvLinear)
 
 	// FENV
 	PARAM(FATK, PG_FENV, SP_NONE, "Attack", "filterattack", 0.0, 1.0, 0.0, processFilterEnvelopeAttack)
@@ -198,7 +198,7 @@
 	// VCA (+ Loudness envelope control)
 	PARAM(HPFFREQ, PG_VCA, SP_NONE, "HPFfreq", "hpffreq", 0.0, 1.0, 0.0, processHPFfreq)
 	PARAM(VCADRIVE, PG_VCA, SP_NONE, "VCADrive", "vcadrive", 0.0, 1.0, 0.0, processVCADrive)
-	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "EnvMode", "envmode", 0.0, 1.0, 0.0, procEnvMode)
+	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "EnvMode", "envmode", 0.0, SP_MAX, 0.0, procEnvMode)
 
 	// Controller sensitivity and control (velocity and aftertouch)
 	PARAM(VEL_SCALE, PG_CONTR, SP_NONE, "Velocity Scale", "velocityscale", 0.0, 1.0, 0.0, procVelocityScale)
@@ -218,8 +218,8 @@
 	PARAM(LFOSPREAD, PG_SPREAD, SP_NONE, "LfoSpread", "lfospread", 0.0, 1.0, 0.0, processLfoSpread)
 
 	// DSP control
-	PARAM(OVERSAMPLE, PG_DSP, SP_ONOFF, "Oversample", "oversample", 0.0, 1.0, 1.0, processOversampling)
-	PARAM(ECONOMY_MODE, PG_DSP, SP_ONOFF, "Economy Mode", "economymode", 0.0, 1.0, 1.0, procEconomyMode)
+	PARAM(OVERSAMPLE, PG_DSP, SP_ONOFF, "Oversample", "oversample", 0.0, SP_MAX, 1.0, processOversampling)
+	PARAM(ECONOMY_MODE, PG_DSP, SP_ONOFF, "Economy Mode", "economymode", 0.0, SP_MAX, 1.0, procEconomyMode)
 
 	// Misc/Debug
 	PARAM(UNUSED_1, PG_MISC, SP_NONE, "Unused 1", "unused_1", 0.0, 1.0, 0.0, procUnused1)
