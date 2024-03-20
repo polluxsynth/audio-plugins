@@ -122,7 +122,7 @@ protected:
 public:
 	MiMid() : Plugin(PARAM_COUNT, 0, 0)
 	{
-		synth.setSampleRate(44100);
+		synth.setSampleRate(getSampleRate());
 
 		// Set up setfuncs array
 
