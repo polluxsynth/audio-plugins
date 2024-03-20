@@ -28,11 +28,7 @@
 enum Parameters
 {
 
-#define PARAMPOINTS(SPID, ...)
-#define PARAMRANGE(SPID, MIN, MAX)
-#define PARAMGROUP(PGID, NAME, SYMBOL)
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) PARAMNO,
-
 // This brings in the parameters as enum members
 #include "ParamDefs.h"
 
@@ -41,11 +37,7 @@ enum Parameters
 
 enum ParameterGroups
 {
-#define PARAMPOINTS(SPID, ...)
-#define PARAMRANGE(SPID, MIN, MAX)
 #define PARAMGROUP(PGID, NAME, SYMBOL) PGID,
-#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
-
 // This brings in the parameter groups as enum members
 #include "ParamDefs.h"
 
@@ -55,9 +47,6 @@ enum ScalePoints
 {
 #define PARAMPOINTS(SPID, ...) SPID,
 #define PARAMRANGE(SPID, MIN, MAX) SPID,
-#define PARAMGROUP(PGID, NAME, SYMBOL)
-#define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC)
-
 // This brings in the scale points as enum members
 #include "ParamDefs.h"
 

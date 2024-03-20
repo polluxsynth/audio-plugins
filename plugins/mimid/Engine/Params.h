@@ -27,12 +27,6 @@
 #include "Voice.h"
 #include "ParamsEnum.h"
 
-#define PARAMPOINTS(SPID, ...)
-#define PARAMRANGE(SPID, MIN, MAX)
-#define PARAMGROUP(PGID, NAME, SYMBOL)
-
-#define PARAM(PARAMNO, NAME, PG, SP, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
-	values[PARAMNO] = DEFAULT;
 
 class Params
 {
@@ -46,6 +40,8 @@ public:
 	}
 	void setDefaultValues()
 	{
+#define PARAM(PARAMNO, NAME, PG, SP, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
+	values[PARAMNO] = DEFAULT;
 // Including "ParamDefs" with PARAM set as above will initalize
 // all defined parameters to default values
 #include "ParamDefs.h"
