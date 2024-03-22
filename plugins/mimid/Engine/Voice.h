@@ -102,7 +102,8 @@ public:
 
 	float fltKF;
 
-	float porta;
+	float porta, portaSaved;
+	bool portaEnable;
 	float prtst;
 
 	float cutoffwas,envelopewas;
@@ -159,7 +160,8 @@ public:
 		PortaSpreadAmt=0;
 		FltSpreadAmt=0;
 		levelSpreadAmt=0;
-		porta =0;
+		portaSaved=porta =0;
+		portaEnable=false;
 		prtst=0;
 		fltKF= false;
 		cutoff=0;
@@ -364,6 +366,12 @@ public:
 			osc.removeDecimation();
 		}
 	}
+	void setPorta(float newPorta)
+	{
+		portaSaved = newPorta;
+		if (portaEnable)
+			porta = portaSaved;
+	}
 	void setSampleRate(float sr)
 	{
 		flt.setSampleRate(sr);
@@ -386,7 +394,7 @@ public:
 		env.ResetEnvelopeState();
 		fenv.ResetEnvelopeState();
 	}
-	void NoteOn(int mididx,float velocity,bool multiTrig)
+	void NoteOn(int mididx,float velocity,bool multiTrig,bool doPorta=true)
 	{
 		if(!shouldProcessed)
 		{
@@ -419,6 +427,8 @@ public:
 		if (oscKeySync)
 			osc.keyReset = true;
 		Active = true;
+		portaEnable = doPorta;
+		porta = portaEnable ? portaSaved : 250;
 	}
 	void NoteOff()
 	{
