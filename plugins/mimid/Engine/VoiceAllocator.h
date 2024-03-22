@@ -134,12 +134,14 @@ public:
 	bool strgNoteOn;
 	bool strgNoteOff;
 	bool restore;
+	bool alwaysPorta;
 
 	VoiceAllocator()
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
 		uniPlaying = false;
+		alwaysPorta = false;
 		totalvc = 0;
 	}
 	~VoiceAllocator()
@@ -180,7 +182,7 @@ public:
 				voice = offpri.pop();
 				onpri.push(voice);
 			}
-			voice->NoteOn(noteNo, velocity, !strgNoteOn);
+			voice->NoteOn(noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
 		}
 		uniPlaying = true;
 		uniNote = noteNo;
@@ -199,7 +201,7 @@ public:
 						voice = offpri.pop();
 						onpri.push(voice);
 					}
-					voice->NoteOn(noteNo, velsave[noteNo], !strgNoteOff);
+					voice->NoteOn(noteNo, velsave[noteNo], !strgNoteOff, true);
 				}
 				uniNote = noteNo;
 			} else {
