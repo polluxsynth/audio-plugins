@@ -177,7 +177,10 @@ public:
 	}
 	void processUnison(float param)
 	{
-		synth.voiceAlloc.uni = param>0.5f;
+		// Poly - Mono - Mono+Auto [Portamento]
+		int intval = roundToInt(param);
+		synth.voiceAlloc.uni = intval >= 1;
+		synth.voiceAlloc.alwaysPorta = intval < 2;
 	}
 	void procNoteOn(int noteNo,float velocity)
 	{
@@ -323,10 +326,9 @@ public:
 	}
 	void processPortamento(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].porta =logsc(1-param,0.14,250,150);
-		}
+		float porta = logsc(1-param,0.14,250,150);
+
+		ForEachVoice(setPorta(porta));
 	}
 	void processVolume(float param)
 	{
