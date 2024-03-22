@@ -100,7 +100,7 @@
 
 	// Key assignment #1 (general)
 	PARAM(VOICE_COUNT, PG_KEYASGN, SP_VOICECOUNT, "VoiceCount", "voicecount", 0.0, SP_MAX, 5, setVoiceCount)
-	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", 0.0, SP_MAX, 0.0, processUnison)
+	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", 0.0, SP_MAX, 0.0, processKeyAsgnMode)
 	// Envelope reset
 	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0.0, SP_MAX, 0.0, procEnvRst)
         // Single trig: behavior during rob and restore
