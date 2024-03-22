@@ -146,8 +146,8 @@ public:
 	void setSustain(float sus)
 	{
 		sustain = sus;
-		sustain_asymptote = calc_sustain_asymptote();
 		if (state == DEC || state == SUS) {
+			sustain_asymptote = calc_sustain_asymptote();
 			// Chase sustain level at decay rate, if sustain
 			// level changed in ADSR mode
 			if (Value > sustain) {
@@ -206,6 +206,7 @@ public:
 				Value = 1.0f;
 				state = DEC;
 				coef = coef_dec(decay);
+				sustain_asymptote = calc_sustain_asymptote();
 				dir = 1;
 			}
 			break;
