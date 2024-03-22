@@ -95,17 +95,12 @@ public:
 	void allNotesOff()
 	{
 		for(int i = 0 ;  i < 128;i++)
-			{
-				procNoteOff(i);
-			}
+			procNoteOff(i);
 	}
 	void allSoundOff()
 	{
 		allNotesOff();
-		for(int i = 0 ; i < Motherboard::MAX_VOICES;i++)
-			{
-				synth.voices[i].ResetEnvelopes();
-			}
+		ForEachVoice(ResetEnvelopes());
 	}
 	void sustainOn()
 	{
@@ -175,7 +170,7 @@ public:
 		synth.voiceAlloc.strgNoteOff = intval == 1 || intval == 2;
 		synth.voiceAlloc.strgNoteOn = intval == 2;
 	}
-	void processUnison(float param)
+	void processKeyAsgnMode(float param)
 	{
 		// Poly - Mono - Mono+Auto [Portamento]
 		int intval = roundToInt(param);
@@ -217,17 +212,11 @@ public:
 	}
 	void procAmpVelocityAmount(float val)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].vamp= val;
-		}
+		ForEachVoice(vamp = val);
 	}
 	void procFltVelocityAmount(float val)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].vflt= val;
-		}
+		ForEachVoice(vflt = val);
 	}
 	void procVelocityScale(float scale)
 	{
@@ -268,17 +257,10 @@ public:
 	void procPitchWheel(float val)
 	{
 		pitchWheelSmoother.setSteep(val);
-		//for(int i = 0 ; i < synth->MAX_VOICES;i++)
-		//{
-		//	synth->voices[i]->pitchWheel = val;
-		//}
 	}
 	inline void procPitchWheelSmoothed(float val)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].pitchWheel = val;
-		}
+		ForEachVoice(pitchWheel = val);
 	}
 	void setVoiceCount(float param)
 	{
@@ -305,24 +287,15 @@ public:
 	}
 	void processTune(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.tune = param*2-1;
-		}
+		ForEachVoice(osc.tune = param*2-1);
 	}
 	void processOctave(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.oct = (roundToInt(param) - 2) * 12;
-		}
+		ForEachVoice(osc.oct = (roundToInt(param) - 2) * 12);
 	}
 	void processFilterKeyFollow(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].fltKF = param;
-		}
+		ForEachVoice(fltKF = param);
 	}
 	void processPortamento(float param)
 	{
@@ -432,20 +405,15 @@ public:
 	}
 	void processOscSpread(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.totalSpread = logsc(param,0.001,0.90);
-		}
+		ForEachVoice(osc.totalSpread = logsc(param,0.001,0.90));
 	}
 	void processOsc1PulseWidth(float param)
 	{
-		//ForEachVoice (osc.osc1pw=linsc(param,0.0,0.95));
-		ForEachVoice (osc.osc1pw=param);
+		ForEachVoice (osc.osc1pw = param);
 	}
 	void processOsc2PulseWidth(float param)
 	{
-		//ForEachVoice(osc.osc2pw = linsc(param,0.0,0.95));
-		ForEachVoice (osc.osc2pw=param);
+		ForEachVoice (osc.osc2pw = param);
 	}
 	void processInvertFenv(float param)
 	{
@@ -457,59 +425,38 @@ public:
 	}
 	void procEnvMode(float param)
 	{
-		int intparam = roundToInt(param);
 		// Exp env / Lin VCA - Lin env / Lin VCA - Lin env / Exp VCA
+		int intparam = roundToInt(param);
 		ForEachVoice(env.setLinear(intparam >= 1));
 		ForEachVoice(expvca = (intparam >= 2));
 	}
 	void processOsc2Xmod(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.xmod= param*24;
-		}
+		ForEachVoice(osc.xmod = param * 24);
 	}
 	void processOsc2SyncLevel(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.syncLevel = 1.0 - param;
-		}
+		ForEachVoice(osc.syncLevel = 1.0 - param);
 	}
 	void processOsc1Pitch(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.osc1p = roundToInt(param);
-		}
+		ForEachVoice(osc.osc1p = roundToInt(param));
 	}
 	void processOsc2Pitch(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.osc2p = roundToInt(param);
-		}
+		ForEachVoice(osc.osc2p = roundToInt(param));
 	}
 	void processOsc1Mix(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.o1mx = param;
-		}
+		ForEachVoice(osc.o1mx = param);
 	}
 	void processOsc2Mix(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.o2mx = param;
-		}
+		ForEachVoice(osc.o2mx = param);
 	}
 	void processHPFfreq(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].setHPFfreq(param);
-		}
+		ForEachVoice(setHPFfreq(param));
 	}
 	void processVCADrive(float param)
 	{
@@ -517,21 +464,15 @@ public:
 	}
 	void processOsc2FltMod(float param)
 	{
-		ForEachVoice(osc2FltMod = param*100);
+		ForEachVoice(osc2FltMod = param * 100);
 	}
 	void processOsc1Det(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.osc1Det = logsc(param,0.001,0.6);
-		}
+		ForEachVoice(osc.osc1Det = logsc(param,0.001,0.6));
 	}
 	void processOsc2Det(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].osc.osc2Det = logsc(param,0.001,0.6);
-		}
+		ForEachVoice(osc.osc2Det = logsc(param,0.001,0.6));
 	}
 
 	void processOsc1Wave(float param)
@@ -562,7 +503,6 @@ public:
 		int intparam = roundToInt(param);
 		// off - -1 square - -2 square - -2 pulse - noise
 		ForEachVoice(osc.osc3Waveform = intparam);
-		//ForEachVoice(osc.noiseEnable = (intparam == 4));
 	}
 	void processOsc3Mix(float param)
 	{
@@ -571,11 +511,6 @@ public:
 	void processCutoff(float param)
 	{
 		cutoffSmoother.setSteep( linsc(param,0,120));
-	//	for(int i = 0 ; i < synth->MAX_VOICES;i++)
-	//	{
-			//synth->voices[i]->cutoff = logsc(param,60,19000,30);
-		//	synth->voices[i]->cutoff = linsc(param,0,120);
-	//	}
 	}
 	inline void processCutoffSmoothed(float param)
 	{
@@ -583,18 +518,11 @@ public:
 	}
 	void processResonance(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].res = linsc(param,0, 0.991);
-		}
+		ForEachVoice(res = linsc(param,0, 0.991));
 	}
 	void processResponse(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			//synth.voices[i].flt ;
-			synth.voices[i].flt.setResponse(linsc(param,0,1));
-		}
+		ForEachVoice(flt.setResponse(linsc(param,0,1)));
 	}
 	void processOversampling(float param)
 	{
@@ -602,113 +530,68 @@ public:
 	}
 	void processFilterEnvelopeAmt(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			// Linearly scaled to (+/-) 0..70 semitones
-			synth.voices[i].fenvamt = linsc(param,0,70);
-		}
+		// Linearly scaled to (+/-) 0..70 semitones
+		ForEachVoice(fenvamt = linsc(param,0,70));
 	}
 	void processLoudnessEnvelopeAttack(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].env.setAttack(timesc(param,1,8500));
-		}
+		ForEachVoice(env.setAttack(timesc(param,1,8500)));
 	}
 	void processLoudnessEnvelopeDecay(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].env.setDecay(timesc(param,1,8500));
-		}
+		ForEachVoice(env.setDecay(timesc(param,1,8500)));
 	}
 	void processLoudnessEnvelopeSustainTime(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].env.setSustainTime(timesc(param,1,8500));
-			// When time is set to 1.0, sustain time is infinite
-			synth.voices[i].env.setAdsr(param > 0.991);
-		}
+		ForEachVoice(env.setSustainTime(timesc(param,1,8500)));
+		// When time is set to 1.0, sustain time is infinite
+		ForEachVoice(env.setAdsr(param > 0.991));
 	}
 	void processLoudnessEnvelopeRelease(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].env.setRelease(timesc(param,1,8500));
-		}
+		ForEachVoice(env.setRelease(timesc(param,1,8500)));
 	}
 	void processLoudnessEnvelopeSustain(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].env.setSustain(param);
-		}
+		ForEachVoice(env.setSustain(param));
 	}
 	void processFilterEnvelopeAttack(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].fenv.setAttack(timesc(param,1,8500));
-		}
+		ForEachVoice(fenv.setAttack(timesc(param,1,8500)));
 	}
 	void processFilterEnvelopeDecay(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].fenv.setDecay(timesc(param,1,8500));
-		}
+		ForEachVoice(fenv.setDecay(timesc(param,1,8500)));
 	}
 	void processFilterEnvelopeSustainTime(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].fenv.setSustainTime(timesc(param,1,8500));
-			// When time is set to 1.0, sustain time is infinite
-			synth.voices[i].fenv.setAdsr(param > 0.991);
-		}
+		ForEachVoice(fenv.setSustainTime(timesc(param,1,8500)));
+		// When time is set to 1.0, sustain time is infinite
+		ForEachVoice(fenv.setAdsr(param > 0.991));
 	}
 	void processFilterEnvelopeRelease(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].fenv.setRelease(timesc(param,1,8500));
-		}
+		ForEachVoice(fenv.setRelease(timesc(param,1,8500)));
 	}
 	void processFilterEnvelopeSustain(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].fenv.setSustain(param);
-		}
+		ForEachVoice(fenv.setSustain(param));
 	}
 	void processEnvelopeSpread(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].setEnvSpreadAmt(linsc(param,0.0,1));
-		}
+		ForEachVoice(setEnvSpreadAmt(linsc(param,0.0,1)));
 	}
 	void processLfoSpread(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].setLfoSpreadAmt(linsc(param,0.0,1));
-		}
+		ForEachVoice(setLfoSpreadAmt(linsc(param,0.0,1)));
 	}
 	void processFilterSpread(float param)
 	{
-for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].FltSpreadAmt = linsc(param,0.0,18);
-		}
+		ForEachVoice(FltSpreadAmt = linsc(param,0.0,18));
 	}
 	void processPortamentoSpread(float param)
 	{
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].PortaSpreadAmt = linsc(param,0.0,0.75);
-		}
+		ForEachVoice(PortaSpreadAmt = linsc(param,0.0,0.75));
 	}
 	void processLoudnessSpread(float param)
 	{
@@ -722,5 +605,4 @@ for(int i = 0 ; i < synth.MAX_VOICES;i++)
 	{
 		ForEachVoice(envRst = roundToInt(param));
 	}
-		 
 };
