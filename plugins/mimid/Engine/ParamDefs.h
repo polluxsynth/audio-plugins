@@ -174,7 +174,7 @@
 	PARAM(ENVELOPE_AMT, PG_FILTER, SP_NONE, "EnvAmount", "filterenvamount", 0.0, 1.0, 0.0, processFilterEnvelopeAmt)
 
 	// Filter configuration
-	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Response", "response", 0.0, 1.0, 0.0, processResponse)
+	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Pole Count", "response", 1.0, 4.0, 4.0, processResponse)
 	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "Env Invert", "fenvinvert", 0.0, SP_MAX, 0.0, processInvertFenv)
 	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_ONOFF, "Linear Env", "fenvlinear", 0.0, SP_MAX, 0.0, procFenvLinear)
 

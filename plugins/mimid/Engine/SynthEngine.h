@@ -522,7 +522,8 @@ public:
 	}
 	void processResponse(float param)
 	{
-		ForEachVoice(flt.setResponse(linsc(param,0,1)));
+		// Pole count 1 .. 4 (continuous)
+		ForEachVoice(flt.setResponse(4 - param));
 	}
 	void processOversampling(float param)
 	{
