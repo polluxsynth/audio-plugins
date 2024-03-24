@@ -241,7 +241,7 @@ public:
 	void recalcRate(float param)
 	{
 		const int ratesCount = 9;
-		int parval = (int)(param*(ratesCount-1));
+		int parval = (int)(param * (ratesCount - 1) / 10);
 		float rt = 1;
 		switch(parval)
 		{
