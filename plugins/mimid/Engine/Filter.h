@@ -58,9 +58,10 @@ public:
 	}
 	void setResponse(float m)
 	{
+		// m = 0..3 (4 pole down to 1 pole)
 		mm = m;
-		mmch = (int)(mm * 3);
-		mmt = mm*3-mmch;
+		mmch = (int)mm;
+		mmt = mm - mmch;
 	}
 	inline void setSampleRate(float sr)
 	{
