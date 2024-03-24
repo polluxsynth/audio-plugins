@@ -113,16 +113,17 @@ inline static float tptlpc(float &state, float inp, float lpc)
 
 inline static float linsc(float param,const float min,const float max)
 {
-	 return (param) * (max - min) + min;
+	 return (param * 0.1) * (max - min) + min;
 }
 
 inline static float logsc(float param, const float min,const float max,const float rolloff = 19.0f)
 {
-	return ((expf(param * logf(rolloff+1)) - 1.0f) / (rolloff)) * (max-min) + min;
+	return ((expf(param * 0.1 * logf(rolloff+1)) - 1.0f) / (rolloff)) * (max-min) + min;
 }
 
 inline static float timesc(float param, const float min, const float max)
 {
+	param *= 0.1;
 	param *= param * param * param * param; // param ** 5
 	return param * (max - min) + min;
 }
