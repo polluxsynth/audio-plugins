@@ -330,7 +330,7 @@ public:
 	}
 	void setHPFfreq(float val)
 	{
-		hpffreq = logsc(val, 4, 2500);
+		hpffreq = val;
 		hpfcutoff = tan(hpffreq * sampleRateInv * pi);
 	}
 	void setEnvSpreadAmt(float d)
