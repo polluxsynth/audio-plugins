@@ -299,7 +299,7 @@ public:
 	}
 	void setPortamento(float param)
 	{
-		float porta = logsc(10 - param, 0.14, 250, 150);
+		float porta = timesc(10 - param, 0.14, 250);
 
 		ForEachVoice(setPorta(porta));
 	}
