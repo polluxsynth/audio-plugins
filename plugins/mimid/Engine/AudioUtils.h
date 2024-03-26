@@ -124,6 +124,6 @@ inline static float logsc(float param, const float min,const float max,const flo
 inline static float timesc(float param, const float min, const float max)
 {
 	param *= 0.1;
-	param *= param * param * param * param; // param ** 5
+	param *= param * param * param; // param ** 4
 	return param * (max - min) + min;
 }
