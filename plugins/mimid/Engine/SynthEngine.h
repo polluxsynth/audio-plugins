@@ -538,21 +538,21 @@ public:
 	}
 	void setLoudnessEnvelopeAttack(float param)
 	{
-		ForEachVoice(env.setAttack(timesc(param, 1, 8500)));
+		ForEachVoice(env.setAttack(timesc(param, 1, 12500)));
 	}
 	void setLoudnessEnvelopeDecay(float param)
 	{
-		ForEachVoice(env.setDecay(timesc(param, 1, 8500)));
+		ForEachVoice(env.setDecay(timesc(param, 1, 20500)));
 	}
 	void setLoudnessEnvelopeSustainTime(float param)
 	{
-		ForEachVoice(env.setSustainTime(timesc(param, 1, 8500)));
+		ForEachVoice(env.setSustainTime(timesc(param, 1, 41000)));
 		// When time is set to 1.0, sustain time is infinite
 		ForEachVoice(env.setAdsr(param > 9.91f));
 	}
 	void setLoudnessEnvelopeRelease(float param)
 	{
-		ForEachVoice(env.setRelease(timesc(param, 1, 8500)));
+		ForEachVoice(env.setRelease(timesc(param, 1, 41000)));
 	}
 	void setLoudnessEnvelopeSustain(float param)
 	{
@@ -560,21 +560,21 @@ public:
 	}
 	void setFilterEnvelopeAttack(float param)
 	{
-		ForEachVoice(fenv.setAttack(timesc(param, 1, 8500)));
+		ForEachVoice(fenv.setAttack(timesc(param, 1, 12500)));
 	}
 	void setFilterEnvelopeDecay(float param)
 	{
-		ForEachVoice(fenv.setDecay(timesc(param, 1, 8500)));
+		ForEachVoice(fenv.setDecay(timesc(param, 1, 20500)));
 	}
 	void setFilterEnvelopeSustainTime(float param)
 	{
-		ForEachVoice(fenv.setSustainTime(timesc(param, 1, 8500)));
+		ForEachVoice(fenv.setSustainTime(timesc(param, 1, 41000)));
 		// When time is set to 1.0, sustain time is infinite
 		ForEachVoice(fenv.setAdsr(param > 9.91f));
 	}
 	void setFilterEnvelopeRelease(float param)
 	{
-		ForEachVoice(fenv.setRelease(timesc(param, 1, 8500)));
+		ForEachVoice(fenv.setRelease(timesc(param, 1, 41000)));
 	}
 	void setFilterEnvelopeSustain(float param)
 	{
