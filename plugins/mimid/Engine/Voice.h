@@ -193,11 +193,6 @@ public:
 	{
 		float oscps, oscmod;
 
-		//bipolar filter envelope undelayed
-		float envm = 2 * (fenv.processSample() * (1 - (1-2*velocityValue)*vflt)) - 1;
-		if(invertFenv)
-			envm = -envm;
-
 		//filter envelope undelayed
 
 		float lfo1In = lfo1.getVal();
@@ -248,13 +243,21 @@ public:
 
 		//filter exp cutoff calculation
 		//needs to be done after we've gotten oscmod
+
+		//bipolar filter envelope, with delay for later
+		float envm = fenvd.feedReturn(fenv.processSample() *
+				(1 - (1-2*velocityValue)*vflt));
+		envm = 2 * envm - 1; // make bipolar, after delay line
+		if(invertFenv)
+			envm = -envm;
+
 		// ptNote+40 => F2 = 87.31 Hz is base note for filter tracking
 		float cutoffnote =
 			(lfo1f?(lfo1Delayed*60):0)+
 			(lfo2f?(lfo2Delayed*60):0)+
 			cutoff+
 			FltSpread*FltSpreadAmt+
-			fenvamt*fenvd.feedReturn(envm)+
+			fenvamt*envm+
 			-45 + (fltKF*(ptNote+40));
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
