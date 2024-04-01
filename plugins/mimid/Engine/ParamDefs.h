@@ -89,7 +89,7 @@
 	PARAMPOINTS(SP_OSCWAVE, " Off ", " Saw ", " Pul ", " Tri ")
 	PARAMPOINTS(SP_KEYSYNC, "FreeRun", "KeySync")
 	PARAMPOINTS(SP_OSC3WAVE, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
-	PARAMPOINTS(SP_ENVMODE, " Exp ", " Lin ", "LinExp")
+	PARAMPOINTS(SP_ENVMODE, "Exp/Lin ", "Lin/Lin", "Lin/Exp")
 
 	// Parameters
 
@@ -196,9 +196,9 @@
 	PARAM(LREL, PG_REL, SP_NONE, "Loudness Release", "release", 0, 10, 0, setLoudnessEnvelopeRelease)
 
 	// VCA (+ Loudness envelope control)
-	PARAM(HPFFREQ, PG_VCA, SP_NONE, "HPFfreq", "hpffreq", 0, 10, 0, setHPFfreq)
-	PARAM(VCADRIVE, PG_VCA, SP_NONE, "VCADrive", "vcadrive", 0, 10, 0, setVCADrive)
-	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "EnvMode", "envmode", 0, SP_MAX, 0, setEnvMode)
+	PARAM(HPFFREQ, PG_VCA, SP_NONE, "HPF Freq", "hpffreq", 0, 10, 0, setHPFfreq)
+	PARAM(VCADRIVE, PG_VCA, SP_NONE, "VCA Drive", "vcadrive", 0, 10, 0, setVCADrive)
+	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "Env/VCA Mode", "envmode", 0, SP_MAX, 0, setEnvMode)
 
 	// Controller sensitivity and control (velocity and aftertouch)
 	PARAM(VEL_SCALE, PG_CONTR, SP_NONE, "Velocity Scale", "velocityscale", 0, 10, 5, setVelocityScale)
