@@ -105,16 +105,16 @@
 	// Envelope reset
 	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Multi Trig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
 
 	// Key assignment #2 (modes)
         // ReSet to Zero (lowest) voice (default cyclic)
 	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "Assign Order", "keyassignrsz", 0, SP_MAX, 0, setKeyAsgnRsz)
         // Prefer assign to voice previously with same note
-	PARAM(ASGN_MEM, PG_KEYASGN, SP_ASGNMEM, "Assign Memory", "keyassignmem", 0, SP_MAX, 0, setKeyAsgnMem)
+	PARAM(ASGN_MEM, PG_KEYASGN, SP_ASGNMEM, "Assign Memory", "keyassignmem", 0, SP_MAX, 1, setKeyAsgnMem)
         // Rob a playing voice if no unplaying available
         // two modes: oldest (O) and next-to-lowest (NL)
-	PARAM(ASGN_ROB, PG_KEYASGN, SP_ASGNROB, "Voice Rob", "keyassignrob", 0, SP_MAX, 0, setKeyAsgnRob)
+	PARAM(ASGN_ROB, PG_KEYASGN, SP_ASGNROB, "Voice Rob", "keyassignrob", 0, SP_MAX, 2, setKeyAsgnRob)
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", 0, SP_MAX, 0, setKeyAsgnRes)
 
