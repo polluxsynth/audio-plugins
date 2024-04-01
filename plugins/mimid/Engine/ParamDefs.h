@@ -79,6 +79,7 @@
 	PARAMPOINTS(SP_ASGNRES, " Off ", " Res ")
 	PARAMPOINTS(SP_ASGNSTRG, " Off ", " N Off ", " N On+Off ")
 	PARAMPOINTS(SP_ENVRST, "FreeRun", "KeyReset")
+	PARAMPOINTS(SP_EXPLIN, "Exp", "Lin")
 	PARAMPOINTS(SP_LFOWAVE, " Off ", " Saw ", " Fall ", " Tri ", " Rise ", " RSaw ", "Pul ", " Squ ", " RPul ", " S/H ")
 	PARAMPOINTS(SP_LFOSYNC, " Off ", "Clock", " Key ", "OneShot")
 	PARAMPOINTS(SP_LFOCONTR, " None ", " Modw ", "Aftert", " Vel ")
@@ -176,7 +177,7 @@
 	// Filter configuration
 	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Pole Count", "response", 1, 4, 4, setResponse)
 	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "Env Invert", "fenvinvert", 0, SP_MAX, 0, setInvertFenv)
-	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_ONOFF, "Linear Env", "fenvlinear", 0, SP_MAX, 0, setFenvLinear)
+	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_EXPLIN, "Env Shape", "fenvmode", 0, SP_MAX, 0, setFenvLinear)
 
 	// FENV
 	PARAM(FATK, PG_FENV, SP_NONE, "Attack", "filterattack", 0, 10, 0, setFilterEnvelopeAttack)
