@@ -77,7 +77,7 @@
 	PARAMPOINTS(SP_ASGNMEM, " Off ", " Mem ")
 	PARAMPOINTS(SP_ASGNROB, " Off ", "Rob O", "Rob NL")
 	PARAMPOINTS(SP_ASGNRES, " Off ", " Res ")
-	PARAMPOINTS(SP_ASGNSTRG, " Off ", " N Off ", " N On+Off ")
+	PARAMPOINTS(SP_ASGNMTRG, " All ", "Note On", " None ")
 	PARAMPOINTS(SP_ENVRST, "FreeRun", "KeyReset")
 	PARAMPOINTS(SP_EXPLIN, "Exp", "Lin")
 	PARAMPOINTS(SP_LFOWAVE, " Off ", " Saw ", " Fall ", " Tri ", " Rise ", " RSaw ", "Pul ", " Squ ", " RPul ", " S/H ")
@@ -105,7 +105,7 @@
 	// Envelope reset
 	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_STRG, PG_KEYASGN, SP_ASGNSTRG, "Single Trig", "keyassignstrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Multi Trig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
 
 	// Key assignment #2 (modes)
         // ReSet to Zero (lowest) voice (default cyclic)
