@@ -176,7 +176,7 @@
 
 	// Filter configuration
 	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Pole Count", "response", 1, 4, 4, setResponse)
-	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "Env Invert", "fenvinvert", 0, SP_MAX, 0, setInvertFenv)
+	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "Env Invert", "fenvpolarity", 0, SP_MAX, 0, setInvertFenv)
 	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_EXPLIN, "Env Shape", "fenvmode", 0, SP_MAX, 0, setFenvLinear)
 
 	// FENV
