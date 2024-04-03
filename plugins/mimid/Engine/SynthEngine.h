@@ -264,7 +264,7 @@ public:
 	}
 	void setVoiceCount(float param)
 	{
-		synth.setVoiceCount(roundToInt(param) + 1);
+		synth.setVoiceCount(roundToInt(param));
 	}
 	void setPitchWheelAmount(float param)
 	{
@@ -291,7 +291,8 @@ public:
 	}
 	void setOctave(float param)
 	{
-		ForEachVoice(osc.oct = (roundToInt(param) - 2) * 12);
+		// Add 2 before rounding to avoid problems around zero
+		ForEachVoice(osc.oct = (roundToInt(param + 2.0f) - 2) * 12);
 	}
 	void setFilterKeyFollow(float param)
 	{
