@@ -33,35 +33,13 @@ using namespace juce;
 
 START_NAMESPACE_DISTRHO
 
+#define HINT_SHIFT 16 // hints are shifted up 16 bits
+#define SP_MASK 0xffff // scale point count mask
+
 typedef void (SynthEngine::*SetFuncType)(float);
 typedef uint32_t (*ScalePointType)(ParameterEnumerationValues &enumValues);
 
 // Plugin class parameters are #params, #programs, #states .
-
-// Set up enumValue member of Parameter struct from min and max value
-// Used in lambda call, hence put outside class
-// Returns maximum value of values in enumValues, so 1 for a two values
-static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int min, int max)
-{
-	int nvalues = max + 1 - min;
-	if (nvalues <= 1)
-		return 0; // Leave &enumValues in its default state
-	int value = 0;
-	ParameterEnumerationValue *ev =
-		new ParameterEnumerationValue[nvalues];
-
-	enumValues.values = ev;
-	enumValues.count = nvalues;
-	enumValues.deleteLater = true;
-	enumValues.restrictedMode = true;
-
-	for (int dispVal = min; dispVal <= max; dispVal++) {
-		ev->label = String(dispVal);
-		ev++->value = value;
-		value++;
-	}
-	return nvalues - 1;
-}
 
 // Set up enumValue member of Parameter struct from varargs list of strings
 // Used in lambda call, hence put outside class
@@ -108,7 +86,11 @@ static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumVa
 	}
 	va_end(args);
 
-	return argcount - 1;
+	uint32_t retval = argcount - 1;
+        // If there are two values, hint that the parameter is boolean
+	if (argcount == 2)
+		retval |= kParameterIsBoolean << HINT_SHIFT;
+	return retval;
 }
 
 class MiMid : public Plugin {
@@ -142,16 +124,21 @@ public:
 		// with the correspnding values.
 
 // The NULL is important as it works as a sentinel for the list of char *'
+// Parameter is enumerated, with a list of strings for the values
 #define PARAMPOINTS(SPID, ...) \
 	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
 	{ \
-		return setParameterEnumerationValues(enumValues, __VA_ARGS__, NULL); \
+		 return setParameterEnumerationValues(enumValues, __VA_ARGS__, NULL); \
 	};
-#define PARAMRANGE(SPID, MIN, MAX) \
+
+// Parameter has specific hints
+#define PARAMHINTS(SPID, HINTS) \
 	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
 	{ \
-		return setParameterEnumerationValues(enumValues, MIN, MAX); \
+		(void) enumValues; \
+		return (HINTS) << HINT_SHIFT; \
 	};
+
 #include "Engine/ParamDefs.h"
 
 		initAllParams();
@@ -195,17 +182,25 @@ protected:
 
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
-		uint32_t SP_MAX;
+		uint32_t sp_status, SP_MAX;
 		switch(paramno) {
+		// The low word of SP_MAX is used as a MAX value for
+		// PARAMPOINTS parameters, in order to automatically set
+		// the maximum value for the enum depending on the number
+		// of values.
+		// Alternatively, the high word of SP_MAX can be used to set
+		// parameter hints; see PARAMHINTS.
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
 			parameter.symbol = SYMBOL; \
 			parameter.groupId = PG; \
-			SP_MAX = scalepoints[SP](parameter.enumValues); \
+			sp_status = scalepoints[SP](parameter.enumValues); \
+			SP_MAX = sp_status & SP_MASK; \
 			parameter.ranges.def = DEFAULT; \
 			parameter.ranges.min = MIN; \
 			parameter.ranges.max = MAX; \
+			parameter.hints |= sp_status >> HINT_SHIFT; \
 			break;
 #include "Engine/ParamDefs.h"
 

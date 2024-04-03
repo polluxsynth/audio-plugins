@@ -46,7 +46,7 @@ enum ParameterGroups
 enum ScalePoints
 {
 #define PARAMPOINTS(SPID, ...) SPID,
-#define PARAMRANGE(SPID, MIN, MAX) SPID,
+#define PARAMHINTS(SPID, HINTS) SPID,
 // This brings in the scale points as enum members
 #include "ParamDefs.h"
 

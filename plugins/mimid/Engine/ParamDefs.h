@@ -24,8 +24,8 @@
 #ifndef PARAMPOINTS
 #define PARAMPOINTS(SPID, ...)
 #endif
-#ifndef PARAMRANGE
-#define PARAMRANGE(SPID, MIN, MAX)
+#ifndef PARAMHINTS
+#define PARAMHINTS(SPID, HINTS)
 #endif
 #ifndef PARAMGROUP
 #define PARAMGROUP(PGID, NAME, SYMBOL)
@@ -68,9 +68,6 @@
 
 	PARAMPOINTS(SP_NONE, "") /* No scale points - for continuous params */
 	PARAMPOINTS(SP_ONOFF, "Off", "On")
-	PARAMRANGE(SP_OCTAVE, 1, 5)
-	PARAMRANGE(SP_VOICECOUNT, 1, 8)
-	PARAMRANGE(SP_BENDRANGE, 0, 12)
 	PARAMPOINTS(SP_BENDDEST, " Off ", " Osc1 ", "Osc1+2")
 	PARAMPOINTS(SP_ASGNMODE, "Poly", "Mono", "AutoP")
 	PARAMPOINTS(SP_CYCRSZ, " Cyc ", " RSZ ")
@@ -85,11 +82,12 @@
 	PARAMPOINTS(SP_LFOCONTR, " None ", " Modw ", "Aftert", " Vel ")
 	PARAMPOINTS(SP_LFODEST, "Off", "Osc1", "Osc1+2", "Osc2", "PW1", "PW1+2", "PW2", "Cutoff", "Res", "Osc2Filt")
 	PARAMPOINTS(SP_POLARITY, " Norm ", " Inv ", " Uni ", "InvUni")
-	PARAMRANGE(SP_OSCFREQ, 0, 72)
 	PARAMPOINTS(SP_OSCWAVE, " Off ", " Saw ", " Pul ", " Tri ")
 	PARAMPOINTS(SP_KEYSYNC, "FreeRun", "KeySync")
 	PARAMPOINTS(SP_OSC3WAVE, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
 	PARAMPOINTS(SP_ENVMODE, "Exp/Lin ", "Lin/Lin", "Lin/Exp")
+
+	PARAMHINTS(SP_INTS, kParameterIsInteger)
 
 	// Parameters
 
@@ -97,10 +95,10 @@
 	PARAM(VOLUME, PG_MAIN, SP_NONE, "Volume", "volume", 0, 10, 5, setVolume)
 	PARAM(PORTAMENTO, PG_MAIN, SP_NONE, "Portamento", "portamento", 0, 10, 0, setPortamento)
 	PARAM(TUNE, PG_MAIN, SP_NONE, "Tune", "tune", -1.0, 1.0, 0.0, setTune)
-	PARAM(OCTAVE, PG_MAIN, SP_OCTAVE, "Octave", "octave", 0, SP_MAX, 2, setOctave)
+	PARAM(OCTAVE, PG_MAIN, SP_INTS, "Octave", "octave", -2, 2, 0, setOctave)
 
 	// Key assignment #1 (general)
-	PARAM(VOICE_COUNT, PG_KEYASGN, SP_VOICECOUNT, "VoiceCount", "voicecount", 0, SP_MAX, 5, setVoiceCount)
+	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 8, 6, setVoiceCount)
 	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", 0, SP_MAX, 0, setKeyAsgnMode)
 	// Envelope reset
 	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
@@ -119,7 +117,7 @@
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", 0, SP_MAX, 0, setKeyAsgnRes)
 
 	// Bend
-	PARAM(BENDRANGE, PG_BEND, SP_BENDRANGE, "Range", "bendrange", 0, SP_MAX, 0, setPitchWheelAmount)
+	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
 	PARAM(BENDDEST, PG_BEND, SP_BENDDEST, "Dest", "benddest", 0, SP_MAX, 0, setPitchWheelDest)
 
 	// LFO1 #1 (main: freq, wave, basic amount)
@@ -146,13 +144,13 @@
 
 	// Osc 1
 	PARAM(OSC1_DET, PG_OSC1, SP_NONE, "Detune", "osc1detune", 0.0, 1.0, 0.0, setOsc1Det)
-	PARAM(OSC1P, PG_OSC1, SP_OSCFREQ, "Pitch", "osc1pitch", 0, SP_MAX, 0, setOsc1Pitch)
+	PARAM(OSC1P, PG_OSC1, SP_INTS, "Pitch", "osc1pitch", 0, 72, 24, setOsc1Pitch)
 	PARAM(OSC1PW, PG_OSC1, SP_NONE, "PulseWidth", "osc1pw", 0, 10, 0, setOsc1PulseWidth)
 	PARAM(OSC1WAVE, PG_OSC1, SP_OSCWAVE, "Wave", "osc1wave", 0, SP_MAX, 0, setOsc1Wave)
 
 	// Osc 2
 	PARAM(OSC2_DET, PG_OSC2, SP_NONE, "Detune", "osc2detune", 0.0, 1.0, 0.0, setOsc2Det)
-	PARAM(OSC2P, PG_OSC2, SP_OSCFREQ, "Pitch", "osc2pitch", 0, SP_MAX, 0, setOsc2Pitch)
+	PARAM(OSC2P, PG_OSC2, SP_INTS, "Pitch", "osc2pitch", 0, 72, 24, setOsc2Pitch)
 	PARAM(OSC2PW, PG_OSC2, SP_NONE, "PulseWidth", "osc2pw", 0, 10, 0, setOsc2PulseWidth)
 	PARAM(OSC2WAVE, PG_OSC2, SP_OSCWAVE, "Wave", "osc2wave", 0, SP_MAX, 1, setOsc2Wave)
 
@@ -227,6 +225,6 @@
 
 // Clean up for potential re-inclusion of file with new definitions
 #undef PARAMPOINTS
-#undef PARAMRANGE
+#undef PARAMHINTS
 #undef PARAMGROUP
 #undef PARAM
