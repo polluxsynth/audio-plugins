@@ -34,14 +34,14 @@ using namespace juce;
 START_NAMESPACE_DISTRHO
 
 typedef void (SynthEngine::*SetFuncType)(float);
-typedef int (*ScalePointType)(ParameterEnumerationValues &enumValues);
+typedef uint32_t (*ScalePointType)(ParameterEnumerationValues &enumValues);
 
 // Plugin class parameters are #params, #programs, #states .
 
 // Set up enumValue member of Parameter struct from min and max value
 // Used in lambda call, hence put outside class
 // Returns maximum value of values in enumValues, so 1 for a two values
-static int setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int min, int max)
+static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int min, int max)
 {
 	int nvalues = max + 1 - min;
 	if (nvalues <= 1)
@@ -66,7 +66,7 @@ static int setParameterEnumerationValues(ParameterEnumerationValues &enumValues,
 // Set up enumValue member of Parameter struct from varargs list of strings
 // Used in lambda call, hence put outside class
 // Returns maximum value of values in enumValues, so 1 for a range of 0-1
-static int setParameterEnumerationValues(ParameterEnumerationValues &enumValues, ...)
+static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumValues, ...)
 {
 	va_list args;
 
@@ -195,7 +195,7 @@ protected:
 
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
-		int SP_MAX;
+		uint32_t SP_MAX;
 		switch(paramno) {
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
