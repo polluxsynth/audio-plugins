@@ -178,20 +178,20 @@
 	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_EXPLIN, "Env Shape", "fenvmode", 0, SP_MAX, 0, setFenvLinear)
 
 	// FENV
-	PARAM(FATK, PG_FENV, SP_NONE, "Attack", "filterattack", 0, 10, 0, setFilterEnvelopeAttack)
-	PARAM(FDEC, PG_FENV, SP_NONE, "Decay", "filterdecay", 0, 10, 0, setFilterEnvelopeDecay)
-	PARAM(FSUS, PG_FENV, SP_NONE, "Sustain", "filtersustain", 0, 10, 10, setFilterEnvelopeSustain)
-	PARAM(FSUST, PG_FENV, SP_NONE, "SustainTime", "filtersustaintime", 0, 10, 10, setFilterEnvelopeSustainTime)
+	PARAM(FATK, PG_FENV, SP_NONE, "Filter Attack Time", "filterattack", 0, 10, 0, setFilterEnvelopeAttack)
+	PARAM(FDEC, PG_FENV, SP_NONE, "Filter Decay Time", "filterdecay", 0, 10, 0, setFilterEnvelopeDecay)
+	PARAM(FSUS, PG_FENV, SP_NONE, "Filter Sustain Level", "filtersustain", 0, 10, 10, setFilterEnvelopeSustain)
+	PARAM(FSUST, PG_FENV, SP_NONE, "Filter Sustain Time", "filtersustaintime", 0, 10, 10, setFilterEnvelopeSustainTime)
 
 	// LENV
-	PARAM(LATK, PG_LENV, SP_NONE, "Attack", "attack", 0, 10, 0, setLoudnessEnvelopeAttack)
-	PARAM(LDEC, PG_LENV, SP_NONE, "Decay", "decay", 0, 10, 0, setLoudnessEnvelopeDecay)
-	PARAM(LSUS, PG_LENV, SP_NONE, "Sustain", "sustain", 0, 10, 10, setLoudnessEnvelopeSustain)
-	PARAM(LSUST, PG_LENV, SP_NONE, "SustainTime", "sustaintime", 0, 10, 10, setLoudnessEnvelopeSustainTime)
+	PARAM(LATK, PG_LENV, SP_NONE, "Loudn Attack Time", "attack", 0, 10, 0, setLoudnessEnvelopeAttack)
+	PARAM(LDEC, PG_LENV, SP_NONE, "Loudn Decay Time", "decay", 0, 10, 0, setLoudnessEnvelopeDecay)
+	PARAM(LSUS, PG_LENV, SP_NONE, "Loudn Sustain Level", "sustain", 0, 10, 10, setLoudnessEnvelopeSustain)
+	PARAM(LSUST, PG_LENV, SP_NONE, "Loudn Sustain Time", "sustaintime", 0, 10, 10, setLoudnessEnvelopeSustainTime)
 
 	// Env release
 	PARAM(FREL, PG_REL, SP_NONE, "Filter Release", "filterrelease", 0, 10, 0, setFilterEnvelopeRelease)
-	PARAM(LREL, PG_REL, SP_NONE, "Loudness Release", "release", 0, 10, 0, setLoudnessEnvelopeRelease)
+	PARAM(LREL, PG_REL, SP_NONE, "Loudn Release", "release", 0, 10, 0, setLoudnessEnvelopeRelease)
 
 	// VCA (+ Loudness envelope control)
 	PARAM(HPFFREQ, PG_VCA, SP_NONE, "HPF Freq", "hpffreq", 0, 10, 0, setHPFfreq)
