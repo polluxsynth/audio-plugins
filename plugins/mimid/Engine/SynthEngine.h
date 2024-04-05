@@ -488,8 +488,6 @@ public:
 			synth.voices[i].osc.osc1Saw = intparam == 1;
 			synth.voices[i].osc.osc1Pul = intparam == 2;
 			synth.voices[i].osc.osc1Tri = intparam == 3;
-			synth.voices[i].osc.osc2modout =
-			synth.voices[i].oscmodEnable = intparam != 0;
 		}
 	}
 
@@ -501,6 +499,8 @@ public:
 			synth.voices[i].osc.osc2Saw = intparam == 1;
 			synth.voices[i].osc.osc2Pul = intparam == 2;
 			synth.voices[i].osc.osc2Tri = intparam == 3;
+			synth.voices[i].osc.osc2modout =
+			synth.voices[i].oscmodEnable = intparam != 0;
 		}
 	}
 	void setOsc3Wave(float param)
