@@ -292,7 +292,9 @@ public:
 	void setOctave(float param)
 	{
 		// Add 2 before rounding to avoid problems around zero
-		ForEachVoice(osc.oct = (roundToInt(param + 2.0f) - 2) * 12);
+		int octave = (roundToInt(param + 2.0f) - 2) * 12;
+		ForEachVoice(osc.oct = octave);
+		ForEachVoice(filteroct = octave);
 	}
 	void setFilterKeyFollow(float param)
 	{
