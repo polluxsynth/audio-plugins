@@ -54,7 +54,7 @@ private:
 	{
 		float coef = 1.0f / (SampleRate * (timeparam) / 1000);
 		if (linear)
-			coef *= adsrMode ? 0.10 : 0.35;
+			coef *= 0.10;
 		else if (!adsrMode) {
 			// In ADSSR mode, compensate for the fact
 			// that the sustain asymptote is lower than
