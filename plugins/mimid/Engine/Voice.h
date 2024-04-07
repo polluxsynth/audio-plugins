@@ -250,14 +250,14 @@ public:
 		if(invertFenv)
 			envm = -envm;
 
-		// ptNote+40 => F2 = 87.31 Hz is base note for filter tracking
+		// ptNote+42 => Eb2 = 77.78 Hz is base note for filter tracking
 		float cutoffnote =
 			(lfo1f?(lfo1Delayed*60):0)+
 			(lfo2f?(lfo2Delayed*60):0)+
 			cutoff+
 			FltSpread*FltSpreadAmt+
 			fenvamt*envm+
-			-45 + (fltKF*(ptNote+filteroct+40));
+			-54 + (fltKF*(ptNote+filteroct+42));
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
 			// When the positive peak of the mod signal would cause
