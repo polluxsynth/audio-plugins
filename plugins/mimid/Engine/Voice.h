@@ -118,8 +118,6 @@ public:
 	bool lfo1o1,lfo1o2,lfo1pw1,lfo1pw2,lfo1f,lfo1bmod,lfo1res;
 	bool lfo2o1,lfo2o2,lfo2pw1,lfo2pw2,lfo2f,lfo2bmod,lfo2res;
 
-	bool selfOscPush;
-
 	bool invertFenv;
 	bool lfo1modw, lfo1after, lfo1vel;
 	bool lfo2modw, lfo2after, lfo2vel;
@@ -140,7 +138,6 @@ public:
 
 	Voice()
 	{
-		selfOscPush = false;
 		invertFenv = false;
 		ng = Random(Random::getSystemRandom().nextInt64());
 		sustainHold = false;
@@ -297,10 +294,13 @@ public:
 			//noisy filter cutoff
 			+(ng.nextFloat()-0.5f)*3.5f
 			, (flt.SampleRate*0.5f-120.0f));//for numerical stability purposes
-		//limit our max cutoff on self osc to prevent alising
-		//TODO: higher limit when oversample enabled?
-		if(selfOscPush)
-			cutoffcalc = jmin(cutoffcalc,19000.0f);
+		// Limit the maximum cutoff frequency to 22 kHz
+		// There's no reason to go higher (the filter frequency
+		// modulation amount is capped when the cutff reaches
+		// this frequency above), and at around 28 kHz or so there is
+		// a small range where there are 'birdies' evident in the
+		// output for some reason.
+		cutoffcalc = jmin(cutoffcalc, 22000.0f);
 
 		float x1 = oscps;
 		//TODO: filter oscmod as well to reduce aliasing?
