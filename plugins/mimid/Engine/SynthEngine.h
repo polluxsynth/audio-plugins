@@ -288,6 +288,7 @@ public:
 	void setTune(float param)
 	{
 		ForEachVoice(osc.tune = param);
+		ForEachVoice(filtertune = param);
 	}
 	void setOctave(float param)
 	{
