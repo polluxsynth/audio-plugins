@@ -70,6 +70,7 @@ public:
 
 	float cutoff;
 	float filteroct;
+	float filtertune;
 	float fenvamt;
 	float res;
 
@@ -164,6 +165,7 @@ public:
 		fltKF= false;
 		cutoff=0;
 		filteroct=0;
+		filtertune=0;
 		fenvamt = 0;
 		res=0;
 		Active = false;
@@ -257,7 +259,7 @@ public:
 			cutoff+
 			FltSpread*FltSpreadAmt+
 			fenvamt*envm+
-			-54 + (fltKF*(ptNote+filteroct+42));
+			-54 + (fltKF*(ptNote+filteroct+filtertune+42));
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
 			// When the positive peak of the mod signal would cause
