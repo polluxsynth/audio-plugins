@@ -166,16 +166,16 @@
 	PARAM(OSC3MIX, PG_MIXER, SP_NONE, "Osc3Mix", "osc3mix", 0, 10, 0, setOsc3Mix)
 	PARAM(OSC3WAVE, PG_MIXER, SP_OSC3WAVE, "Osc3Wave", "osc3wave", 0, SP_MAX, 0, setOsc3Wave)
 
+	// Filter configuration
+	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Pole Count", "response", 1, 4, 4, setResponse)
+	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "Env Invert", "fenvpolarity", 0, SP_MAX, 0, setInvertFenv)
+	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_EXPLIN, "Env Shape", "fenvmode", 0, SP_MAX, 0, setFenvLinear)
+
 	// Filter
 	PARAM(CUTOFF, PG_FILTER, SP_NONE, "Cutoff", "cutoff", 0, 10, 10, setCutoff)
 	PARAM(RESONANCE, PG_FILTER, SP_NONE, "Resonance", "resonance", 0, 10, 0, setResonance)
 	PARAM(FLT_KF, PG_FILTER, SP_NONE, "KeyTrack", "keytrack", 0.0, 1.0, 0.0, setFilterKeyFollow)
 	PARAM(ENVELOPE_AMT, PG_FILTER, SP_NONE, "EnvAmount", "filterenvamount", 0, 10, 0, setFilterEnvelopeAmt)
-
-	// Filter configuration
-	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Pole Count", "response", 1, 4, 4, setResponse)
-	PARAM(FENV_INVERT, PG_FILTERCFG, SP_ONOFF, "Env Invert", "fenvpolarity", 0, SP_MAX, 0, setInvertFenv)
-	PARAM(FENV_LINEAR, PG_FILTERCFG, SP_EXPLIN, "Env Shape", "fenvmode", 0, SP_MAX, 0, setFenvLinear)
 
 	// FENV
 	PARAM(FATK, PG_FENV, SP_NONE, "Filter Attack Time", "filterattack", 0, 10, 0, setFilterEnvelopeAttack)
