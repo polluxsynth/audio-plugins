@@ -204,15 +204,15 @@ public:
 		//no matter what combination of amount and modwheel/aftertouch
 		//is dialed in.
 		float lfo1totalamt = lfo1amt +
-				     ((lfo1modw ? modw : 0) +
-				      (lfo1after ? aftert : 0) +
-				      (lfo1vel ? velocityValue : 0)) *
+				     (lfo1modw ? modw :
+				      lfo1after ? aftert :
+				      lfo1vel ? velocityValue : 0) *
 					lfo1modamt * (1 - lfo1amt);
 		float lfo2totalamt = lfo2amt +
-				     ((lfo2modw ? modw : 0) +
-				      (lfo2after ? aftert : 0) +
-				      (lfo2vel ? velocityValue : 0)) *
-					 lfo2modamt * (1 - lfo2amt);
+				     (lfo2modw ? modw :
+				      lfo2after ? aftert :
+				      lfo2vel ? velocityValue : 0) *
+					lfo2modamt * (1 - lfo2amt);
 
 		float lfo1mod = lfo1In * lfo1totalamt;
 		float lfo2mod = lfo2In * lfo2totalamt;
