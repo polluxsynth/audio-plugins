@@ -331,7 +331,9 @@ public:
 	}
 	void setLfo1Amt(float param)
 	{
-		ForEachVoice(lfo1amt = param * 0.1f);
+		param *= 0.1f; // 0..10 -> 0..1
+		param *= param; // square to get better low end resolution
+		ForEachVoice(lfo1amt = param);
 	}
 	void setLfo1Dest(float param)
 	{
@@ -405,7 +407,9 @@ public:
 	}
 	void setLfo2Amt(float param)
 	{
-		ForEachVoice(lfo2amt = param * 0.1f);
+		param *= 0.1f; // 0..10 -> 0..1
+		param *= param; // square to get better low end resolution
+		ForEachVoice(lfo2amt = param);
 	}
 	void setOscSpread(float param)
 	{
