@@ -508,15 +508,15 @@ public:
 			synth.voices[i].oscmodEnable = intparam != 0;
 		}
 	}
-	void setOsc3Wave(float param)
+	void setOsc2SubWave(float param)
 	{
 		int intparam = roundToInt(param);
 		// off - -1 square - -2 square - -2 pulse - noise
-		ForEachVoice(osc.osc3Waveform = intparam);
+		ForEachVoice(osc.osc2SubWaveform = intparam);
 	}
-	void setOsc3Mix(float param)
+	void setOsc2SubMix(float param)
 	{
-		ForEachVoice(osc.o3mx = param * 0.1f);
+		ForEachVoice(osc.o2submx = param * 0.1f);
 	}
 	void setCutoff(float param)
 	{
