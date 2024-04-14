@@ -163,8 +163,8 @@
 	// Mixer and osc 3
 	PARAM(OSC1MIX, PG_MIXER, SP_NONE, "Osc1Mix", "osc1mix", 0, 10, 0, setOsc1Mix)
 	PARAM(OSC2MIX, PG_MIXER, SP_NONE, "Osc2Mix", "osc2mix", 0, 10, 10, setOsc2Mix)
-	PARAM(OSC3MIX, PG_MIXER, SP_NONE, "Osc3Mix", "osc3mix", 0, 10, 0, setOsc3Mix)
-	PARAM(OSC3WAVE, PG_MIXER, SP_OSC3WAVE, "Osc3Wave", "osc3wave", 0, SP_MAX, 0, setOsc3Wave)
+	PARAM(OSC3MIX, PG_MIXER, SP_NONE, "Osc2Sub Mix", "osc2submix", 0, 10, 0, setOsc2SubMix)
+	PARAM(OSC3WAVE, PG_MIXER, SP_OSC3WAVE, "Osc2Sub Wave", "osc2subwave", 0, SP_MAX, 0, setOsc2SubWave)
 
 	// Filter configuration
 	PARAM(RESPONSE, PG_FILTERCFG, SP_NONE, "Pole Count", "response", 1, 4, 4, setResponse)

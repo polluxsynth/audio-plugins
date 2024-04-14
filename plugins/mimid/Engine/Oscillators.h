@@ -60,7 +60,7 @@ private:
 	SawOsc o1s,o2s;
 	PulseOsc o1p,o2p;
 	TriangleOsc o1t,o2t;
-	SubOsc o3;
+	SubOsc o2sub;
 public:
 
 	float tune;//+-1 
@@ -73,19 +73,18 @@ public:
 
 	float totalSpread;
 
-	float osc1Det,osc2Det,osc3Det;
-	float osc3Ofs, osc3Ratio;
-	float osc1pw,osc2pw,osc3pw;
+	float osc1Det,osc2Det;
+	float osc1pw,osc2pw;
 	float pw1,pw2;
 
-	float o1mx,o2mx,o3mx;
+	float o1mx,o2mx,o2submx;
 	float nmx;
 	float pto1,pto2;
 
 	//osc waveshapes
 	bool osc1Saw, osc1Pul, osc1Tri;
 	bool osc2Saw, osc2Pul, osc2Tri;
-	int osc3Waveform;
+	int osc2SubWaveform;
 
 	float osc1p,osc2p;
 	float syncLevel;
@@ -119,13 +118,12 @@ public:
 		osc1p=osc2p=24;
 		osc1Saw=osc2Saw=osc1Pul=osc2Pul=false;
 		osc1Det = osc2Det = 0;
-		osc3Det = 1.0; // multiplicative
 		notePlaying = 30;
 		osc1pw = osc2pw = 0;
 		o1mx=o2mx=0;
 		x1=wn.nextFloat();
 		x2=wn.nextFloat(); // osc2 and 3 start in phase
-		osc3Waveform = 0; // off
+		osc2SubWaveform = 0; // off
 		keyReset = false;
 	}
 	~Oscillators()
@@ -139,7 +137,7 @@ public:
 		o2p.setDecimation();
 		o2t.setDecimation();
 		o2s.setDecimation();
-		o3.setDecimation();
+		o2sub.setDecimation();
 	}
 	void removeDecimation()
 	{
@@ -149,7 +147,7 @@ public:
 		o2p.removeDecimation();
 		o2t.removeDecimation();
 		o2s.removeDecimation();
-		o3.removeDecimation();
+		o2sub.removeDecimation();
 	}
 	void setSampleRate(float sr)
 	{
@@ -201,27 +199,27 @@ public:
 		else if(osc2Tri)
 			osc2mix = o2t.getValue(x2) + o2t.aliasReduction();
 
-		// osc3 = osc2 sub oscillator
+		// osc2sub: osc2 sub oscillator
 		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
 
-		float osc3mix=0.0f;
+		float osc2submix=0.0f;
 
 		// Send hard sync reset as trigger for osc 3 counter
 		// Because they're delayed above, we don't need to
 		// delay the output of osc 3 further down
-		o3.processMaster(hsr, hsfrac, osc3Waveform);
+		o2sub.processMaster(hsr, hsfrac, osc2SubWaveform);
 
-		if (osc3Waveform) {
-			if (osc3Waveform == 4) { // noise
+		if (osc2SubWaveform) {
+			if (osc2SubWaveform == 4) { // noise
 				// MiMi-a uses a digital noise generator,
 				// so we do too. It has the minimum crest
 				// factor and thus gives the highest RMS level
 				// for a given peak level.
 				// TODO: Use separate noise gen here?
-				osc3mix = (noiseGen > 0) - 0.5;
-				// osc3mix = noiseGen * 1.3; // analog
+				osc2submix = (noiseGen > 0) - 0.5;
+				// osc2submix = noiseGen * 1.3; // analog
 			} else // 1..3 are sub osc waveforms/octaves
-				osc3mix = o3.getValue(osc3Waveform) + o3.aliasReduction();
+				osc2submix = o2sub.getValue(osc2SubWaveform) + o2sub.aliasReduction();
 		}
 
 		// osc1 = slave oscillator
@@ -284,7 +282,7 @@ public:
 
 		//mixing
 		// TODO: have separate noise generator for the dither noise?
-		float res =o1mx*osc1mix + o2mx*osc2mix + o3mx*osc3mix + noiseGen*0.0006;
+		float res =o1mx*osc1mix + o2mx*osc2mix + o2submx*osc2submix + noiseGen*0.0006;
 		audioOutput = res*3;
 		modOutput = osc2mix;
 
