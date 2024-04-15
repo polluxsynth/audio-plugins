@@ -72,7 +72,7 @@ public:
 	int waveForm;
 	bool invert;
 	bool unipolar;
-	Lfo()
+	Lfo(enum WaveType default_wavetype = OFF)
 	{
 		phaseInc = 0;
 		frequency=0;
@@ -85,12 +85,13 @@ public:
 		phase=0;
 		spread=1;
 		waveForm=0;
-		symmetry=0.5;
-		symmetryOffset=0;
 		invert=unipolar=false;
 		sh=0;
 		newCycle=false;
 		rg=Random();
+		wavetype=default_wavetype;
+		oneShot=false;
+		setSymmetry(0.5);
 	}
 	void setClockSync(bool enable)
 	{
@@ -229,14 +230,18 @@ public:
 			recalcRate(param);
 		}
 	}
+	void setSymmetry(float symm)
+	{
+		symmetry = symm;
+		symmetryInv = symmetry > 0.0 ? 1.0 / symmetry : 0;
+		symmetryRevInv = symmetry < 1.0 ? 1.0 / (1.0 - symmetry) : 0;
+		setSymmetryOffset();
+	}
 	void setWaveForm(int select)
 	{
 		struct WaveDef &wavedef = WaveDef_Table[select];
 		wavetype = wavedef.wavetype;
-		symmetry = wavedef.symmetry;
-		symmetryInv = symmetry > 0.0 ? 1.0 / symmetry : 0;
-		symmetryRevInv = symmetry < 1.0 ? 1.0 / (1.0 - symmetry) : 0;
-		setSymmetryOffset();
+		setSymmetry(wavedef.symmetry);
 	}
 	void recalcRate(float param)
 	{
