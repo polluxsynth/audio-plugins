@@ -133,7 +133,7 @@
 
 	// LFO2 #1 (main: freq, wave, basic amount)
 	PARAM(LFO2FREQ, PG_LFO2, SP_NONE, "Rate", "lfo2frequency", 0, 10, 6, setLfo2Frequency)
-	PARAM(LFO2WAVE, PG_LFO2, SP_LFOWAVE, "Wave", "lfo2wave", 0, SP_MAX, 0, setLfo2Wave)
+	PARAM(LFO2SYMMETRY, PG_LFO2, SP_NONE, "Waveform Symmetry", "lfo2symmetry", 0, 10, 0, setLfo2Symmetry)
 	PARAM(LFO2AMT, PG_LFO2, SP_NONE, "Initial Amount", "lfo2amount", 0, 10, 0, setLfo2Amt)
 	PARAM(LFO2DEST, PG_LFO2, SP_LFODEST, "Dest", "lfo2dest", 0, SP_MAX, 0, setLfo2Dest)
 	// LFO2 #2 (secondary: sync, controllers, polarity)

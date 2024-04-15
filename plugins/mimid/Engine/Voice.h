@@ -181,7 +181,7 @@ public:
 	//	fenvd=new DelayLine(Samples*2);
 		oscmodEnable = false;
 		expvca = false;
-		lfo2.waveForm = 1; // Triangle
+		lfo2.setWaveForm(3); // Triangle
 		voiceNumber = 0; // Until someone else says something else
 		unused1=unused2=0; // TODO: Remove
 	}

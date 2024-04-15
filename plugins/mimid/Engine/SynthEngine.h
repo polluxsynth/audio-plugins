@@ -324,10 +324,10 @@ public:
 		int intparam = roundToInt(param);
 		ForEachVoice(lfo1.setWaveForm(intparam));
 	}
-	void setLfo2Wave(float param)
+	void setLfo2Symmetry(float param)
 	{
-		int intparam = roundToInt(param);
-		ForEachVoice(lfo2.setWaveForm(intparam));
+		param *= 0.1f; // 0..10 => 0.1 = 0..100% symmetry
+		ForEachVoice(lfo2.setSymmetry(param));
 	}
 	void setLfo1Amt(float param)
 	{
