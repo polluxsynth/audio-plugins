@@ -1,0 +1,242 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix pset: <http://lv2plug.in/ns/ext/presets#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix state: <http://lv2plug.in/ns/ext/state#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<Ability_to_swing.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Ability_to_swing.ttl> .
+
+<Aiyyy.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Aiyyy.ttl> .
+
+<All_Around_The_World.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <All_Around_The_World.ttl> .
+
+<Arpeggio_I.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Arpeggio_I.ttl> .
+
+<Arpeggio_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Arpeggio_II.ttl> .
+
+<Arpeggio_III.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Arpeggio_III.ttl> .
+
+<B3_Overdrive.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <B3_Overdrive.ttl> .
+
+<Basic_Saw.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Basic_Saw.ttl> .
+
+<Bowed_strings.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Bowed_strings.ttl> .
+
+<Chinese_Fourths.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Chinese_Fourths.ttl> .
+
+<Chorus_Harp.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Chorus_Harp.ttl> .
+
+<Classic_Sync.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Classic_Sync.ttl> .
+
+<E_Bass.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <E_Bass.ttl> .
+
+<E_Piano.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <E_Piano.ttl> .
+
+<E_Piano_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <E_Piano_II.ttl> .
+
+<Echo.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Echo.ttl> .
+
+<FM_Brass.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <FM_Brass.ttl> .
+
+<FM_Polysynth.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <FM_Polysynth.ttl> .
+
+<FM_Seq.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <FM_Seq.ttl> .
+
+<Glocken.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Glocken.ttl> .
+
+<Harp.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Harp.ttl> .
+
+<Jaaaa.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Jaaaa.ttl> .
+
+<Jazz_Guitar.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Jazz_Guitar.ttl> .
+
+<MiMistrings.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <MiMistrings.ttl> .
+
+<Mod_Strings.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Mod_Strings.ttl> .
+
+<Mod_Strings_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Mod_Strings_II.ttl> .
+
+<Noise_Percussion.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Noise_Percussion.ttl> .
+
+<Noise_Percussion_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Noise_Percussion_II.ttl> .
+
+<Overdrive_my_resonance.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Overdrive_my_resonance.ttl> .
+
+<Overdriven.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Overdriven.ttl> .
+
+<Polysync.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Polysync.ttl> .
+
+<Polysynth.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Polysynth.ttl> .
+
+<Pure_Sine.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Pure_Sine.ttl> .
+
+<Push_Me.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Push_Me.ttl> .
+
+<Slow_strings.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Slow_strings.ttl> .
+
+<Slow_strings_AT.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Slow_strings_AT.ttl> .
+
+<Slow_strings_PWM.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Slow_strings_PWM.ttl> .
+
+<Spike.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Spike.ttl> .
+
+<Sweeping_Resonant_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Sweeping_Resonant_Pad.ttl> .
+
+<Synth_Brass.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Synth_Brass.ttl> .
+
+<Tangram.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Tangram.ttl> .
+
+<Timpani.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Timpani.ttl> .
+
+<Touch_Sensitive.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Touch_Sensitive.ttl> .
+
+<Upright_Piano.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Upright_Piano.ttl> .
+
+<Whiter_Shade.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Whiter_Shade.ttl> .
+
+<Yay.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Yay.ttl> .
+
+<Factory>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Bank ;
+	rdfs:label "Factory" .
