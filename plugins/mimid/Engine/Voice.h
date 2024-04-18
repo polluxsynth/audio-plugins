@@ -219,8 +219,12 @@ public:
 
 		//portamento on osc input voltage
 		//implements rc circuit
-		// Midi note 81 is A5 (880 Hz), so ptNote == 0 => 880 Hz
-		float ptNote  =tptlpupw(prtst, midiIndx-81, porta * (1+PortaSpread*PortaSpreadAmt),sampleRateInv);
+		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
+		// Pitch calc base frequency is 440 Hz, but the default
+		// osc pitch is 24 (semitones), resulting in
+		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
+		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
+		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt),sampleRateInv);
 		osc.notePlaying = ptNote;
 		//both envelopes and filter cv need a delay equal to osc internal delay
 		float lfo1Delayed = lfo1d.feedReturn(lfo1mod);
@@ -252,14 +256,14 @@ public:
 		if(invertFenv)
 			envm = -envm;
 
-		// ptNote+42 => Eb2 = 77.78 Hz is base note for filter tracking
+		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking
 		float cutoffnote =
 			(lfo1f?(lfo1Delayed*60):0)+
 			(lfo2f?(lfo2Delayed*60):0)+
 			cutoff+
 			FltSpread*FltSpreadAmt+
 			fenvamt*envm+
-			-54 + (fltKF*(ptNote+filteroct+filtertune+42));
+			-54 + (fltKF*(ptNote+filteroct+filtertune+54));
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
 			// When the positive peak of the mod signal would cause
