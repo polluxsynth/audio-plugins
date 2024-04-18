@@ -89,6 +89,8 @@
 
 	PARAMHINTS(SP_INTS, kParameterIsInteger)
 
+	PARAMHINTS(SP_HIDDEN, kParameterIsHidden)
+
 	// Parameters
 
 	// Main
@@ -220,8 +222,8 @@
 	PARAM(ECONOMY_MODE, PG_DSP, SP_ONOFF, "Economy Mode", "economymode", 0, SP_MAX, 1, setEconomyMode)
 
 	// Misc/Debug
-	PARAM(UNUSED_1, PG_MISC, SP_NONE, "Debug 1", "unused_1", 0, 1.0, 0, procUnused1)
-	PARAM(UNUSED_2, PG_MISC, SP_NONE, "Debug 2", "unused_2", 0, 1.0, 0, procUnused2)
+	PARAM(UNUSED_1, PG_MISC, SP_HIDDEN, "Debug 1", "unused_1", 0, 1.0, 0, procUnused1)
+	PARAM(UNUSED_2, PG_MISC, SP_HIDDEN, "Debug 2", "unused_2", 0, 1.0, 0, procUnused2)
 
 // Clean up for potential re-inclusion of file with new definitions
 #undef PARAMPOINTS
