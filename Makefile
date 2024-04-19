@@ -65,6 +65,8 @@ install:
 	install -m 644 bin/$(PLUGIN_NAME).lv2/*.ttl $(DESTDIR)$(PREFIX)/lib/lv2/$(PLUGIN_NAME).lv2
 	install -d $(DESTDIR)$(PREFIX)/lib/lv2/$(PLUGIN_NAME).presets.lv2
 	install -m 644 plugins/$(PLUGIN)/Presets/*.ttl $(DESTDIR)$(PREFIX)/lib/lv2/$(PLUGIN_NAME).presets.lv2
+	install -d $(DESTDIR)$(PREFIX)/share/doc/$(PLUGIN_NAME)
+	install -m 644 plugins/$(PLUGIN)/Doc/*.pdf $(DESTDIR)$(PREFIX)/share/doc/$(PLUGIN_NAME)
 
 # --------------------------------------------------------------
 
