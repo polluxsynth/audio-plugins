@@ -9,7 +9,7 @@
 <>
 	a pset:Preset ;
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
-	rdfs:label "Slow_strings_AT" ;
+	rdfs:label "Slow strings AT" ;
 	pset:bank <Factory> ;
 	lv2:port [
 		lv2:symbol "aftertouchscale" ;
