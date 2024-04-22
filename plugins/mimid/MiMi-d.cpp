@@ -310,7 +310,7 @@ private:
 	}
 
 protected:
-	void run(const float **inputs,
+	void run(const float ** /* inputs */,
 		 float **outputs,
 		 uint32_t frames,
 		 const MidiEvent *midiEvents,
@@ -318,7 +318,6 @@ protected:
 	{
 		float *outL = outputs[0];
 		float *outR = outputs[1];
-		(void) inputs; // synth has no audio inputs
 		uint32_t samplePos = 0;
 		uint32_t midiEventIndex = 0;
 #if 0 // TODO: Fix playhead managment = LFO tempo sync
