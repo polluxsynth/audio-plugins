@@ -120,7 +120,7 @@ private:
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
 	int totalvc;
-	int velsave[128]; // one per note number
+	float velsave[128]; // one per note number
 
 	// Unison mode
 	int uniNote;
