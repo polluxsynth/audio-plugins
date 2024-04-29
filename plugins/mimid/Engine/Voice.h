@@ -297,7 +297,7 @@ public:
 						oscmod_maxpeak_inv;
 			cutoffnote += (oscmod-oscmod_offset) * osc2FltModTmp;
 		}
-		float cutoffcalc = jmin(
+		float cutoffcalc = min(
 			getPitch(cutoffnote)
 			//noisy filter cutoff
 			+(ng.nextFloat()-0.5f)*3.5f
@@ -308,12 +308,12 @@ public:
 		// this frequency above), and at around 28 kHz or so there is
 		// a small range where there are 'birdies' evident in the
 		// output for some reason.
-		cutoffcalc = jmin(cutoffcalc, 22000.0f);
+		cutoffcalc = min(cutoffcalc, 22000.0f);
 
 		float x1 = oscps;
 		//TODO: filter oscmod as well to reduce aliasing?
 		// Cap resonance at 0 and +1 to avoid nasty artefacts
-		float rescalc = jmin(jmax(res + (lfo1res?lfo1Delayed:0) + (lfo2res?lfo2Delayed:0), 0.0f), 1.0f);
+		float rescalc = limit(res + (lfo1res?lfo1Delayed:0) + (lfo2res?lfo2Delayed:0), 0.0f, 1.0f);
 
 		x1 = flt.Apply4Pole(x1, cutoffcalc, rescalc);
 
@@ -338,7 +338,7 @@ public:
 	void setBrightness(float val)
 	{
 		briHold = val;
-		brightCoef = tan(jmin(val,flt.SampleRate*0.5f-10)* pi*flt.sampleRateInv);
+		brightCoef = tan(min(val,flt.SampleRate*0.5f-10)* pi*flt.sampleRateInv);
 
 	}
 	void setHPFfreq(float val)
@@ -395,7 +395,7 @@ public:
 		lfo2.setSampleRate(sr);
 		SampleRate = sr;
 		sampleRateInv = 1 / sr;
-		brightCoef = tan(jmin(briHold,flt.SampleRate*0.5f-10)* pi * flt.sampleRateInv);
+		brightCoef = tan(min(briHold,flt.SampleRate*0.5f-10)* pi * flt.sampleRateInv);
 		hpfcutoff = tan(hpffreq * sampleRateInv * pi);
 	}
 	void checkAdssrState()

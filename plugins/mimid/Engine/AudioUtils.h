@@ -27,6 +27,8 @@
 
 #include "SynthEngine.h"
 
+// Some handy constants
+
 const float pi = 3.14159265358979323846f; // Replaces juce::float_Pi
 const float sq2_12 = 1.0594630943592953f;
 
@@ -39,6 +41,22 @@ inline int roundToInt(float f)
 {
 	return (int) (f + 0.5);
 }
+
+template <typename Type> Type min(const Type a, const Type b) noexcept
+{
+	return (a < b) ? a : b;
+}
+
+template <typename Type> Type max(const Type a, const Type b) noexcept
+{
+	return (a > b) ? a : b;
+}
+
+
+template <typename Type> Type limit(const Type val, const Type low, const Type high) noexcept
+{
+	return (val < low) ? low : (val > high) ? high : val;
+}	
 
 inline void zeromem(void *memory, size_t numBytes) noexcept
 {

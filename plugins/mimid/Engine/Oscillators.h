@@ -164,10 +164,10 @@ public:
 		// osc key sync results in unconditional hard sync
 		int hsr = 0; // 1 => hard sync, -1 => unconditional hard sync
 		float hsfrac=0;
-		float fs = jmin(pitch2*(sampleRateInv),0.45f);
+		float fs = min(pitch2*(sampleRateInv),0.45f);
 		x2+=fs;
 		float osc2mix=0.0f;
-		float pwcalc =jlimit<float>(0.1f,1.0f,(osc2pw + pw2)*0.5f + 0.5f);
+		float pwcalc =limit<float>((osc2pw + pw2)*0.5f + 0.5f, 0.1f, 1.0f);
 		if(osc2Pul)
 			o2p.processMaster(x2,fs,pwcalc,pw2w,keyReset);
 		else if(osc2Saw)
@@ -232,9 +232,9 @@ public:
 		// max xmod
 		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + osc1Det + osc1p + pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + tune + oct +totalSpread*osc1Factor));
 
-		fs = jmin(pitch1 * (sampleRateInv),0.45f);
+		fs = min(pitch1 * (sampleRateInv),0.45f);
 
-		pwcalc = jlimit<float>(0.1f,1.0f,(osc1pw + pw1)*0.5f + 0.5f);
+		pwcalc = limit<float>((osc1pw + pw1)*0.5f + 0.5f, 0.1f, 1.0f);
 
 		float osc1mix=0.0f;
 

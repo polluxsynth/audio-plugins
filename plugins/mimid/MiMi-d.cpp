@@ -21,9 +21,6 @@
 
 #include "DistrhoPlugin.hpp"
 
-#include "lib/juce_MathsFunctions.h" // Need jmin,jmax,jlimit,int64
-using namespace juce;
-
 #include "Engine/SynthEngine.h"
 #include "Engine/Params.h"
 
