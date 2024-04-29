@@ -24,6 +24,8 @@
 	==============================================================================
  */
 #pragma once
+
+#include "Random.h"
 #include "Oscillators.h"
 #include "AdssrEnvelope.h"
 #include "Lfo.h"
@@ -63,7 +65,7 @@ public:
 	Filter flt;
 	SquareDist sqdist;
 
-	Random ng;
+	SRandom ng;
 
 	float vamp,vflt;
 	float velscale;
@@ -140,7 +142,7 @@ public:
 	Voice()
 	{
 		invertFenv = false;
-		ng = Random(Random::getSystemRandom().nextInt64());
+		ng = SRandom(SRandom::globalRandom().nextInt32());
 		sustainHold = false;
 		shouldProcessed = false;
 		vamp=vflt=0;
@@ -170,13 +172,13 @@ public:
 		res=0;
 		Active = false;
 		midiIndx = 30;
-		levelSpread = Random::getSystemRandom().nextFloat()-0.5;
-		EnvSpread = Random::getSystemRandom().nextFloat()-0.5;
-		FenvSpread = Random::getSystemRandom().nextFloat()-0.5;
-		Lfo1Spread = Random::getSystemRandom().nextFloat()-0.5;
-		Lfo2Spread = Random::getSystemRandom().nextFloat()-0.5;
-		FltSpread = Random::getSystemRandom().nextFloat()-0.5;
-		PortaSpread =Random::getSystemRandom().nextFloat()-0.5;
+		levelSpread = SRandom::globalRandom().nextFloat()-0.5;
+		EnvSpread = SRandom::globalRandom().nextFloat()-0.5;
+		FenvSpread = SRandom::globalRandom().nextFloat()-0.5;
+		Lfo1Spread = SRandom::globalRandom().nextFloat()-0.5;
+		Lfo2Spread = SRandom::globalRandom().nextFloat()-0.5;
+		FltSpread = SRandom::globalRandom().nextFloat()-0.5;
+		PortaSpread =SRandom::globalRandom().nextFloat()-0.5;
 	//	lenvd=new DelayLine(Samples*2);
 	//	fenvd=new DelayLine(Samples*2);
 		oscmodEnable = false;

@@ -78,7 +78,7 @@ public:
 		{
 			voices[i].voiceNumber = i;
 			voiceList[i] = &voices[i];
-			panSpread[i]= Random::getSystemRandom().nextFloat()-0.5;
+			panSpread[i]= SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
 		}
 	}

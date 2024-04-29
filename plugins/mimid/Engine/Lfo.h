@@ -33,7 +33,7 @@ private:
 	bool newCycle;
 	float s1;
 	float spread;
-    Random rg;
+	SRandom rg;
 	float SampleRate;
 	float SampleRateInv;
 
@@ -88,7 +88,7 @@ public:
 		invert=unipolar=false;
 		sh=0;
 		newCycle=false;
-		rg=Random();
+		rg=SRandom(SRandom::globalRandom().nextInt32());
 		wavetype=default_wavetype;
 		oneShot=false;
 		setSymmetry(0.5);

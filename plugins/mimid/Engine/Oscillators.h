@@ -25,6 +25,7 @@
  */
 #pragma once
 
+#include "Random.h"
 #include "Voice.h"
 #include "SynthEngine.h"
 #include "AudioUtils.h"
@@ -56,7 +57,7 @@ private:
 	DelayLineInt<Samples> syncd;
 	DelayLine<Samples> syncFracd;
 	DelayLine<Samples> cvd;
-	Random wn;
+	SRandom wn;
 	SawOsc o1s,o2s;
 	PulseOsc o1p,o2p;
 	TriangleOsc o1t,o2t;
@@ -104,7 +105,7 @@ public:
 	{
 		dirt = 0.1;
 		totalSpread = 0;
-		wn = Random(Random::getSystemRandom().nextInt64());
+		wn = SRandom(SRandom::globalRandom().nextInt32());
 		osc1Factor = wn.nextFloat()-0.5;
 		osc2Factor = wn.nextFloat()-0.5;
 		nmx=0;
