@@ -37,23 +37,38 @@ const float ln2 = 0.69314718056f;
 const float mult = ln2 / 12.0;
 
 // Replacements for Juce library functions
+
+#if 1
 inline int roundToInt(float f)
 {
 	return (int) (f + 0.5);
 }
+#else
+// Alternate implementation:
+// Explained in https://stackoverflow.com/questions/17035464
+// Basically, add a large value to make the mantissa a whole number, then
+// interpret as an int and subtract the offset and exponent.
+// Old trick that was very efficient on old Pentiums but which might not
+// necessarily be faster now with modern CPUs.
+inline int roundToInt(float val)
+{
+	union { float f; int32_t i; } u;
+	u.f = val + 12582912.0f;
+	return u.i - 0x4b400000;
+}
+#endif
 
-template <typename Type> Type min(const Type a, const Type b) noexcept
+inline float minf(const float a, const float b) noexcept
 {
 	return (a < b) ? a : b;
 }
 
-template <typename Type> Type max(const Type a, const Type b) noexcept
+inline float maxf(const float a, const float b) noexcept
 {
 	return (a > b) ? a : b;
 }
 
-
-template <typename Type> Type limit(const Type val, const Type low, const Type high) noexcept
+inline float limitf(const float val, const float low, const float high) noexcept
 {
 	return (val < low) ? low : (val > high) ? high : val;
 }	
