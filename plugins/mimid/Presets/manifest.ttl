@@ -156,6 +156,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Overdriven.ttl> .
 
+<Polysequencer.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Polysequencer.ttl> .
+
 <Polysync.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -175,6 +180,11 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Push_Me.ttl> .
+
+<Resonant_Synth_Bass.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Resonant_Synth_Bass.ttl> .
 
 <Slow_strings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -201,6 +211,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Sweeping_Resonant_Pad.ttl> .
 
+<Sync_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Sync_Pad.ttl> .
+
 <Synth_Brass.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -220,6 +235,11 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Touch_Sensitive.ttl> .
+
+<Up_You_Go.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Up_You_Go.ttl> .
 
 <Upright_Piano.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
