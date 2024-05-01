@@ -39,8 +39,6 @@ START_NAMESPACE_DISTRHO
 typedef void (SynthEngine::*SetFuncType)(float);
 typedef uint32_t (*ScalePointType)(ParameterEnumerationValues &enumValues);
 
-// Plugin class parameters are #params, #programs, #states .
-
 // Set up enumValue member of Parameter struct from varargs list of strings
 // Used in lambda call, hence put outside class
 // Returns maximum value of values in enumValues, so 1 for a range of 0-1
@@ -92,6 +90,8 @@ static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumVa
 		retval |= kParameterIsBoolean << HINT_SHIFT;
 	return retval;
 }
+
+// Plugin class parameters are #params, #programs, #states .
 
 class MiMid : public Plugin {
 private:
