@@ -66,12 +66,20 @@ public:
 	{
 		//delete synth;
 	}
-	void setPlayHead(float bpm,float retrPos)
+	void setBpm(float bpm)
 	{
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
 		{
-			synth.voices[i].lfo1.hostSyncRetrigger(bpm,retrPos);
-			synth.voices[i].lfo2.hostSyncRetrigger(bpm,retrPos);
+			synth.voices[i].lfo1.setBpm(bpm);
+			synth.voices[i].lfo2.setBpm(bpm);
+		}
+	}
+	void setPlayHead(float retrPos)
+	{
+		for(int i = 0 ; i < synth.MAX_VOICES;i++)
+		{
+			synth.voices[i].lfo1.hostSyncRetrigger(retrPos);
+			synth.voices[i].lfo2.hostSyncRetrigger(retrPos);
 		}
 	}
 	void setSampleRate(float sr)

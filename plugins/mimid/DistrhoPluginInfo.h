@@ -31,6 +31,7 @@
 #define DISTRHO_PLUGIN_IS_SYNTH 1
 #define DISTRHO_PLUGIN_HAS_UI 0
 #define DISTRHO_PLUGIN_IS_RT_SAFE   1
+#define DISTRHO_PLUGIN_WANT_TIMEPOS   1
 
 // Bring in Parameters enum */
 #include "Engine/ParamsEnum.h"

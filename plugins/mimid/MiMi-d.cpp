@@ -313,10 +313,28 @@ protected:
 		float *outR = outputs[1];
 		uint32_t samplePos = 0;
 		uint32_t midiEventIndex = 0;
-#if 0 // TODO: Fix playhead managment = LFO tempo sync
-		if (getPlayHead() != 0 && getPlayHead()->getCurrentPosition (pos))
-			synth.setPlayHead(pos.bpm,pos.ppqPosition);
-#endif
+		const TimePosition& timePos(getTimePosition());
+
+		if (timePos.bbt.valid) {
+			synth.setBpm(timePos.bbt.beatsPerMinute);
+			if (timePos.playing) {
+			// barStartTick runs from 0 to first beat of this bar
+			// beat runs from 1 to end of bar
+			// tick runs from 0 to ticksPerBeat
+				float totalTick = timePos.bbt.barStartTick +
+						  (timePos.bbt.beat - 1) *
+						  timePos.bbt.ticksPerBeat +
+						  timePos.bbt.tick;
+				// Alternative calculation:
+				//float totalTick = ((timePos.bbt.bar - 1) *
+				//		   timePos.bbt.beatsPerBar +
+				//		   (timePos.bbt.beat - 1)) *
+				//		  timePos.bbt.ticksPerBeat +
+				//		  timePos.bbt.tick;
+				float beatPos = totalTick / timePos.bbt.ticksPerBeat;
+				synth.setPlayHead(beatPos);
+			}
+		}
 
 		while (samplePos < frames)
 		{

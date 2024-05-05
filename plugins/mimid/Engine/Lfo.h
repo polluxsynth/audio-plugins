@@ -37,7 +37,7 @@ private:
 	float SampleRate;
 	float SampleRateInv;
 
-	float syncRate;
+	float syncRatio;
 	bool clockSynced;
 	bool oneShot;
 	bool keySynced;
@@ -64,11 +64,27 @@ private:
 		 { PULSE, 0.75 }, // Pulse 75% duty cycle
 		 { S_H, 0 }, // S/H (symmetry unused)
 	};
+
+	const float ratioTable[11] = {
+		1.0 / 8,	// 0
+		1.0 / 6,	// 1
+		1.0 / 4,	// 2
+		1.0 / 3,	// 3
+		1.0 / 2,	// 4
+		1.0,		// 5
+		3.0 / 2,	// 6
+		2,		// 7
+		3,		// 8
+		4,		// 9
+		8,		// 10
+	};
+
 public:
 	float Frequency;
 	float phaseInc;
 	float frequency;//frequency value without sync
 	float rawFrequency;
+	float bpm;
 	int waveForm;
 	bool invert;
 	bool unipolar;
@@ -76,7 +92,8 @@ public:
 	{
 		phaseInc = 0;
 		frequency=0;
-		syncRate = 1;
+		bpm=0;
+		syncRatio = 1;
 		rawFrequency=0;
 		clockSynced = false;
 		keySynced = false;
@@ -96,9 +113,10 @@ public:
 	void setClockSync(bool enable)
 	{
 		clockSynced = enable;
-		if (clockSynced)
+		if (clockSynced) {
 			recalcRate(rawFrequency);
-		else
+			phaseInc = (bpm / 60.0) * syncRatio;
+		} else
 			phaseInc = frequency * spread;
 	}
 	void setKeySync(bool enable)
@@ -143,13 +161,26 @@ public:
 			// anyway.
 			phase = masterLfo.phase;
 	}
-	void hostSyncRetrigger(float bpm,float quaters)
+	void setBpm(float newbpm)
+	{
+		bpm = newbpm;
+		if(clockSynced)
+			phaseInc = (bpm / 60.0) * syncRatio;
+	}
+	void hostSyncRetrigger(float beatpos)
 	{
 		if(clockSynced)
 		{
-			phaseInc = (bpm/60.0)*syncRate;
-			phase = phaseInc*quaters;
-			phase = (fmod(phase,1)*2-1);
+			phase = syncRatio*beatpos;
+			float phaseOld = phase;
+			phase = fmod(phase, 1);
+			// It's unlikely that the beat sync will cause the
+			// phase to reset (or rather, it's much more likely
+			// to happen during an ordinary sample update), but
+			// if it does, trigger the S/H so we don't skip
+			// a cycle.
+			if (phase < phaseOld) // phase has wrapped
+				newCycle = true;
 		}
 	}
 	inline float getVal()
@@ -225,9 +256,10 @@ public:
 	void setRawFrequency(float param)//used for clock synced rate changes
 	{
 		rawFrequency = param;
-		if(clockSynced)
+		if (clockSynced)
 		{
 			recalcRate(param);
+			phaseInc = (bpm / 60.0) * syncRatio;
 		}
 	}
 	void setSymmetry(float symm)
@@ -245,42 +277,9 @@ public:
 	}
 	void recalcRate(float param)
 	{
-		const int ratesCount = 9;
-		int parval = (int)(param * (ratesCount - 1) / 10);
-		float rt = 1;
-		switch(parval)
-		{
-		case 0:
-			rt = 1.0 / 8;
-			break;
-		case 1:
-			rt = 1.0 / 4;
-			break;
-		case 2:
-			rt = 1.0 / 3;
-			break;
-		case 3:
-			rt = 1.0 / 2;
-			break;
-		case 4:
-			rt = 1.0;
-			break;
-		case 5:
-			rt = 3.0 / 2;
-			break;
-		case 6:
-			rt = 2;
-			break;
-		case 7:
-			rt = 3;
-			break;
-		case 8:
-			rt = 4;
-			break;
-		default:
-			rt = 1;
-			break;
-		}
-		syncRate = rt;
+		int intpar = roundToInt(param);
+
+		if (intpar >= 0 && intpar <= 10)
+			syncRatio = ratioTable[intpar];
 	}
 };
