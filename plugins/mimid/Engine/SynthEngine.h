@@ -484,7 +484,7 @@ public:
 	}
 	void setOsc1Det(float param)
 	{
-		// logsc is geared for 0..10. so we multiply param by 10
+		// linsc is geared for 0..10. so we multiply param by 10
 		// as the displayed parameter value is 0..1.
 		ForEachVoice(osc.osc1Det = linsc(param * 10, 0, 1.0f));
 	}

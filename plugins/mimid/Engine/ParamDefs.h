@@ -145,13 +145,13 @@
 	PARAM(LFO2SYNC, PG_LFO2, SP_LFOSYNC, "Sync", "lfo2sync", 0, SP_MAX, 0, setLfo2Sync)
 
 	// Osc 1
-	PARAM(OSC1_DET, PG_OSC1, SP_NONE, "Detune", "osc1detune", 0.0, 1.0, 0.0, setOsc1Det)
+	PARAM(OSC1_DET, PG_OSC1, SP_NONE, "Detune", "osc1detune", -1.0, 1.0, 0.0, setOsc1Det)
 	PARAM(OSC1P, PG_OSC1, SP_INTS, "Pitch", "osc1pitch", 0, 72, 24, setOsc1Pitch)
 	PARAM(OSC1PW, PG_OSC1, SP_NONE, "PulseWidth", "osc1pw", 0, 10, 0, setOsc1PulseWidth)
 	PARAM(OSC1WAVE, PG_OSC1, SP_OSCWAVE, "Wave", "osc1wave", 0, SP_MAX, 0, setOsc1Wave)
 
 	// Osc 2
-	PARAM(OSC2_DET, PG_OSC2, SP_NONE, "Detune", "osc2detune", 0.0, 1.0, 0.0, setOsc2Det)
+	PARAM(OSC2_DET, PG_OSC2, SP_NONE, "Detune", "osc2detune", -1.0, 1.0, 0.0, setOsc2Det)
 	PARAM(OSC2P, PG_OSC2, SP_INTS, "Pitch", "osc2pitch", 0, 72, 24, setOsc2Pitch)
 	PARAM(OSC2PW, PG_OSC2, SP_NONE, "PulseWidth", "osc2pw", 0, 10, 0, setOsc2PulseWidth)
 	PARAM(OSC2WAVE, PG_OSC2, SP_OSCWAVE, "Wave", "osc2wave", 0, SP_MAX, 1, setOsc2Wave)
