@@ -93,12 +93,6 @@ public:
 	}
 	void setVoiceCount(int count)
 	{
-		// Turn off voices that are no longer used
-		for(int i = count ; i < MAX_VOICES;i++)
-		{
-			voices[i].NoteOff();
-			voices[i].ResetEnvelopes();
-		}
 		// If the number of voices is increased, any free running
 		// LFOs need to be synced with the rest. Since the first
 		// voice is always available we simply use that.
@@ -110,7 +104,7 @@ public:
 			voices[i].lfo1.phaseSync(voices[0].lfo1);
 			voices[i].lfo2.phaseSync(voices[0].lfo2);
 		}
-		voiceAlloc.init(count, voiceList);
+		voiceAlloc.reinit(count, voiceList);
 		totalvc = count;
 	}
 	void setSampleRate(float sr)

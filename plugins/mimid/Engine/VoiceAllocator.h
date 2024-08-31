@@ -43,6 +43,24 @@ public:
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
+	int find(Voice *voice)
+	{
+		for (int pos = 0; pos < this->tos; pos++) {
+			if (voice == this->array[pos])
+				return pos;
+		}
+		return -1; // voice not found
+	}
+	// Technically we could just return a bool or int since when
+	// the extract is successful we just return the input parameter.
+	// Howver, all other extract functions return the actual item,
+	// so let's be consistent and do the same. The overhead should be
+	// minimal.
+	Voice *extract(Voice *voice) {
+		int pos = find(voice);
+		if (pos < 0) return NULL;
+		return this->_extract(pos);
+	}
 	int find_lowest_voice()
 	{
 		int lowestVoice = S;
@@ -147,12 +165,37 @@ public:
 	~VoiceAllocator()
 	{
 	}
+	// Initialize allocator from list of pointers to voices
 	void init(int voiceCount, Voice *voices[])
 	{
-		totalvc =  voiceCount;
+		totalvc = voiceCount;
 		onpri.clear();
 		offpri.init(totalvc, voices);
 		restore_stack.clear();
+	}
+	// Reinitialize allocator when voice count changed runtime
+	// Voice list must be the same as passed to init method
+	void reinit(int voiceCount, Voice *voices[])
+	{
+		// If we are increasing the voice count, push our newly
+		// found (and non playing) voices onto offpri.
+		for (int i = totalvc; i < voiceCount; i++) {
+			offpri.push(voices[i]);
+		}
+		// If we are decreasing the voice count, extract
+		// superfluous voices from onpri if they are playing,
+		// else extract them from offpri.
+		for (int i = voiceCount; i < totalvc; i++) {
+			Voice *voice = onpri.extract(voices[i]);
+			if (voice)
+				voice->NoteOff();
+			else
+				offpri.extract(voices[i]);
+			// Unconditionally reset envelopes to also terminate
+			// voices that are in their release phase.
+			voices[i]->ResetEnvelopes();
+		}
+		totalvc = voiceCount;
 	}
 	void uniSetNoteOn(int noteNo, float velocity)
 	{
