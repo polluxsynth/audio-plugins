@@ -73,7 +73,6 @@ public:
 	//	voices = new Voice* [MAX_VOICES];
 	//	pannings = new float[MAX_VOICES];
 		totalvc = MAX_VOICES;
-		voiceAlloc.init(MAX_VOICES,voiceList);
 		for(int i = 0 ; i < MAX_VOICES;++i)
 		{
 			voices[i].voiceNumber = i;
@@ -81,6 +80,7 @@ public:
 			panSpread[i]= SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
 		}
+		voiceAlloc.init(MAX_VOICES,voiceList);
 	}
 	~Motherboard()
 	{
