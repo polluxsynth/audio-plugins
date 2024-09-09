@@ -46,11 +46,11 @@ private:
 	// decay curve has passed.
 	const float sustain_delta = 0.2f;
 
-	inline float coef_atk(float timeparam)
+	inline float calc_coef_atk(float timeparam)
 	{
 		return 1.0f / (SampleRate * (timeparam)/1000.0) * (linear ? 0.7f : 1.0f);
 	}
-	inline float coef_dec(float timeparam)
+	inline float calc_coef_dec(float timeparam)
 	{
 		float coef = 1.0f / (SampleRate * (timeparam) / 1000.0);
 		if (linear)
@@ -66,7 +66,7 @@ private:
 		}
 		return coef;
 	}
-	inline float coef_rel(float timeparam)
+	inline float calc_coef_rel(float timeparam)
 	{
 		return 1.0f / (SampleRate * (timeparam) / 1000.0f) * (linear ? 0.1f : 1.0f);
 	}
@@ -114,34 +114,34 @@ public:
 		adsrMode = adsr;
 		if (state == DEC || state == SUS) {
 			sustain_asymptote = calc_sustain_asymptote();
-			coef = coef_dec(decay);
+			coef = calc_coef_dec(decay);
 		}
 	}
 	void setLinear(bool lin)
 	{
 		linear = lin;
 		if (state == DEC || state == SUS)
-			coef = coef_dec(decay);
+			coef = calc_coef_dec(decay);
 		else if (state == SUST)
-			coef = coef_rel(sustainTime);
+			coef = calc_coef_rel(sustainTime);
 		else if (state == REL)
-			coef = coef_rel(release);
+			coef = calc_coef_rel(release);
 		else if (state == ATK)
-			coef = coef_atk(attack);
+			coef = calc_coef_atk(attack);
 	}
 	void setAttack(float atk)
 	{
 		ua = atk;
 		attack = atk*uf;
 		if (state == ATK)
-			coef = coef_atk(atk);
+			coef = calc_coef_atk(atk);
 	}
 	void setDecay(float dec)
 	{
 		ud = dec;
 		decay = dec*uf;
 		if (state == DEC || state == SUS)
-			coef = coef_dec(dec);
+			coef = calc_coef_dec(dec);
 	}
 	void setSustain(float sus)
 	{
@@ -164,25 +164,25 @@ public:
 		us = sust;
 		sustainTime = sust*uf;
 		if (state == SUST)
-			coef = coef_rel(sust);
+			coef = calc_coef_rel(sust);
 	}
 	void setRelease(float rel)
 	{
 		ur = rel;
 		release = rel*uf;
 		if (state == REL)
-			coef = coef_rel(rel);
+			coef = calc_coef_rel(rel);
 	}
 	void triggerAttack()
 	{
 		state = HLD;
 		//Value = Value +0.00001f;
-		coef = coef_atk(attack);
+		coef = calc_coef_atk(attack);
 	}
 	void triggerRelease()
 	{
 		if (state != OFF) {
-			coef = coef_rel(release);
+			coef = calc_coef_rel(release);
 			state = REL;
 		}
 	}
@@ -206,7 +206,7 @@ public:
 				Value = 1.0f;
 				state = DEC;
 				sustain_asymptote = calc_sustain_asymptote();
-				coef = coef_dec(decay);
+				coef = calc_coef_dec(decay);
 				dir = 1;
 			}
 			break;
@@ -226,7 +226,7 @@ public:
 					state = SUS;
 				else {
 					state = SUST;
-					coef = coef_rel(sustainTime);
+					coef = calc_coef_rel(sustainTime);
 				}
 			}
 			break;
