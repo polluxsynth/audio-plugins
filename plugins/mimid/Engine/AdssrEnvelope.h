@@ -66,6 +66,10 @@ private:
 		}
 		return coef;
 	}
+	inline float calc_coef_sust(float timeparam)
+	{
+		return 1.0f / (SampleRate * (timeparam) / 1000) * (linear ? 0.10 : 1);
+	}
 	inline float calc_coef_rel(float timeparam)
 	{
 		return 1.0f / (SampleRate * (timeparam) / 1000.0f) * (linear ? 0.1f : 1.0f);
@@ -123,7 +127,7 @@ public:
 		if (state == DEC || state == SUS)
 			coef_dec = calc_coef_dec(decay);
 		else if (state == SUST)
-			coef_sust = calc_coef_rel(sustainTime);
+			coef_sust = calc_coef_sust(sustainTime);
 		else if (state == REL)
 			coef_rel = calc_coef_rel(release);
 		else if (state == ATK)
@@ -164,7 +168,7 @@ public:
 		us = sust;
 		sustainTime = sust*uf;
 		if (state == SUST)
-			coef_sust = calc_coef_rel(sustainTime);
+			coef_sust = calc_coef_sust(sustainTime);
 	}
 	void setRelease(float rel)
 	{
@@ -226,7 +230,7 @@ public:
 					state = SUS;
 				else {
 					state = SUST;
-					coef_sust = calc_coef_rel(sustainTime);
+					coef_sust = calc_coef_sust(sustainTime);
 				}
 			}
 			break;
