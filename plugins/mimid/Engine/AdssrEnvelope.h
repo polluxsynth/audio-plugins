@@ -112,6 +112,10 @@ public:
 	void setSampleRate(float sr)
 	{
 		SampleRate = sr;
+		calc_coef_atk(attack);
+		calc_coef_dec(decay);
+		calc_coef_sust(sustainTime);
+		calc_coef_rel(release);
 	}
 	void setSpread(float spread)
 	{
@@ -124,10 +128,8 @@ public:
 	void setAdsr(bool adsr)
 	{
 		adsrMode = adsr;
-		if (state == DEC || state == SUS) {
-			calc_sustain_asymptote();
-			calc_coef_dec(decay);
-		}
+		calc_sustain_asymptote();
+		calc_coef_dec(decay);
 	}
 	void setLinear(bool lin)
 	{
@@ -137,23 +139,23 @@ public:
 	{
 		ua = atk;
 		attack = atk*uf;
-		if (state == ATK)
-			calc_coef_atk(attack);
+		calc_coef_atk(attack);
 	}
 	void setDecay(float dec)
 	{
 		ud = dec;
 		decay = dec*uf;
-		if (state == DEC || state == SUS)
-			calc_coef_dec(decay);
+		calc_coef_dec(decay);
 	}
 	void setSustain(float sus)
 	{
 		sustain = sus;
+		calc_sustain_asymptote();
+		calc_coef_dec(decay);
 		if (state == DEC || state == SUS) {
-			calc_sustain_asymptote();
 			// Chase sustain level at decay rate, if sustain
-			// level changed in ADSR mode
+			// level changed in ADSR mode, or in ADSSR mode
+			// while decay phase is still active.
 			if (Value > sustain) {
 				dir = 1;
 				state = DEC;
@@ -167,28 +169,23 @@ public:
 	{
 		us = sust;
 		sustainTime = sust*uf;
-		if (state == SUST)
-			calc_coef_sust(sustainTime);
+		calc_coef_sust(sustainTime);
 	}
 	void setRelease(float rel)
 	{
 		ur = rel;
 		release = rel*uf;
-		if (state == REL)
-			calc_coef_rel(release);
+		calc_coef_rel(release);
 	}
 	void triggerAttack()
 	{
 		state = HLD;
 		//Value = Value +0.00001f;
-		calc_coef_atk(attack);
 	}
 	void triggerRelease()
 	{
-		if (state != OFF) {
-			calc_coef_rel(release);
+		if (state != OFF)
 			state = REL;
-		}
 	}
 	inline bool isActive()
 	{
@@ -209,8 +206,6 @@ public:
 			if (Value > 1.0f) {
 				Value = 1.0f;
 				state = DEC;
-				calc_sustain_asymptote();
-				calc_coef_dec(decay);
 				dir = 1;
 			}
 			break;
@@ -228,10 +223,8 @@ public:
 				Value = sustain;
 				if (adsrMode)
 					state = SUS;
-				else {
+				else
 					state = SUST;
-					calc_coef_sust(sustainTime);
-				}
 			}
 			break;
 		case SUS: // Used for ADSR Sustain phase
