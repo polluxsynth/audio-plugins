@@ -44,7 +44,7 @@ private:
 	// theoretically never reaches its asymptote), and partly to trigger
 	// the sustain phase before too much of the exponential 'tail' of the
 	// decay curve has passed.
-	float sustain_delta = 0.2f; // TODO: Make const
+	const float sustain_delta = 0.2f;
 
 	inline float coef_atk(float timeparam)
 	{
