@@ -46,16 +46,19 @@ private:
 	// decay curve has passed.
 	const float sustain_delta = 0.2f;
 
-	inline float calc_coef_atk(float timeparam)
+	inline float calc_coef(float timeparam, float lin_fact)
 	{
-		return 1.0f / (SampleRate * (timeparam)/1000.0) * (linear ? 0.7f : 1.0f);
+		return 1.0f / (SampleRate * timeparam / 1000.0f) * (linear ? lin_fact : 1);
 	}
-	inline float calc_coef_dec(float timeparam)
+
+	inline void calc_coef_atk(float timeparam)
 	{
-		float coef = 1.0f / (SampleRate * (timeparam) / 1000.0f);
-		if (linear)
-			coef *= 0.1f;
-		else if (!adsrMode) {
+		coef_atk = calc_coef(timeparam, 0.7f);
+	}
+	inline void calc_coef_dec(float timeparam)
+	{
+		float coef = calc_coef(timeparam, 0.1);
+		if (!adsrMode) {
 			// In ADSSR mode, compensate for the fact
 			// that the sustain asymptote is lower than
 			// in ADSR mode: The coefficient needs to
@@ -64,19 +67,19 @@ private:
 			coef *= 1.0f - sustain;
 			coef /= 1.0f - sustain_asymptote;
 		}
-		return coef;
+		coef_dec = coef;
 	}
-	inline float calc_coef_sust(float timeparam)
+	inline void calc_coef_sust(float timeparam)
 	{
-		return 1.0f / (SampleRate * (timeparam) / 1000) * (linear ? 0.10 : 1);
+		coef_sust = calc_coef(timeparam, 0.1f);
 	}
-	inline float calc_coef_rel(float timeparam)
+	inline void calc_coef_rel(float timeparam)
 	{
-		return 1.0f / (SampleRate * (timeparam) / 1000.0f) * (linear ? 0.1f : 1.0f);
+		coef_rel = calc_coef(timeparam, 0.1f);
 	}
-	inline float calc_sustain_asymptote()
+	inline void calc_sustain_asymptote()
 	{
-		return sustain - (adsrMode ? 0 : sustain_delta);
+		sustain_asymptote = sustain - (adsrMode ? 0 : sustain_delta);
 	}
 public:
 	float unused1; // TODO: remove
@@ -117,41 +120,41 @@ public:
 	{
 		adsrMode = adsr;
 		if (state == DEC || state == SUS) {
-			sustain_asymptote = calc_sustain_asymptote();
-			coef_dec = calc_coef_dec(decay);
+			calc_sustain_asymptote();
+			calc_coef_dec(decay);
 		}
 	}
 	void setLinear(bool lin)
 	{
 		linear = lin;
 		if (state == DEC || state == SUS)
-			coef_dec = calc_coef_dec(decay);
+			calc_coef_dec(decay);
 		else if (state == SUST)
-			coef_sust = calc_coef_sust(sustainTime);
+			calc_coef_sust(sustainTime);
 		else if (state == REL)
-			coef_rel = calc_coef_rel(release);
+			calc_coef_rel(release);
 		else if (state == ATK)
-			coef_atk = calc_coef_atk(attack);
+			calc_coef_atk(attack);
 	}
 	void setAttack(float atk)
 	{
 		ua = atk;
 		attack = atk*uf;
 		if (state == ATK)
-			coef_atk = calc_coef_atk(attack);
+			calc_coef_atk(attack);
 	}
 	void setDecay(float dec)
 	{
 		ud = dec;
 		decay = dec*uf;
 		if (state == DEC || state == SUS)
-			coef_dec = calc_coef_dec(decay);
+			calc_coef_dec(decay);
 	}
 	void setSustain(float sus)
 	{
 		sustain = sus;
 		if (state == DEC || state == SUS) {
-			sustain_asymptote = calc_sustain_asymptote();
+			calc_sustain_asymptote();
 			// Chase sustain level at decay rate, if sustain
 			// level changed in ADSR mode
 			if (Value > sustain) {
@@ -168,25 +171,25 @@ public:
 		us = sust;
 		sustainTime = sust*uf;
 		if (state == SUST)
-			coef_sust = calc_coef_sust(sustainTime);
+			calc_coef_sust(sustainTime);
 	}
 	void setRelease(float rel)
 	{
 		ur = rel;
 		release = rel*uf;
 		if (state == REL)
-			coef_rel = calc_coef_rel(release);
+			calc_coef_rel(release);
 	}
 	void triggerAttack()
 	{
 		state = HLD;
 		//Value = Value +0.00001f;
-		coef_atk = calc_coef_atk(attack);
+		calc_coef_atk(attack);
 	}
 	void triggerRelease()
 	{
 		if (state != OFF) {
-			coef_rel = calc_coef_rel(release);
+			calc_coef_rel(release);
 			state = REL;
 		}
 	}
@@ -209,8 +212,8 @@ public:
 			if (Value > 1.0f) {
 				Value = 1.0f;
 				state = DEC;
-				sustain_asymptote = calc_sustain_asymptote();
-				coef_dec = calc_coef_dec(decay);
+				calc_sustain_asymptote();
+				calc_coef_dec(decay);
 				dir = 1;
 			}
 			break;
@@ -230,7 +233,7 @@ public:
 					state = SUS;
 				else {
 					state = SUST;
-					coef_sust = calc_coef_sust(sustainTime);
+					calc_coef_sust(sustainTime);
 				}
 			}
 			break;
