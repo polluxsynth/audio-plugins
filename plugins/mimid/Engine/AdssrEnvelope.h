@@ -35,6 +35,7 @@ private:
 	bool linear;
 	float ua,ud,us,ur; // saved parameter values (not for sustain)
 	float coef_atk, coef_dec, coef_sust, coef_rel;
+	float coef_atk_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
 	int dir; // decay curve direction (1 => down, -1 = up)
 	enum { HLD, ATK, DEC, SUS, SUST, REL, OFF } state;
 	float SampleRate;
@@ -46,36 +47,39 @@ private:
 	// decay curve has passed.
 	const float sustain_delta = 0.2f;
 
-	inline float calc_coef(float timeparam, float lin_fact)
+	inline float calc_coef(float timeparam)
 	{
-		return 1.0f / (SampleRate * timeparam / 1000.0f) * (linear ? lin_fact : 1);
+		return 1.0f / (SampleRate * timeparam / 1000.0f);
 	}
 
 	inline void calc_coef_atk(float timeparam)
 	{
-		coef_atk = calc_coef(timeparam, 0.7f);
+		coef_atk = calc_coef(timeparam);
+		coef_atk_lin = coef_atk * 0.7f;
 	}
 	inline void calc_coef_dec(float timeparam)
 	{
-		float coef = calc_coef(timeparam, 0.1);
+		coef_dec = calc_coef(timeparam);
+		coef_dec_lin = coef_dec * 0.1f;
 		if (!adsrMode) {
 			// In ADSSR mode, compensate for the fact
 			// that the sustain asymptote is lower than
 			// in ADSR mode: The coefficient needs to
 			// be decreased to get the curve (above the
 			// asymptote) to be the same as in ADSR mode.
-			coef *= 1.0f - sustain;
-			coef /= 1.0f - sustain_asymptote;
+			coef_dec *= 1.0f - sustain;
+			coef_dec /= 1.0f - sustain_asymptote;
 		}
-		coef_dec = coef;
 	}
 	inline void calc_coef_sust(float timeparam)
 	{
-		coef_sust = calc_coef(timeparam, 0.1f);
+		coef_sust = calc_coef(timeparam);
+		coef_sust_lin = coef_sust * 0.1f;
 	}
 	inline void calc_coef_rel(float timeparam)
 	{
-		coef_rel = calc_coef(timeparam, 0.1f);
+		coef_rel = calc_coef(timeparam);
+		coef_rel_lin = coef_rel * 0.1f;
 	}
 	inline void calc_sustain_asymptote()
 	{
@@ -93,6 +97,7 @@ public:
 		sustain_asymptote = sustain; // It is, in ADSR mode
 		ua=ud=us=ur=0.0001;
 		coef_atk = coef_dec = coef_sust = coef_rel = 0;
+		coef_atk_lin = coef_dec_lin = coef_sust_lin = coef_rel_lin = 0;
 		dir = 1; // going down
 		state = OFF;
 		SampleRate = 44100.0f;
@@ -127,14 +132,6 @@ public:
 	void setLinear(bool lin)
 	{
 		linear = lin;
-		if (state == DEC || state == SUS)
-			calc_coef_dec(decay);
-		else if (state == SUST)
-			calc_coef_sust(sustainTime);
-		else if (state == REL)
-			calc_coef_rel(release);
-		else if (state == ATK)
-			calc_coef_atk(attack);
 	}
 	void setAttack(float atk)
 	{
@@ -208,7 +205,7 @@ public:
 			state = ATK;
 			break;
 		case ATK:
-			Value += linear ? coef_atk : (1.3f - Value) * coef_atk;
+			Value += linear ? coef_atk_lin : (1.3f - Value) * coef_atk;
 			if (Value > 1.0f) {
 				Value = 1.0f;
 				state = DEC;
@@ -219,7 +216,7 @@ public:
 			break;
 		case DEC:
 			// Aim for sustain level
-			Value -= linear ? coef_dec * dir : (Value - sustain_asymptote) * coef_dec;
+			Value -= linear ? coef_dec_lin * dir : (Value - sustain_asymptote) * coef_dec;
 			// Trigger sustain phase when we transition across
 			// the sustain level. We need to take into
 			// consideration the case of the sustain level
@@ -242,14 +239,14 @@ public:
 			break;
 		case SUST: // Use for ADSSR Sustain phase
 			   // same calculations as for Release phase
-			Value -= linear ? coef_sust : Value * coef_sust + dc;
+			Value -= linear ? coef_sust_lin : Value * coef_sust + dc;
 			if (Value < 20e-6) {
 				Value = 0;
 				state = OFF;
 			}
 			break;
 		case REL: // Used for Release phase
-			Value -= linear ? coef_rel : Value * coef_rel + dc;
+			Value -= linear ? coef_rel_lin : Value * coef_rel + dc;
 			if (Value < 20e-6) {
 				Value = 0;
 				state = OFF;
