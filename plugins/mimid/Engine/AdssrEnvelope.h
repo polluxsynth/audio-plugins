@@ -38,7 +38,7 @@ private:
 	float coef_atk_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
 	int dir; // decay curve direction (1 => down, -1 = up)
 	enum { HLD, ATK, DEC, SUS, SUST, REL, OFF } state;
-	float SampleRate;
+	float SampleRateKcInv;
 	float uf;
 	// In ADSSR mode, the asymptote is lower than the sustain level,
 	// partly in order to get a trigger point at all (an exponential decay
@@ -49,7 +49,7 @@ private:
 
 	inline float calc_coef(float timeparam)
 	{
-		return 1.0f / (SampleRate * timeparam / 1000.0f);
+		return SampleRateKcInv / timeparam;
 	}
 
 	inline void calc_coef_atk(float timeparam)
@@ -100,7 +100,7 @@ public:
 		coef_atk_lin = coef_dec_lin = coef_sust_lin = coef_rel_lin = 0;
 		dir = 1; // going down
 		state = OFF;
-		SampleRate = 44100.0f;
+		SampleRateKcInv = 1000.0 / 44100.0;
 		adsrMode = true;
 		linear = false;
 	}
@@ -111,7 +111,7 @@ public:
 	}
 	void setSampleRate(float sr)
 	{
-		SampleRate = sr;
+		SampleRateKcInv = 1.0 / (sr / 1000);
 		calc_coef_atk(attack);
 		calc_coef_dec(decay);
 		calc_coef_sust(sustainTime);
