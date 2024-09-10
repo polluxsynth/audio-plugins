@@ -37,7 +37,7 @@ private:
 	float coef_atk, coef_dec, coef_sust, coef_rel;
 	float coef_atk_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
 	int dir; // decay curve direction (1 => down, -1 = up)
-	enum { HLD, ATK, DEC, SUS, SUST, REL, OFF } state;
+	enum { HLD, ATK, DEC, SUS, SUST, REL, OFF } state, post_dec_state;
 	float SampleRateKcInv;
 	float uf;
 	// In ADSSR mode, the asymptote is lower than the sustain level,
@@ -83,7 +83,7 @@ private:
 	}
 	inline void calc_sustain_asymptote()
 	{
-		sustain_asymptote = sustain - (adsrMode ? 0 : sustain_delta);
+		sustain_asymptote = sustain - (!adsrMode * sustain_delta);
 	}
 public:
 	float unused1; // TODO: remove
@@ -130,6 +130,7 @@ public:
 		adsrMode = adsr;
 		calc_sustain_asymptote();
 		calc_coef_dec(decay);
+		post_dec_state = adsrMode ? SUS : SUST;
 	}
 	void setLinear(bool lin)
 	{
@@ -221,10 +222,7 @@ public:
 			// dir (1 or -1) variable.
 			if ((Value - sustain) * dir < 0) {
 				Value = sustain;
-				if (adsrMode)
-					state = SUS;
-				else
-					state = SUST;
+				state = post_dec_state;
 			}
 			break;
 		case SUS: // Used for ADSR Sustain phase
