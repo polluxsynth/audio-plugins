@@ -3,8 +3,8 @@
 	This file is part of the MiMi-d synthesizer,
 	originally from Obxd synthesizer.
 
-	Copyright © 2013-2014 Filatov Vadim
-	Copyright 2023 Ricard Wanderlof
+	Copyright Â© 2013-2014 Filatov Vadim
+	Copyright 2023-2024 Ricard Wanderlof
 	
 	Contact original author via email :
 	justdat_@_e1.ru
@@ -44,31 +44,31 @@ private:
 	// theoretically never reaches its asymptote), and partly to trigger
 	// the sustain phase before too much of the exponential 'tail' of the
 	// decay curve has passed.
-	float sustain_delta = 0.20; // TODO: Make const
+	const float sustain_delta = 0.2f;
 
 	inline float coef_atk(float timeparam)
 	{
-		return 1.0f / (SampleRate * (timeparam)/1000) * (linear ? 0.7 : 1);
+		return 1.0f / (SampleRate * (timeparam)/1000.0) * (linear ? 0.7f : 1.0f);
 	}
 	inline float coef_dec(float timeparam)
 	{
-		float coef = 1.0f / (SampleRate * (timeparam) / 1000);
+		float coef = 1.0f / (SampleRate * (timeparam) / 1000.0);
 		if (linear)
-			coef *= 0.10;
+			coef *= 0.1f;
 		else if (!adsrMode) {
 			// In ADSSR mode, compensate for the fact
 			// that the sustain asymptote is lower than
 			// in ADSR mode: The coefficient needs to
 			// be decreased to get the curve (above the
 			// asymptote) to be the same as in ADSR mode.
-			coef *= 1 - sustain;
-			coef /= 1 - sustain_asymptote;
+			coef *= 1.0f - sustain;
+			coef /= 1.0f - sustain_asymptote;
 		}
 		return coef;
 	}
 	inline float coef_rel(float timeparam)
 	{
-		return 1.0f / (SampleRate * (timeparam) / 1000) * (linear ? 0.10 : 1);
+		return 1.0f / (SampleRate * (timeparam) / 1000.0f) * (linear ? 0.1f : 1.0f);
 	}
 	inline float calc_sustain_asymptote()
 	{
@@ -81,20 +81,20 @@ public:
 	AdssrEnvelope()
 	{
 		uf = 1;
-		Value = 0.0;
-		attack=decay=sustain=sustainTime=release=0.0001;
+		Value = 0.0f;
+		attack=decay=sustain=sustainTime=release=0.0001f;
 		sustain_asymptote = sustain; // It is, in ADSR mode
 		ua=ud=us=ur=0.0001;
 		coef = 0;
 		dir = 1; // going down
 		state = OFF;
-		SampleRate = 44000;
+		SampleRate = 44100.0f;
 		adsrMode = true;
 		linear = false;
 	}
 	void ResetEnvelopeState()
 	{
-		Value = 0.0;
+		Value = 0.0f;
 		state = OFF;
 	}
 	void setSampleRate(float sr)
@@ -201,7 +201,7 @@ public:
 			state = ATK;
 			break;
 		case ATK:
-			Value += linear ? coef : (1.3-Value) * coef;
+			Value += linear ? coef : (1.3f - Value) * coef;
 			if (Value > 1.0f) {
 				Value = 1.0f;
 				state = DEC;
