@@ -91,7 +91,6 @@ public:
 	float levelSpread;
 	float levelSpreadAmt;
 
-	float brightCoef;
 	float osc2FltMod;
 
 	float hpffreq, hpfcutoff;
@@ -129,8 +128,6 @@ public:
 	DelayLine<Samples*2> lfo1d,lfo2d;
 
 	float oscpsw;
-	float briHold;
-
 	bool oscmodEnable; // Oscillator modulation output enabled
 
 	bool expvca;
@@ -150,7 +147,6 @@ public:
 		velocityValue=0;
 		oscKeySync = false;
 		envRst = false;
-		brightCoef =briHold= 1;
 		hpffreq=4;
 		hpfcutoff=0;
 		osc2FltMod = 0;
@@ -335,12 +331,6 @@ public:
 		x1 *= envVal;
 		return x1;
 	}
-	void setBrightness(float val)
-	{
-		briHold = val;
-		brightCoef = tan(minf(val,flt.SampleRate*0.5f-10)* pi*flt.sampleRateInv);
-
-	}
 	void setHPFfreq(float val)
 	{
 		hpffreq = val;
@@ -395,7 +385,6 @@ public:
 		lfo2.setSampleRate(sr);
 		SampleRate = sr;
 		sampleRateInv = 1 / sr;
-		brightCoef = tan(minf(briHold,flt.SampleRate*0.5f-10)* pi * flt.sampleRateInv);
 		hpfcutoff = tan(hpffreq * sampleRateInv * pi);
 	}
 	void checkAdssrState()
