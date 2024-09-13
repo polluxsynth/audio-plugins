@@ -556,6 +556,10 @@ public:
 	{
 		ForEachVoice(env.setAttack(timesc(param, 1, 12500)));
 	}
+	void setLoudnessEnvelopeHold(float param)
+	{
+		ForEachVoice(env.setHold(timesc(param, 0.01f, 12500)));
+	}
 	void setLoudnessEnvelopeDecay(float param)
 	{
 		ForEachVoice(env.setDecay(timesc(param, 1, 20500)));
@@ -577,6 +581,10 @@ public:
 	void setFilterEnvelopeAttack(float param)
 	{
 		ForEachVoice(fenv.setAttack(timesc(param, 1, 12500)));
+	}
+	void setFilterEnvelopeHold(float param)
+	{
+		ForEachVoice(fenv.setHold(timesc(param, 0.01f, 12500)));
 	}
 	void setFilterEnvelopeDecay(float param)
 	{
