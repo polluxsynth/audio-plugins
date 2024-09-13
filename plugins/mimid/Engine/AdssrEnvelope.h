@@ -28,16 +28,16 @@
 class AdssrEnvelope
 {
 private:
-	float Value;
-	float attack, decay, sustain, sustainTime, release; // saved parameter values with deriverence
+	float Value, HValue;
+	float attack, hold, decay, sustain, sustainTime, release; // saved parameter values with deriverence
 	float sustain_asymptote;
 	bool adsrMode;
 	bool linear;
-	float ua,ud,us,ur; // saved parameter values (not for sustain)
+	float ua,uh,ud,us,ur; // saved parameter values (not for sustain)
 	float coef_atk, coef_dec, coef_sust, coef_rel;
-	float coef_atk_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
+	float coef_atk_lin, coef_hld_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
 	int dir; // decay curve direction (1 => down, -1 = up)
-	enum { HLD, ATK, DEC, SUS, SUST, REL, OFF } state, post_dec_state;
+	enum { INI, ATK, HLD, DEC, SUS, SUST, REL, OFF } state, post_dec_state;
 	float SampleRateKcInv;
 	float uf;
 	// In ADSSR mode, the asymptote is lower than the sustain level,
@@ -56,6 +56,14 @@ private:
 	{
 		coef_atk = calc_coef(timeparam);
 		coef_atk_lin = coef_atk * 0.7f;
+	}
+	inline void calc_coef_hld(float timeparam)
+	{
+		// Since the hold phase does not reflect a waveform
+		// progression, we don't distinguish between linear and
+		// exponential and do the simplest thing: handle the hold
+		// phase using a linear calculation.
+		coef_hld_lin = calc_coef(timeparam);
 	}
 	inline void calc_coef_dec(float timeparam)
 	{
@@ -92,12 +100,13 @@ public:
 	AdssrEnvelope()
 	{
 		uf = 1;
-		Value = 0.0f;
-		attack=decay=sustain=sustainTime=release=0.0001f;
+		Value = HValue = 0.0f;
+		attack=hold=decay=sustain=sustainTime=release=0.0001f;
 		sustain_asymptote = sustain; // It is, in ADSR mode
-		ua=ud=us=ur=0.0001;
+		ua=uh=ud=us=ur=0.0001;
 		coef_atk = coef_dec = coef_sust = coef_rel = 0;
 		coef_atk_lin = coef_dec_lin = coef_sust_lin = coef_rel_lin = 0;
+		post_dec_state = SUS;
 		dir = 1; // going down
 		state = OFF;
 		SampleRateKcInv = 1000.0 / 44100.0;
@@ -106,13 +115,14 @@ public:
 	}
 	void ResetEnvelopeState()
 	{
-		Value = 0.0f;
+		Value = HValue= 0.0f;
 		state = OFF;
 	}
 	void setSampleRate(float sr)
 	{
 		SampleRateKcInv = 1.0 / (sr / 1000);
 		calc_coef_atk(attack);
+		calc_coef_hld(hold);
 		calc_coef_dec(decay);
 		calc_coef_sust(sustainTime);
 		calc_coef_rel(release);
@@ -121,6 +131,7 @@ public:
 	{
 		uf = spread;
 		setAttack(ua);
+		setHold(uh);
 		setDecay(ud);
 		setSustainTime(us);
 		setRelease(ur);
@@ -141,6 +152,12 @@ public:
 		ua = atk;
 		attack = atk*uf;
 		calc_coef_atk(attack);
+	}
+	void setHold(float hld)
+	{
+		uh = hld;
+		hold = hld*uf;
+		calc_coef_hld(hold);
 	}
 	void setDecay(float dec)
 	{
@@ -180,7 +197,8 @@ public:
 	}
 	void triggerAttack()
 	{
-		state = HLD;
+		state = INI;
+		HValue = 0.0f;
 		dir = 1;
 		//Value = Value +0.00001f;
 	}
@@ -197,7 +215,7 @@ public:
 	{
 		switch (state)
 		{
-		case HLD:
+		case INI:
 			// Do nothing, just delay envelope for one cycle
 			// This causes the output to start at 0 rather than
 			// after the first increment
@@ -207,6 +225,12 @@ public:
 			Value += linear ? coef_atk_lin : (1.3f - Value) * coef_atk;
 			if (Value > 1.0f) {
 				Value = 1.0f;
+				state = HLD;
+			}
+			break;
+		case HLD:
+			HValue += coef_hld_lin;
+			if (HValue > 1.0f) {
 				state = DEC;
 			}
 			break;
