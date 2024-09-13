@@ -58,7 +58,7 @@
 	PARAMGROUP(PG_VCA, "VCA", "g503_vca")
 	PARAMGROUP(PG_FENV, "Filter Env", "g601_filter_env")
 	PARAMGROUP(PG_LENV, "Loudness Env", "g602_loudn_env")
-	PARAMGROUP(PG_REL, "Env Release", "g603_release")
+	PARAMGROUP(PG_ENVMISC, "Env Rel and Hold", "g603_rel_hold")
 	PARAMGROUP(PG_CONTR, "Controller Sens.", "g202_controllers")
 	PARAMGROUP(PG_SPREAD, "Spread", "g701_spread")
 	PARAMGROUP(PG_DSP, "DSP Control", "g703_dsp")
@@ -192,8 +192,10 @@
 	PARAM(LSUST, PG_LENV, SP_NONE, "Loudn Sustain Time", "sustaintime", 0, 10, 10, setLoudnessEnvelopeSustainTime)
 
 	// Env release
-	PARAM(FREL, PG_REL, SP_NONE, "Filter Release", "filterrelease", 0, 10, 0, setFilterEnvelopeRelease)
-	PARAM(LREL, PG_REL, SP_NONE, "Loudn Release", "release", 0, 10, 0, setLoudnessEnvelopeRelease)
+	PARAM(FREL, PG_ENVMISC, SP_NONE, "Filter Release", "filterrelease", 0, 10, 0, setFilterEnvelopeRelease)
+	PARAM(LREL, PG_ENVMISC, SP_NONE, "Loudn Release", "release", 0, 10, 0, setLoudnessEnvelopeRelease)
+	PARAM(FHLD, PG_ENVMISC, SP_NONE, "Filter Hold", "filterhold", 0, 10, 0, setFilterEnvelopeHold)
+	PARAM(LHLD, PG_ENVMISC, SP_NONE, "Loudn Hold", "hold", 0, 10, 0, setLoudnessEnvelopeHold)
 
 	// VCA (+ Loudness envelope control)
 	PARAM(HPFFREQ, PG_VCA, SP_NONE, "HPF Freq", "hpffreq", 0, 10, 0, setHPFfreq)
