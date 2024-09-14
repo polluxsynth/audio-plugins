@@ -230,10 +230,10 @@ public:
 			break;
 		case HLD:
 			HValue += coef_hld_lin;
-			if (HValue > 1.0f) {
-				state = DEC;
-			}
-			break;
+			if (HValue < 1.0f)
+				break;
+			state = DEC;
+			[[fallthrough]];
 		case DEC:
 			// Aim for sustain level
 			Value -= linear ? coef_dec_lin * dir : (Value - sustain_asymptote) * coef_dec;
