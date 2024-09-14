@@ -181,6 +181,7 @@ public:
 	void triggerAttack()
 	{
 		state = HLD;
+		dir = 1;
 		//Value = Value +0.00001f;
 	}
 	void triggerRelease()
@@ -207,7 +208,6 @@ public:
 			if (Value > 1.0f) {
 				Value = 1.0f;
 				state = DEC;
-				dir = 1;
 			}
 			break;
 		case DEC:
