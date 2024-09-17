@@ -25,29 +25,29 @@
 #pragma once
 #include "SynthEngine.h"
 //Always feed first then get delayed sample!
-#define DEMAX 64
 template<unsigned int DM> class DelayLine
 {
 protected:
-	float dl[DEMAX];
+	float dl[DM];
 	int iidx;
 public:
 	DelayLine()
 	{
 		iidx = 0;
-		zeromem(dl,sizeof(float)*DEMAX);
+		zeromem(dl,sizeof(float)*DM);
+		// TODO: Verify DM is power-of-two
 		//jassert(DM > DMAX);
 	}
 	inline float feedReturn(float sm)
 	{
 		dl[iidx] = sm;
 		iidx--;
-		iidx=(iidx&(DEMAX-1));
-		return dl[(iidx + DM)&(DEMAX-1)];
+		iidx=(iidx&(DM-1));
+		return dl[iidx];
 	}
 	inline void fillZeroes()
 	{
-		zeromem(dl,DEMAX*sizeof(float));
+		zeromem(dl,DM*sizeof(float));
 	}
 };
 template<unsigned int DM> class DelayLineRampable: public DelayLine<DM>
@@ -55,7 +55,7 @@ template<unsigned int DM> class DelayLineRampable: public DelayLine<DM>
 using DelayLine<DM>::iidx;
 using DelayLine<DM>::dl;
 private:
-	float cosramp[DEMAX];
+	float cosramp[DM];
 public:
 	DelayLineRampable()
 	{
@@ -72,14 +72,14 @@ public:
 		// Ramp down from next value to fetch to zero
 		// Sortof assumes that the next value to be entered into
 		// the delay line will in fact be zero.
-		int idxtmp = (iidx + DM - 1)&(DEMAX-1); // next to fetch
+		int idxtmp = (iidx + DM - 1)&(DM-1); // next to fetch
 		float fetchval = dl[idxtmp];
 		// We don't touch the fetchval entry as it is to be scaled
 		// by 1, so skip the first value (start loop at 1, and start
 		// by decrementing idxtmp).
 		for (unsigned int i = 1; i < DM; i++) {
 			idxtmp--;
-			idxtmp &= DEMAX-1;
+			idxtmp &= DM-1;
 			dl[idxtmp] = fetchval * cosramp[i];
 		}
 	}
@@ -87,40 +87,40 @@ public:
 template<unsigned int DM> class DelayLineBoolean
 {
 private:
-	bool dl[DEMAX];
+	bool dl[DM];
 	int iidx;
 public:
 	DelayLineBoolean()
 	{
 		iidx = 0;
-		zeromem(dl,sizeof(bool)*DEMAX);
+		zeromem(dl,sizeof(bool)*DM);
 	}
 	inline bool feedReturn(bool sm)
 	{
 		dl[iidx] = sm;
 		iidx--;
-		iidx=(iidx&(DEMAX-1));
-		return dl[(iidx + DM)&(DEMAX-1)];
+		iidx=(iidx&(DM-1));
+		return dl[iidx];
 	}
 
 };
 template<unsigned int DM> class DelayLineInt
 {
 private:
-	int dl[DEMAX];
+	int dl[DM];
 	int iidx;
 public:
 	DelayLineInt()
 	{
 		iidx = 0;
-		zeromem(dl,sizeof(bool)*DEMAX);
+		zeromem(dl,sizeof(bool)*DM);
 	}
 	inline int feedReturn(int sm)
 	{
 		dl[iidx] = sm;
 		iidx--;
-		iidx=(iidx&(DEMAX-1));
-		return dl[(iidx + DM)&(DEMAX-1)];
+		iidx=(iidx&(DM-1));
+		return dl[iidx];
 	}
 
 };
