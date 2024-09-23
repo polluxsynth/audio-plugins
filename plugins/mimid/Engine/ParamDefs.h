@@ -100,7 +100,7 @@
 	PARAM(OCTAVE, PG_MAIN, SP_INTS, "Octave", "octave", -2, 2, 0, setOctave)
 
 	// Key assignment #1 (general)
-	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 8, 6, setVoiceCount)
+	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 32, 6, setVoiceCount)
 	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", 0, SP_MAX, 0, setKeyAsgnMode)
 	// Envelope reset
 	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
