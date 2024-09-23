@@ -134,14 +134,14 @@ public:
 		ua = atk;
 		attack = atk*uf;
 		if (state == ATK)
-			coef = calc_coef_atk(atk);
+			coef = calc_coef_atk(attack);
 	}
 	void setDecay(float dec)
 	{
 		ud = dec;
 		decay = dec*uf;
 		if (state == DEC || state == SUS)
-			coef = calc_coef_dec(dec);
+			coef = calc_coef_dec(decay);
 	}
 	void setSustain(float sus)
 	{
@@ -164,14 +164,14 @@ public:
 		us = sust;
 		sustainTime = sust*uf;
 		if (state == SUST)
-			coef = calc_coef_rel(sust);
+			coef = calc_coef_rel(sustainTime);
 	}
 	void setRelease(float rel)
 	{
 		ur = rel;
 		release = rel*uf;
 		if (state == REL)
-			coef = calc_coef_rel(rel);
+			coef = calc_coef_rel(release);
 	}
 	void triggerAttack()
 	{
