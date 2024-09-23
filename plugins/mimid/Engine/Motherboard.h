@@ -32,7 +32,7 @@
 class Motherboard
 {
 public:
-	const static int MAX_VOICES=8;
+	const static int MAX_VOICES=32;
 private:
 	Voice *voiceList[MAX_VOICES];
 	int totalvc;
