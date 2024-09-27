@@ -159,7 +159,8 @@ public:
 	{
 		// osc 2 = master oscillator
 		float noiseGen = wn.nextFloat()-0.5;
-		float pitch2 = unused1 > 0.5 ?
+		float pitch2 = unused1 > 0.67 ?
+			getPitchVoigt(dirt * noiseGen + notePlaying + osc2Det + osc2p + pto2 + tune + oct+totalSpread*osc2Factor) : unused1 > 0.33 ?
 			getPitchFast(dirt * noiseGen + notePlaying + osc2Det + osc2p + pto2 + tune + oct+totalSpread*osc2Factor) :
 			getPitch(dirt * noiseGen + notePlaying + osc2Det + osc2p + pto2 + tune + oct+totalSpread*osc2Factor);
 		// hard sync is subject to sync level parameter
