@@ -147,11 +147,12 @@ public:
 		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
 		float f1 = 1.0f - frac;
+		lpIn *= Blepsize;
 		for (int i = 0; i < n; i++)
 		{
-			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + 1] * frac;
+			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac;
 			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
-			lpIn += B_OVERSAMPLING;
+			lpIn++;
 		}
 	}
 	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale) 
@@ -159,17 +160,18 @@ public:
 		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
 		float f1 = 1.0f - frac;
+		lpIn *= Blepsize;
 		for (int i = 0; i < Samples; i++)
 		{
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
 			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
-			lpIn += B_OVERSAMPLING;
+			lpIn++;
 		}
 		for (int i = Samples; i < n; i++)
 		{
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
 			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
-			lpIn += B_OVERSAMPLING;
+			lpIn++;
 		}
 	}
 	inline float getNextBlep(float *buf, int &bpos)
