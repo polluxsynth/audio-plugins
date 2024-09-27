@@ -2,6 +2,17 @@
 // B_OVERSAMPLED times oversampled BLEP/BLAMPs) to be more
 // localized given the usage, stressing the cache less.
 //
+// We also take the opportunity to change the sign of selected
+// parts of that data, so that it only requires simple addition
+// when mixing in with the trivial waveform.
+//
+// For the BLEP tables, this means changing the sign of the first
+// half of the table. This avoids having two loops to mix in the impulse
+// center.
+//
+// For the BLAMP tables, the sign of the whole table is changed. There
+// is already a single loop to add in the BLAMP.
+//
 // Usage: ./blepnew > BlepDataNew.h
 //
 // Copyright 2024 Ricard Wanderlof
@@ -27,13 +38,16 @@
 #define BLEPLEN (2 * Samples)
 #define TABLESIZE (BLEPLEN * (64 + 1)) // BLEPLEN * (B_OVERSAMPLING + 1)
 
-void reformat(const char *name, const float *buf, int size, FILE *outfile)
+void reformat(const char *name, const float *buf, int size, FILE *outfile, int blep)
 {
   printf("// %s table: %d entries\n", name, size);
   printf("const float %s[] = {\n", name);
   for (int i = 0; i < B_OVERSAMPLING; i++) {
     for (int j = 0; j < BLEPLEN; j++) {
-      fprintf(outfile, "\t%ef,\n", buf[i + j  * B_OVERSAMPLING]);
+      // For BLEPs the sign is changed for the first half of the table
+      // For BLAMPs the sign of the whole table is changed
+      int sign = blep ? ((j < BLEPLEN / 2) ? -1 : 1) : -1;
+      fprintf(outfile, "\t%ef,\n", sign * buf[i + j  * B_OVERSAMPLING]);
     }
     fprintf(outfile, "\n");
   }
@@ -44,7 +58,8 @@ void reformat(const char *name, const float *buf, int size, FILE *outfile)
   // one step up, skipping the first entry and bringing in the final
   // entry from the original table.
   for (int i = 0; i < BLEPLEN; i++) {
-    fprintf(outfile, "\t%ef", buf[(i + 1) * B_OVERSAMPLING]);
+    int sign = blep ? (((i + 1) < BLEPLEN / 2) ? -1 : 1) : -1;
+    fprintf(outfile, "\t%ef", sign * buf[(i + 1) * B_OVERSAMPLING]);
     if (i != BLEPLEN - 1) fprintf(outfile, ",");
     fprintf(outfile, "\n");
   }
@@ -66,23 +81,26 @@ int main(int argc, char **argv)
          "// rather than the whole table of 2048 entries.\n"
          "// A small downside is that instead of an extra entry to act as an\n"
          "// interpolation neighbor for the final waveform point, we need\n"
-         "// a whole 2 * Samples worth of them.\n\n");
+         "// a whole 2 * Samples worth of them.\n//\n"
+         "// Additionally, we store the data in a form that will require\n"
+         "// simple addition when mixing with the trivial waveform, rather\n"
+         "// than requiring a mixture of additions and subtractions\n");
  
   printf("// Sizeof blep: %d = %d floats\n\n", sizeof blep, sizeof blep / sizeof(float));
-  reformat("blep", blep, TABLESIZE, stdout);
+  reformat("blep", blep, TABLESIZE, stdout, 1);
   fprintf(stdout, "\n");
 
   printf("// Sizeof blepd2: %d = %d floats\n\n", sizeof blepd2, sizeof blepd2 / sizeof(float));
-  reformat("blepd2", blepd2, TABLESIZE, stdout);
+  reformat("blepd2", blepd2, TABLESIZE, stdout, 1);
   fprintf(stdout, "\n");
 
 
   printf("// Sizeof blamp: %d = %d floats\n\n", sizeof blamp, sizeof blamp / sizeof(float));
-  reformat("blamp", blamp, TABLESIZE, stdout);
+  reformat("blamp", blamp, TABLESIZE, stdout, 0);
   fprintf(stdout, "\n");
 
   printf("// Sizeof blampd2: %d = %d floats\n\n", sizeof blampd2, sizeof blampd2 / sizeof(float));
-  reformat("blampd2", blampd2, TABLESIZE, stdout);
+  reformat("blampd2", blampd2, TABLESIZE, stdout, 0);
 
   return 0;
 }
