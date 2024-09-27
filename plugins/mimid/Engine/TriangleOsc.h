@@ -150,7 +150,7 @@ public:
 		for (int i = 0; i < n; i++)
 		{
 			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + 1] * frac;
-			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
+			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 	}
@@ -159,13 +159,7 @@ public:
 		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
 		float f1 = 1.0f - frac;
-		for (int i = 0; i < Samples; i++)
-		{
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
-			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
-			lpIn += B_OVERSAMPLING;
-		}
-		for (int i = Samples; i < n; i++)
+		for (int i = 0; i < n; i++)
 		{
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
 			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
