@@ -78,6 +78,35 @@ inline void zeromem(void *memory, size_t numBytes) noexcept
 	memset(memory, 0, numBytes);
 }
 
+/* From https://stackoverflow.com/questions/10552280/fast-exp-calculation-possible-to-improve-accuracy-without-losing-too-much-perfo/10792321:
+ * Entry by Norbert Juffa ('njuffa'). */
+/* Licensing: from https://stackoverflow.com/help/licensing:
+ * CC BY-SA 3.0 or 4.0 (post created in 2012, but edited in 2019).
+ */
+/* max. rel. error <= 1.73e-3 on [-87,88] */
+/* As used for pitch calculation: measured error is +/- 3 cent max */
+inline float fast_expf2(float x)
+{
+  volatile union {
+    float f;
+    unsigned int i;
+  } cvt;
+
+  /* exp(x) = 2^i * 2^f; i = floor (log2(e) * x), 0 <= f <= 1 */
+  float t = x; // * 1.442695041f; // 1/ln2
+   float fi = floorf (t);
+  float f = t - fi;
+ int i = (int)fi;
+  cvt.f = (0.3371894346f * f + 0.657636276f) * f + 1.00172476f; /* compute 2^f */
+  cvt.i += (i << 23);                                          /* scale by 2^i */
+  return cvt.f;
+}
+
+inline static float getPitchFast(float index)
+{
+   return 440 * fast_expf2((1.0f/12.0f) * index);
+}
+
 inline static float getPitch(float index)
 {
 	//Lookup table is not that effective compared to SSE exp
