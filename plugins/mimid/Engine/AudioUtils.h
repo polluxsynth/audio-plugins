@@ -3,7 +3,7 @@
         This file is part of the MiMi-d synthesizer,
         originally from Obxd synthesizer.
 
-        Copyright © 2013-2014 Filatov Vadim
+	Copyright Â© 2013-2014 Filatov Vadim
         Copyright 2023 Ricard Wanderlof
 
         Contact original author via email :
