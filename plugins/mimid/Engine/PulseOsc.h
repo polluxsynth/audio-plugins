@@ -166,13 +166,7 @@ public:
 		float frac = offset * B_OVERSAMPLING - lpIn;
 		float f1 = 1.0f - frac;
 		lpIn *= Blepsize;
-		for (int i = 0; i < Samples; i++)
-		{
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
-			lpIn++;
-		}
-		for (int i = Samples; i < n; i++)
+		for (int i = 0; i < n; i++)
 		{
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
 			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
