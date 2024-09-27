@@ -102,6 +102,34 @@ inline float fast_expf2(float x)
   return cvt.f;
 }
 
+#ifdef __GNUC__ // Only works if compiler supports type punning
+// From https://stackoverflow.com/questions/10552280/fast-exp-calculation-possible-to-improve-accuracy-without-losing-too-much-perfo
+// Ben Voigt
+// Very good accuracy, max about +/- 0.6 cents
+#include "ExpAdjustment.h"
+inline double voigt_exp2(double x)
+{
+  union { double d; long long x; } u;
+  long tmp = (long)(1048576 * x + 1072632447);
+  int index = (int)(tmp >> 12) & 0xff;
+  u.x = tmp << 32;
+  return u.d * ExpAdjustment[index];
+}
+inline float voigt_exp2f(float x)
+{
+  union { float d; int32_t x; } u;
+  int32_t tmp = (int32_t)(0x800000 * x) + 0x3f7893f8;
+  int index = (int)(tmp >> 15) & 0xff;
+  u.x = tmp;
+  return u.d * ExpAdjustment[index];
+}
+#endif
+
+inline static float getPitchVoigt(float index)
+{
+   return 440 * voigt_exp2f((1.0f/12.0f) * index);
+}
+
 inline static float getPitchFast(float index)
 {
    return 440 * fast_expf2((1.0f/12.0f) * index);
@@ -109,6 +137,11 @@ inline static float getPitchFast(float index)
 
 inline static float getPitch(float index)
 {
+#ifdef __GNUC__
+// use Voigt algorithm
+#else
+// use expf
+#endif
 	//Lookup table is not that effective compared to SSE exp
 	//SSE should be on
 
