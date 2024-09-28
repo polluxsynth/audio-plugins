@@ -1,8 +1,9 @@
 /*
 	==============================================================================
-	This file is part of Obxd synthesizer.
+	This file is part of the MiMi-d synthesizer.
 
-	Copyright © 2013-2014 Filatov Vadim
+	Copyright Â© 2013-2014 Filatov Vadim
+	Copyright 2023-2024 Ricard Wanderlof
 	
 	Contact author via email :
 	justdat_@_e1.ru
@@ -28,30 +29,24 @@ class TriangleOsc
 {
 	DelayLine<Samples> del1;
 	bool fall;
-	float buffer1[Samples*2];
-	const int hsam;
+	float buffer1[Samples * 2];
 	const int n;
-	float const * blepPTR;
-	float const * blampPTR;
+	float const *blepPTR;
+	float const *blampPTR;
 
 	int bP1,bP2;
 public:
-	TriangleOsc() : hsam(Samples)
-		, n(Samples*2)
+	TriangleOsc(): n(Samples * 2)
 	{
-		//del1 =new DelayLine(hsam);
 		fall = false;
-		bP1=bP2=0;
-	//	buffer1= new float[n];
-		for(int i = 0 ; i < n ; i++)
-			buffer1[i]=0;
+		bP1 = bP2 = 0;
+		for(int i = 0; i < n; i++)
+			buffer1[i] = 0;
 		blepPTR = blep;
 		blampPTR = blamp;
 	}
 	~TriangleOsc()
 	{
-		//delete buffer1;
-		//delete del1;
 	}
 	inline void setDecimation()
 	{
@@ -65,128 +60,123 @@ public:
 	}
 	inline float aliasReduction()
 	{
-		return -getNextBlep(buffer1,bP1);
+		return -getNextBlep(buffer1, bP1);
 	}
-	inline void processMaster(float x,float delta,bool waveformReset)
+	inline void processMaster(float x, float delta, bool waveformReset)
 	{
-		if(waveformReset)
+		if (waveformReset)
 		{
 			float trans = x - delta;
-			float mix = trans < 0.5 ? 2*trans-0.5 : 1.5-2*trans;
-			if(trans >0.5)
-				mixInBlampCenter(buffer1,bP1,1,-4*Samples*delta);
-			mixInImpulseCenter(buffer1,bP1,1,mix+0.5);
+			float mix = trans < 0.5 ? 2 * trans - 0.5 : 1.5 - 2 * trans;
+			if (trans > 0.5)
+				mixInBlampCenter(buffer1, bP1, 1,- 4 * Samples * delta);
+			mixInImpulseCenter(buffer1, bP1, 1, mix + 0.5);
 			return;
 		}
-		if(x >= 1.0)
+		if (x >= 1.0)
+		{
+			x -= 1.0;
+			mixInBlampCenter(buffer1, bP1, x / delta,- 4 * Samples * delta);
+		}
+		if (x >= 0.5 && x - delta < 0.5)
+		{
+			mixInBlampCenter(buffer1, bP1, (x - 0.5) / delta, 4 * Samples * delta);
+		}
+		if (x >= 1.0)
 		{
 			x-=1.0;
-			mixInBlampCenter(buffer1,bP1,x/delta,-4*Samples*delta);
-		}
-		if(x >= 0.5 && x - delta < 0.5)
-		{
-			mixInBlampCenter(buffer1,bP1,(x-0.5)/delta,4*Samples*delta);
-		}
-		if(x >= 1.0)
-		{
-			x-=1.0;
-			mixInBlampCenter(buffer1,bP1,x/delta,-4*Samples*delta);
+			mixInBlampCenter(buffer1, bP1, x / delta, -4 * Samples * delta);
 		}
 	}
 	inline float getValue(float x)
 	{
-		float mix = x < 0.5 ? 2*x-0.5 : 1.5-2*x;
+		float mix = x < 0.5 ? 2 * x - 0.5 : 1.5 -2 * x;
 		return del1.feedReturn(mix);
 	}
-	inline float getValueFast(float x)
-	{
-		float mix = x < 0.5 ? 2*x-0.5 : 1.5-2*x;
-		return mix;
-	}
-	inline void processSlave(float x , float delta,bool hardSyncReset,float hardSyncFrac)
+	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac)
 	{
 		bool hspass = true;
-		if(x >= 1.0)
+		if (x >= 1.0)
 		{
-			x-=1.0;
-			if(((!hardSyncReset)||(x/delta > hardSyncFrac)))//de morgan processed equation
+			x -= 1.0;
+			if (!hardSyncReset || (x / delta > hardSyncFrac)) //de morgan processed equation
 			{
-				mixInBlampCenter(buffer1,bP1,x/delta,-4*Samples*delta);
+				mixInBlampCenter(buffer1, bP1, x / delta, -4 * Samples * delta);
 			}
 			else
 			{
-				x+=1;
+				x += 1;
 				hspass = false;
 			}
 		}
-		if(x >= 0.5 && x - delta < 0.5 &&hspass)
+		if (x >= 0.5 && x - delta < 0.5 && hspass)
 		{
 			float frac = (x - 0.5) / delta;
-			if(((!hardSyncReset)||(frac > hardSyncFrac)))//de morgan processed equation
+			if (!hardSyncReset || (frac > hardSyncFrac)) //de morgan processed equation
 			{
-				mixInBlampCenter(buffer1,bP1,frac,4*Samples*delta);
+				mixInBlampCenter(buffer1, bP1, frac, 4 * Samples * delta);
 			}
 		}
-		if(x >= 1.0 && hspass)
+		if (x >= 1.0 && hspass)
 		{
 			x-=1.0;
-			if(((!hardSyncReset)||(x/delta > hardSyncFrac)))//de morgan processed equation
+			if (!hardSyncReset || (x / delta > hardSyncFrac)) //de morgan processed equation
 			{
-				mixInBlampCenter(buffer1,bP1,x/delta,-4*Samples*delta);
+				mixInBlampCenter(buffer1, bP1, x / delta, -4 * Samples * delta);
 			}
 			else
 			{
-				//if transition do not ocurred 
-				x+=1;
+				//if transition did not occur
+				x += 1;
 			}
 		}
-		if(hardSyncReset)
+		if (hardSyncReset)
 		{
-			float fracMaster = (delta * hardSyncFrac);
-			float trans = (x-fracMaster);
-			float mix = trans < 0.5 ? 2*trans-0.5 : 1.5-2*trans;
-			if(trans >0.5)
-				mixInBlampCenter(buffer1,bP1,hardSyncFrac,-4*Samples*delta);
-			mixInImpulseCenter(buffer1,bP1,hardSyncFrac,mix+0.5);
+			float fracMaster = delta * hardSyncFrac;
+			float trans = x - fracMaster;
+			float mix = trans < 0.5 ? 2 * trans - 0.5 : 1.5 - 2 * trans;
+			if (trans > 0.5)
+				mixInBlampCenter(buffer1, bP1, hardSyncFrac, -4 * Samples * delta);
+			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, mix + 0.5);
 		}
 	}
-	inline void mixInBlampCenter(float * buf,int& bpos,float offset, float scale)
+	inline void mixInBlampCenter(float *buf,int &bpos,float offset, float scale)
 	{
-		int lpIn =(int)(B_OVERSAMPLING*(offset));
+		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f-frac;
-		for(int i = 0 ; i < n;i++)
+		float f1 = 1.0f - frac;
+		for (int i = 0; i < n; i++)
 		{
-			float mixvalue = (blampPTR[lpIn]*f1+blampPTR[lpIn+1]*(frac));
-			buf[(bpos+i)&(n-1)]  += mixvalue*scale;
+			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + 1] * frac;
+			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 	}
-		inline void mixInImpulseCenter(float * buf,int& bpos,float offset, float scale) 
+	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale) 
 	{
-		int lpIn =(int)(B_OVERSAMPLING*(offset));
+		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f-frac;
-		for(int i = 0 ; i < Samples;i++)
+		float f1 = 1.0f - frac;
+		for (int i = 0; i < Samples; i++)
 		{
-			float mixvalue = (blepPTR[lpIn]*f1+blepPTR[lpIn+1]*(frac));
-			buf[(bpos+i)&(n-1)]  += mixvalue*scale;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
+			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
-		for(int i = Samples ; i <n;i++)
+		for (int i = Samples; i < n; i++)
 		{
-			float mixvalue = (blepPTR[lpIn]*f1+blepPTR[lpIn+1]*(frac));
-			buf[(bpos+i)&(n-1)]  -= mixvalue*scale;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
+			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 	}
-	inline float getNextBlep(float* buf,int& bpos) 
+	inline float getNextBlep(float *buf, int &bpos)
 	{
-		buf[bpos]= 0.0f;
+		buf[bpos] = 0.0f;
 		bpos++;
 
 		// Wrap pos
-		bpos&=(n-1);
+		bpos &= n - 1;
 		return buf[bpos];
 	}
 };
