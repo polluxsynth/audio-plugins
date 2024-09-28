@@ -27,7 +27,6 @@
 #include "BlepData.h"
 class SawOsc
 {
-	DelayLine<Samples> del1;
 	float buffer1[Samples * 2];
 	const int n;
 	float const *blepPTR;
@@ -51,10 +50,6 @@ public:
 	{
 		blepPTR = blep;
 	}
-	inline float aliasReduction()
-	{
-		return getNextBlep(buffer1, bP1);
-	}
 	inline void processMaster(float x, float delta, bool waveformReset)
 	{
 		if (waveformReset)
@@ -71,7 +66,14 @@ public:
 	}
 	inline float getValue(float x)
 	{
-		return del1.feedReturn(x - 0.5);
+		// Instead of subtracting Samples to get to the middle of the
+		// BLEP buffer, and then masking with size-1 to keep the
+		// offset inside the buffer, we can just XOR the offset with
+		// Samples (which corresponds to subtracting (or adding, for
+		// that matter) half the buffer size and discarding the carry),
+		// since the buffer is 2 * Samples long.
+		buffer1[bP1 ^ Samples] += x - 0.5;
+		return getNextBlep(buffer1, bP1);
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac)
 	{
@@ -115,11 +117,10 @@ public:
 	}
 	inline float getNextBlep(float *buf, int &bpos)
 	{
-		buf[bpos]= 0.0f;
-		bpos++;
+		bpos = (bpos + 1) & (n - 1);
+		float value = buf[bpos];
+		buf[bpos] = 0.0f;
 
-		// Wrap pos
-		bpos &= n - 1;
-		return buf[bpos];
+		return value;
 	}
 };
