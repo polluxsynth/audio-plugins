@@ -28,7 +28,6 @@
 #include "BlepData.h"
 class SubOsc
 {
-	DelayLine<Samples> del1;
 	float buffer1[Samples * 2];
 	const int n;
 	float const *blepPTR;
@@ -56,10 +55,6 @@ public:
 	{
 		blepPTR = blep;
 	}
-	inline float aliasReduction()
-	{
-		return getNextBlep(buffer1, bP1);
-	}
 	inline void processMaster(bool hsr, float hsfrac, int waveformMask)
 	{
 		if (!hsr)
@@ -82,7 +77,14 @@ public:
 			if (waveformMask == 3)
 				oscmix += 0.25; // DC offset compensation
 		}
-		return del1.feedReturn(oscmix);
+		// Instead of subtracting Samples to get to the middle of the
+		// BLEP buffer, and then masking with size-1 to keep the
+		// offset inside the buffer, we can just XOR the offset with
+		// Samples (which corresponds to subtracting (or adding, for
+		// that matter) half the buffer size and discarding the carry),
+		// since the buffer is 2 * Samples long.
+		buffer1[bP1 ^ Samples] += oscmix;
+		return getNextBlep(buffer1, bP1);
 	}
 	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
 	{
@@ -104,11 +106,10 @@ public:
 	}
 	inline float getNextBlep(float *buf, int &bpos)
 	{
+		bpos = (bpos + 1) & (n - 1);
+		float value = buf[bpos];
 		buf[bpos] = 0.0f;
-		bpos++;
 
-		// Wrap pos
-		bpos &= n - 1;
-		return buf[bpos];
+		return value;
 	}
 };
