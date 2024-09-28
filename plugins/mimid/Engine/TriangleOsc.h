@@ -60,7 +60,7 @@ public:
 	}
 	inline float aliasReduction()
 	{
-		return -getNextBlep(buffer1, bP1);
+		return getNextBlep(buffer1, bP1);
 	}
 	inline void processMaster(float x, float delta, bool waveformReset)
 	{
@@ -148,7 +148,7 @@ public:
 		for (int i = 0; i < n; i++)
 		{
 			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + 1] * frac;
-			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
+			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 	}
@@ -160,13 +160,13 @@ public:
 		for (int i = 0; i < Samples; i++)
 		{
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
-			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
+			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 		for (int i = Samples; i < n; i++)
 		{
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
-			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
+			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 	}
