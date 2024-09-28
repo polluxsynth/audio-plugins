@@ -1,9 +1,9 @@
 /*
 	==============================================================================
-	This file is part of the MiMi-a synthesizer.
+	This file is part of the MiMi-d synthesizer.
 
         Copyright © 2013-2014 Filatov Vadim
-        Copyright 2023 Ricard Wanderlof
+        Copyright 2023-2024 Ricard Wanderlof
 	
         Contact original author via email :
 
@@ -26,33 +26,27 @@
 #pragma once
 #include "SynthEngine.h"
 #include "BlepData.h"
-class SubOsc 
+class SubOsc
 {
 	DelayLine<Samples> del1;
-	float buffer1[Samples*2];
-	const int hsam;
+	float buffer1[Samples * 2];
 	const int n;
-	float const * blepPTR;
+	float const *blepPTR;
 	int bP1;
 	int counter;
 	bool state, prevState;
 public:
-	SubOsc() : hsam(Samples)
-		, n(Samples*2)
+	SubOsc(): n(Samples * 2)
 	{
-	//	del1 = new DelayLine(hsam);
 		bP1=0;
-		//buffer1= new float[n];
-		for(int i = 0 ; i < n ; i++)
-			buffer1[i]=0;
+		for(int i = 0; i < n; i++)
+			buffer1[i] = 0;
 		blepPTR = blep;
 		counter = 0;
 		state = prevState = 0;
 	}
 	~SubOsc()
 	{
-	//	delete buffer1;
-	//	delete del1;
 	}
 	inline void setDecimation()
 	{
@@ -64,9 +58,9 @@ public:
 	}
 	inline float aliasReduction()
 	{
-		return -getNextBlep(buffer1,bP1);
+		return -getNextBlep(buffer1, bP1);
 	}
-	inline void processMaster(bool hsr,float hsfrac,int waveformMask)
+	inline void processMaster(bool hsr, float hsfrac, int waveformMask)
 	{
 		if (!hsr)
 			return;
@@ -78,7 +72,7 @@ public:
 			return;
 		prevState = state;
 
-		mixInImpulseCenter(buffer1,bP1,hsfrac, state ? -1 : 1);
+		mixInImpulseCenter(buffer1, bP1, hsfrac, state ? -1 : 1);
 	}
 	inline float getValue(int waveformMask)
 	{
@@ -90,31 +84,31 @@ public:
 		}
 		return del1.feedReturn(oscmix);
 	}
-	inline void mixInImpulseCenter(float * buf,int& bpos,float offset, float scale) 
+	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
 	{
-		int lpIn =(int)(B_OVERSAMPLING*(offset));
+		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f-frac;
-		for(int i = 0 ; i < Samples;i++)
+		float f1 = 1.0f - frac;
+		for(int i = 0; i < Samples; i++)
 		{
-			float mixvalue = (blepPTR[lpIn]*f1+blepPTR[lpIn+1]*(frac));
-			buf[(bpos+i)&(n-1)]  += mixvalue*scale;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
+			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
-		for(int i = Samples ; i <n;i++)
+		for(int i = Samples; i < n; i++)
 		{
-			float mixvalue = (blepPTR[lpIn]*f1+blepPTR[lpIn+1]*(frac));
-			buf[(bpos+i)&(n-1)]  -= mixvalue*scale;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + 1] * frac;
+			buf[(bpos + i) & (n - 1)] -= mixvalue * scale;
 			lpIn += B_OVERSAMPLING;
 		}
 	}
-	inline float getNextBlep(float* buf,int& bpos) 
+	inline float getNextBlep(float *buf, int &bpos)
 	{
-		buf[bpos]= 0.0f;
+		buf[bpos] = 0.0f;
 		bpos++;
 
 		// Wrap pos
-		bpos&=(n-1);
+		bpos &= n - 1;
 		return buf[bpos];
 	}
 };
