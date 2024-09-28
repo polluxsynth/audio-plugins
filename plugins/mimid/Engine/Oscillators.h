@@ -194,11 +194,11 @@ public:
 		hsfrac = syncFracd.feedReturn(hsfrac);
 
 		if(osc2Pul)
-			osc2mix = o2p.getValue(x2,pwcalc) + o2p.aliasReduction();
+			osc2mix = o2p.getValue(x2,pwcalc);
 		else if(osc2Saw)
-			osc2mix = o2s.getValue(x2) + o2s.aliasReduction();
+			osc2mix = o2s.getValue(x2);
 		else if(osc2Tri)
-			osc2mix = o2t.getValue(x2) + o2t.aliasReduction();
+			osc2mix = o2t.getValue(x2);
 
 		// osc2sub: osc2 sub oscillator
 		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
@@ -220,7 +220,7 @@ public:
 				osc2submix = (noiseGen > 0) - 0.5;
 				// osc2submix = noiseGen * 1.3; // analog
 			} else // 1..3 are sub osc waveforms/octaves
-				osc2submix = o2sub.getValue(osc2SubWaveform) + o2sub.aliasReduction();
+				osc2submix = o2sub.getValue(osc2SubWaveform);
 		}
 
 		// osc1 = slave oscillator
@@ -275,11 +275,11 @@ public:
 		osc2mix = osc2d.feedReturn(osc2mix);
 
 		if(osc1Pul)
-			osc1mix = o1p.getValue(x1,pwcalc) + o1p.aliasReduction();
+			osc1mix = o1p.getValue(x1,pwcalc);
 		else if(osc1Saw)
-			osc1mix = o1s.getValue(x1) + o1s.aliasReduction();
+			osc1mix = o1s.getValue(x1);
 		else if(osc1Tri)
-			osc1mix = o1t.getValue(x1) + o1t.aliasReduction();
+			osc1mix = o1t.getValue(x1);
 
 		//mixing
 		// TODO: have separate noise generator for the dither noise?

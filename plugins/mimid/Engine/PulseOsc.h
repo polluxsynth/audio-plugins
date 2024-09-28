@@ -27,7 +27,6 @@
 #include "BlepData.h"
 class PulseOsc
 {
-	DelayLine<Samples> del1;
 	bool pw1t;
 	float buffer1[Samples*2];
 	const int n;
@@ -52,10 +51,6 @@ public:
 	inline void removeDecimation()
 	{
 		blepPTR = blep;
-	}
-	inline float aliasReduction()
-	{
-		return getNextBlep(buffer1, bP1);
 	}
 	inline void processMaster(float x, float delta, float pulseWidth, float pulseWidthWas, bool waveformReset)
 	{
@@ -97,7 +92,14 @@ public:
 			oscmix = 1 - (0.5 - pulseWidth) - 0.5;
 		else
 			oscmix = -(0.5 - pulseWidth) - 0.5;
-		return del1.feedReturn(oscmix);
+                // Instead of subtracting Samples to get to the middle of the
+                // BLEP buffer, and then masking with size-1 to keep the
+                // offset inside the buffer, we can just XOR the offset with
+                // Samples (which corresponds to subtracting (or adding, for
+                // that matter) half the buffer size and discarding the carry),
+                // since the buffer is 2 * Samples long.
+                buffer1[bP1 ^ Samples] += oscmix;
+                return getNextBlep(buffer1, bP1);
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float pulseWidth, float pulseWidthWas)
 	{
@@ -178,11 +180,10 @@ public:
 	}
 	inline float getNextBlep(float *buf, int &bpos)
 	{
-		buf[bpos]= 0.0f;
-		bpos++;
+		bpos = (bpos + 1) & (n - 1);
+		float value = buf[bpos];
+		buf[bpos] = 0.0f;
 
-		// Wrap pos
-		bpos &= n-1;
-		return buf[bpos];
+		return value;
 	}
 };
