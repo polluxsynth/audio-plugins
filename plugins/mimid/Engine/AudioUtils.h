@@ -123,11 +123,20 @@ inline float voigt_exp2f(float x)
   u.x = tmp;
   return u.d * ExpAdjustment[index];
 }
+inline float voigt_exp2f12(float x)
+{
+  union { float d; int32_t x; } u;
+  int32_t tmp = (int32_t)(699050.667f * x) + 0x3f7893f8;
+  int index = (int)(tmp >> 15) & 0xff;
+  u.x = tmp;
+  return u.d * ExpAdjustment[index];
+}
 #endif
 
 inline static float getPitchVoigt(float index)
 {
-   return 440 * voigt_exp2f((1.0f/12.0f) * index);
+   //return 440 * voigt_exp2f((1.0f/12.0f) * index);
+   return 440 * voigt_exp2f12(index);
 }
 
 inline static float getPitchFast(float index)
