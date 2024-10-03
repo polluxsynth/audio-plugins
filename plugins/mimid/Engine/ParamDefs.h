@@ -209,7 +209,7 @@
 	// Spread control
 	// #1 (freqs and levels)
 	PARAM(UDET, PG_SPREAD, SP_NONE, "OscSpread", "oscspread", 0, 10, 2, setOscSpread)
-	PARAM(FILTERDER, PG_SPREAD, SP_NONE, "FilterSpread", "filtespread", 0, 10, 3, setFilterSpread)
+	PARAM(FILTERDER, PG_SPREAD, SP_NONE, "FilterSpread", "filterspread", 0, 10, 3, setFilterSpread)
 	PARAM(LEVEL_DIF, PG_SPREAD, SP_NONE, "LevelSpread", "levelspread", 0, 10, 3, setLoudnessSpread)
 	PARAM(PANSPREAD, PG_SPREAD, SP_NONE, "PanSpread", "panspread", 0, 10, 1, setPanSpread)
 	// #2 (times and speeds)
