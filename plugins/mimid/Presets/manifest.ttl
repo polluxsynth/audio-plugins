@@ -66,6 +66,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Classic_Sync.ttl> .
 
+<Default.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Default.ttl> .
+
 <E_Bass.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
