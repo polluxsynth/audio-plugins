@@ -218,7 +218,7 @@
 	PARAM(LFOSPREAD, PG_SPREAD, SP_NONE, "LfoSpread", "lfospread", 0, 10, 0, setLfoSpread)
 
 	// DSP control
-	PARAM(OVERSAMPLE, PG_DSP, SP_ONOFF, "Oversample", "oversample", 0, SP_MAX, 1, setOversampling)
+	PARAM(OVERSAMPLE, PG_DSP, SP_ONOFF, "Oversample", "oversample", 0, SP_MAX, 0, setOversampling)
 	PARAM(ECONOMY_MODE, PG_DSP, SP_ONOFF, "Economy Mode", "economymode", 0, SP_MAX, 1, setEconomyMode)
 
 	// Misc/Debug
