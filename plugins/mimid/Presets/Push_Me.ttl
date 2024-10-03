@@ -66,7 +66,7 @@
 		lv2:symbol "filtersustaintime" ;
 		pset:value 10.0
 	] , [
-		lv2:symbol "filtespread" ;
+		lv2:symbol "filterspread" ;
 		pset:value 3.04999995
 	] , [
 		lv2:symbol "hpffreq" ;
