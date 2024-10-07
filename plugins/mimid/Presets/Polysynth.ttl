@@ -57,6 +57,9 @@
 		lv2:symbol "filterenvamount" ;
 		pset:value 6.4000001
 	] , [
+		lv2:symbol "filterhold" ;
+		pset:value 0.0
+	] , [
 		lv2:symbol "filterrelease" ;
 		pset:value 4.01000023
 	] , [
@@ -68,6 +71,9 @@
 	] , [
 		lv2:symbol "filterspread" ;
 		pset:value 3.04999995
+	] , [
+		lv2:symbol "hold" ;
+		pset:value 0.0
 	] , [
 		lv2:symbol "hpffreq" ;
 		pset:value 0.0
