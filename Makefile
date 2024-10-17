@@ -18,7 +18,7 @@ NOOPT=false
 
 include dpf/Makefile.base.mk
 
-all: dgl plugins gen
+all: dgl plugins gen # fixup not used in mainstream version
 
 # --------------------------------------------------------------
 
@@ -47,6 +47,9 @@ dpf/utils/lv2_ttl_generator:
 else
 gen:
 endif
+
+fixup: plugins/$(PLUGIN)/Utils/add-designation-params.sh bin/$(PLUGIN_NAME).lv2/$(PLUGIN_NAME)_dsp.ttl
+	sh plugins/$(PLUGIN)/Utils/add-designation-params.sh bin/$(PLUGIN_NAME).lv2/$(PLUGIN_NAME)_dsp.ttl
 
 # --------------------------------------------------------------
 
