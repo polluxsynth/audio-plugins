@@ -16,7 +16,7 @@
 		pset:value 1.14999998
 	] , [
 		lv2:symbol "attack" ;
-		pset:value 1.79999995
+		pset:value 3.5999999
 	] , [
 		lv2:symbol "benddest" ;
 		pset:value 1.0
@@ -25,10 +25,10 @@
 		pset:value 12.0
 	] , [
 		lv2:symbol "cutoff" ;
-		pset:value 2.04999995
+		pset:value 3.58999991
 	] , [
 		lv2:symbol "decay" ;
-		pset:value 3.72000003
+		pset:value 2.26999998
 	] , [
 		lv2:symbol "economymode" ;
 		pset:value 1.0
@@ -40,7 +40,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "envrst" ;
-		pset:value 0.0
+		pset:value 1.0
 	] , [
 		lv2:symbol "fenvmode" ;
 		pset:value 0.0
@@ -49,34 +49,34 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "filterattack" ;
-		pset:value 0.0
+		pset:value 4.1500001
 	] , [
 		lv2:symbol "filterdecay" ;
-		pset:value 3.75
-	] , [
-		lv2:symbol "filterenvamount" ;
 		pset:value 0.0
 	] , [
+		lv2:symbol "filterenvamount" ;
+		pset:value 4.0
+	] , [
 		lv2:symbol "filterrelease" ;
-		pset:value 4.11000013
+		pset:value 4.76000023
 	] , [
 		lv2:symbol "filtersustain" ;
-		pset:value 3.75
+		pset:value 10.0
 	] , [
 		lv2:symbol "filtersustaintime" ;
-		pset:value 4.30000019
+		pset:value 10.0
 	] , [
 		lv2:symbol "filterspread" ;
-		pset:value 0.1
+		pset:value 3.04999995
 	] , [
 		lv2:symbol "hpffreq" ;
-		pset:value 2.45000005
+		pset:value 1.5
 	] , [
 		lv2:symbol "keyasgnmode" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "keyassignmem" ;
-		pset:value 0.0
+		pset:value 1.0
 	] , [
 		lv2:symbol "keyassignmtrg" ;
 		pset:value 0.0
@@ -91,7 +91,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "keytrack" ;
-		pset:value 1.0
+		pset:value 0.76499999
 	] , [
 		lv2:symbol "levelspread" ;
 		pset:value 1.25
@@ -100,13 +100,13 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1amtcont" ;
-		pset:value 1.0
+		pset:value 2.0
 	] , [
 		lv2:symbol "lfo1contramt" ;
-		pset:value 0.15000001
+		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1dest" ;
-		pset:value 7.0
+		pset:value 2.0
 	] , [
 		lv2:symbol "lfo1polarity" ;
 		pset:value 0.0
@@ -121,7 +121,7 @@
 		pset:value 3.0
 	] , [
 		lv2:symbol "lfo2amount" ;
-		pset:value 3.45000005
+		pset:value 0.31
 	] , [
 		lv2:symbol "lfo2amtcont" ;
 		pset:value 1.0
@@ -133,7 +133,7 @@
 		pset:value 4.0
 	] , [
 		lv2:symbol "lfo2frequency" ;
-		pset:value 2.22000003
+		pset:value 4.71999979
 	] , [
 		lv2:symbol "lfo2polarity" ;
 		pset:value 0.0
@@ -151,43 +151,43 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc1detune" ;
-		pset:value 0.075
-	] , [
-		lv2:symbol "osc1mix" ;
 		pset:value 0.0
 	] , [
+		lv2:symbol "osc1mix" ;
+		pset:value 5.94999981
+	] , [
 		lv2:symbol "osc1pitch" ;
-		pset:value 36.0
+		pset:value 12.0
 	] , [
 		lv2:symbol "osc1pw" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc1wave" ;
-		pset:value 0.0
+		pset:value 1.0
 	] , [
 		lv2:symbol "osc2detune" ;
-		pset:value 0.19
+		pset:value 0.0
 	] , [
 		lv2:symbol "osc2filtermod" ;
-		pset:value 10.0
+		pset:value 5.6500001
 	] , [
 		lv2:symbol "osc2mix" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc2pitch" ;
-		pset:value 24.0
+		pset:value 72.0
 	] , [
 		lv2:symbol "osc2pw" ;
 		pset:value 0.0
-	] , [
-		lv2:symbol "osc2wave" ;
-		pset:value 3.0
 	] , [
 		lv2:symbol "osc2submix" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc2subwave" ;
-		pset:value 1.0
+		pset:value 0.0
+	] , [
+		lv2:symbol "osc2wave" ;
+		pset:value 3.0
 	] , [
 		lv2:symbol "osckeysync" ;
 		pset:value 0.0
@@ -199,7 +199,7 @@
 		pset:value 1.0
 	] , [
 		lv2:symbol "panspread" ;
-		pset:value 1.21000004
+		pset:value 2.16000009
 	] , [
 		lv2:symbol "portamento" ;
 		pset:value 0.0
@@ -208,19 +208,19 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "release" ;
-		pset:value 1.62
+		pset:value 2.56999993
 	] , [
 		lv2:symbol "resonance" ;
-		pset:value 10.0
+		pset:value 0.0
 	] , [
 		lv2:symbol "response" ;
 		pset:value 4.0
 	] , [
 		lv2:symbol "sustain" ;
-		pset:value 10.0
+		pset:value 5.875
 	] , [
 		lv2:symbol "sustaintime" ;
-		pset:value 8.60000038
+		pset:value 10.0
 	] , [
 		lv2:symbol "synclevel" ;
 		pset:value 0.0
@@ -229,7 +229,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "unused_1" ;
-		pset:value 0.56
+		pset:value 0.63999999
 	] , [
 		lv2:symbol "unused_2" ;
 		pset:value 0.72500002
@@ -244,15 +244,14 @@
 		pset:value 5.69999981
 	] , [
 		lv2:symbol "vfltfactor" ;
-		pset:value 4.3499999
+		pset:value 0.0
 	] , [
 		lv2:symbol "voicecount" ;
 		pset:value 6.0
 	] , [
 		lv2:symbol "volume" ;
-		pset:value 3.5999999
+		pset:value 6.75
 	] , [
 		lv2:symbol "xmod" ;
 		pset:value 0.0
 	] .
-
