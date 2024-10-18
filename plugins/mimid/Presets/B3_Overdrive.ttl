@@ -100,7 +100,7 @@
 		pset:value 1.70000005
 	] , [
 		lv2:symbol "lfo1amtcont" ;
-		pset:value 1.0
+		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1contramt" ;
 		pset:value 1.79999995
@@ -121,19 +121,19 @@
 		pset:value 3.0
 	] , [
 		lv2:symbol "lfo2amount" ;
-		pset:value 3.16000009
+		pset:value 2.8499999
 	] , [
 		lv2:symbol "lfo2amtcont" ;
 		pset:value 1.0
 	] , [
 		lv2:symbol "lfo2contramt" ;
-		pset:value 1.97000003
+		pset:value 8.25
 	] , [
 		lv2:symbol "lfo2dest" ;
 		pset:value 5.0
 	] , [
 		lv2:symbol "lfo2frequency" ;
-		pset:value 3.26999998
+		pset:value 2.31999993
 	] , [
 		lv2:symbol "lfo2polarity" ;
 		pset:value 0.0
@@ -180,13 +180,13 @@
 		lv2:symbol "osc2pw" ;
 		pset:value 0.0
 	] , [
-		lv2:symbol "osc2wave" ;
-		pset:value 2.0
-	] , [
 		lv2:symbol "osc2submix" ;
 		pset:value 5.1500001
 	] , [
 		lv2:symbol "osc2subwave" ;
+		pset:value 2.0
+	] , [
+		lv2:symbol "osc2wave" ;
 		pset:value 2.0
 	] , [
 		lv2:symbol "osckeysync" ;

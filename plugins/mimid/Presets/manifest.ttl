@@ -51,10 +51,25 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Bowed_strings.ttl> .
 
+<Buzzy_Strings.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Buzzy_Strings.ttl> .
+
 <Chinese_Fourths.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Chinese_Fourths.ttl> .
+
+<Chinese_Fourths_Echo.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Chinese_Fourths_Echo.ttl> .
+
+<Chiptune.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Chiptune.ttl> .
 
 <Chorus_Harp.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -66,10 +81,25 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Classic_Sync.ttl> .
 
+<Come-n-go.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Come-n-go.ttl> .
+
+<Dansande_Man.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Dansande_Man.ttl> .
+
 <Default.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Default.ttl> .
+
+<DynaPad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <DynaPad.ttl> .
 
 <E_Bass.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -90,6 +120,11 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Echo.ttl> .
+
+<Equinoxe.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Equinoxe.ttl> .
 
 <FM_Brass.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -146,6 +181,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Mod_Strings_II.ttl> .
 
+<Mod_Strings_II_AT.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Mod_Strings_II_AT.ttl> .
+
 <Noise_Percussion.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -181,6 +221,21 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Polysynth.ttl> .
 
+<Polysynth_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Polysynth_II.ttl> .
+
+<Polysynth_III.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Polysynth_III.ttl> .
+
+<Porta_Res_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Porta_Res_Pad.ttl> .
+
 <Pure_Sine.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -191,10 +246,40 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Push_Me.ttl> .
 
+<Push_Me_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Push_Me_II.ttl> .
+
+<Resonant_Sync_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Resonant_Sync_Pad.ttl> .
+
 <Resonant_Synth_Bass.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Resonant_Synth_Bass.ttl> .
+
+<Saw_Blip.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Saw_Blip.ttl> .
+
+<Saw_FM_Open.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Saw_FM_Open.ttl> .
+
+<Seventh_Voyage_I.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Seventh_Voyage_I.ttl> .
+
+<Seventh_Voyage_II.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Seventh_Voyage_II.ttl> .
 
 <Slow_strings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -216,6 +301,31 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Spike.ttl> .
 
+<Square_Seq.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Square_Seq.ttl> .
+
+<Strings.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Strings.ttl> .
+
+<Strings_Bright.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Strings_Bright.ttl> .
+
+<Strings_vel.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Strings_vel.ttl> .
+
+<Subtly_Bowed.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Subtly_Bowed.ttl> .
+
 <Sweeping_Resonant_Pad.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -225,6 +335,16 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Sync_Pad.ttl> .
+
+<Synth_Bass.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Synth_Bass.ttl> .
+
+<Synth_Bass_Long.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Synth_Bass_Long.ttl> .
 
 <Synth_Brass.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -260,6 +380,16 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Upright_Piano.ttl> .
+
+<Voice_Piano.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Voice_Piano.ttl> .
+
+<Wet_FM_Clav.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Wet_FM_Clav.ttl> .
 
 <Whiter_Shade.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;

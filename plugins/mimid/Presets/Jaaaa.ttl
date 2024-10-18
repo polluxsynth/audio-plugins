@@ -16,7 +16,7 @@
 		pset:value 1.14999998
 	] , [
 		lv2:symbol "attack" ;
-		pset:value 0.0
+		pset:value 3.8499999
 	] , [
 		lv2:symbol "benddest" ;
 		pset:value 1.0
@@ -25,7 +25,7 @@
 		pset:value 12.0
 	] , [
 		lv2:symbol "cutoff" ;
-		pset:value 3.63999992
+		pset:value 3.69000006
 	] , [
 		lv2:symbol "decay" ;
 		pset:value 2.26999998
@@ -49,7 +49,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "filterattack" ;
-		pset:value 3.6500001
+		pset:value 4.1500001
 	] , [
 		lv2:symbol "filterdecay" ;
 		pset:value 0.0
@@ -91,7 +91,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "keytrack" ;
-		pset:value 0.70999998
+		pset:value 0.72500002
 	] , [
 		lv2:symbol "levelspread" ;
 		pset:value 1.25
@@ -255,4 +255,3 @@
 		lv2:symbol "xmod" ;
 		pset:value 0.0
 	] .
-
