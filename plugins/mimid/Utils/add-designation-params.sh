@@ -48,14 +48,14 @@ add_designation_params_if() {
   add_designation_param decay decay $sedfile
   add_designation_param sustain sustain $sedfile
   add_designation_param sustaintime fade $sedfile
-  add_designation_param release release $sedfile
+  #add_designation_param release release $sedfile
 
   add_designation_param filterattack attack $sedfile
   add_designation_param filterhold hold $sedfile
   add_designation_param filterdecay decay $sedfile
   add_designation_param filtersustain sustain $sedfile
   add_designation_param filtersustaintime fade $sedfile
-  add_designation_param filterrelease release $sedfile
+  #add_designation_param filterrelease release $sedfile
 
   sed -i -f $sedfile $1
   rm -f $sedfile
