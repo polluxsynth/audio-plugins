@@ -60,14 +60,14 @@
 		lv2:symbol "filterrelease" ;
 		pset:value 5.01000023
 	] , [
+		lv2:symbol "filterspread" ;
+		pset:value 3.04999995
+	] , [
 		lv2:symbol "filtersustain" ;
 		pset:value 10.0
 	] , [
 		lv2:symbol "filtersustaintime" ;
 		pset:value 10.0
-	] , [
-		lv2:symbol "filterspread" ;
-		pset:value 3.04999995
 	] , [
 		lv2:symbol "hpffreq" ;
 		pset:value 1.5
@@ -166,7 +166,7 @@
 		pset:value 1.0
 	] , [
 		lv2:symbol "osc2detune" ;
-		pset:value 0.0
+		pset:value -0.02
 	] , [
 		lv2:symbol "osc2filtermod" ;
 		pset:value 5.6500001

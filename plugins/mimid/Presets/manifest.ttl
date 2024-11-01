@@ -151,6 +151,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Growl_Pad.ttl> .
 
+<Growl_Pad_plus.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Growl_Pad_plus.ttl> .
+
 <Harp.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -246,11 +251,6 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Push_Me.ttl> .
 
-<Push_Me_II.ttl>
-	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
-	a pset:Preset ;
-	rdfs:seeAlso <Push_Me_II.ttl> .
-
 <Resonant_Sync_Pad.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -271,15 +271,10 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Saw_FM_Open.ttl> .
 
-<Seventh_Voyage_I.ttl>
+<Seventh_Voyage.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
-	rdfs:seeAlso <Seventh_Voyage_I.ttl> .
-
-<Seventh_Voyage_II.ttl>
-	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
-	a pset:Preset ;
-	rdfs:seeAlso <Seventh_Voyage_II.ttl> .
+	rdfs:seeAlso <Seventh_Voyage.ttl> .
 
 <Slow_strings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;

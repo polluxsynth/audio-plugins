@@ -250,7 +250,7 @@
 		pset:value 6.0
 	] , [
 		lv2:symbol "volume" ;
-		pset:value 7.8499999
+		pset:value 9.05000019
 	] , [
 		lv2:symbol "xmod" ;
 		pset:value 0.0

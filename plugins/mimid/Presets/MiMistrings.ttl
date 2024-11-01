@@ -60,14 +60,14 @@
 		lv2:symbol "filterrelease" ;
 		pset:value 5.30999994
 	] , [
+		lv2:symbol "filterspread" ;
+		pset:value 3.04999995
+	] , [
 		lv2:symbol "filtersustain" ;
 		pset:value 8.94999981
 	] , [
 		lv2:symbol "filtersustaintime" ;
 		pset:value 10.0
-	] , [
-		lv2:symbol "filterspread" ;
-		pset:value 3.04999995
 	] , [
 		lv2:symbol "hpffreq" ;
 		pset:value 2.6500001
@@ -250,9 +250,8 @@
 		pset:value 6.0
 	] , [
 		lv2:symbol "volume" ;
-		pset:value 5.4000001
+		pset:value 7.30000019
 	] , [
 		lv2:symbol "xmod" ;
 		pset:value 0.0
 	] .
-
