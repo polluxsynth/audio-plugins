@@ -18,7 +18,7 @@ NOOPT=false
 
 include dpf/Makefile.base.mk
 
-all: dgl plugins gen # fixup not used in mainstream version
+all: dgl plugins gen fixup
 
 # --------------------------------------------------------------
 
