@@ -4,7 +4,7 @@
 	originally from Obxd synthesizer.
 
 	Copyright © 2013-2014 Filatov Vadim
-	Copyright 2023 Ricard Wanderlof
+	Copyright 2023-2025 Ricard Wanderlof
 
 	Contact original author via email :
 	justdat_@_e1.ru
@@ -284,10 +284,7 @@ public:
 		// OFF - OSC1 - OSC1+2
 		int intparam = roundToInt(param);
 		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].pitchWheelOsc1 = intparam >= 1;
-			synth.voices[i].pitchWheelOsc2 = intparam == 2;
-		}
+			synth.voices[i].setPwRoute(synth.voices[i].pwroute, intparam);
 	}
 	void setPanSpread(float param)
 	{
@@ -348,46 +345,14 @@ public:
 		int intparam = roundToInt(param);
 		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
-		bool lfo1o1 = intparam == 1 || intparam == 2;
-		bool lfo1o2 = intparam == 2 || intparam == 3;
-		bool lfo1pw1 = intparam == 4 || intparam == 5;
-		bool lfo1pw2 = intparam == 5 || intparam == 6;
-		bool lfo1filt = intparam == 7;
-		bool lfo1res = intparam == 8;
-		bool lfo1bmod = intparam == 9;
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].lfo1o1 = lfo1o1;
-			synth.voices[i].lfo1o2 = lfo1o2;
-			synth.voices[i].lfo1pw1 = lfo1pw1;
-			synth.voices[i].lfo1pw2 = lfo1pw2;
-			synth.voices[i].lfo1f = lfo1filt;
-			synth.voices[i].lfo1res = lfo1res;
-			synth.voices[i].lfo1bmod = lfo1bmod;
-		}
+		ForEachVoice(setMod1Route(intparam));
 	}
 	void setLfo2Dest(float param)
 	{
 		int intparam = roundToInt(param);
 		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
-		bool lfo2o1 = intparam == 1 || intparam == 2;
-		bool lfo2o2 = intparam == 2 || intparam == 3;
-		bool lfo2pw1 = intparam == 4 || intparam == 5;
-		bool lfo2pw2 = intparam == 5 || intparam == 6;
-		bool lfo2filt = intparam == 7;
-		bool lfo2res = intparam == 8;
-		bool lfo2bmod = intparam == 9;
-		for(int i = 0 ; i < synth.MAX_VOICES;i++)
-		{
-			synth.voices[i].lfo2o1 = lfo2o1;
-			synth.voices[i].lfo2o2 = lfo2o2;
-			synth.voices[i].lfo2pw1 = lfo2pw1;
-			synth.voices[i].lfo2pw2 = lfo2pw2;
-			synth.voices[i].lfo2f = lfo2filt;
-			synth.voices[i].lfo2res = lfo2res;
-			synth.voices[i].lfo2bmod = lfo2bmod;
-		}
+		ForEachVoice(setMod2Route(intparam));
 	}
 	void setLfo1Controller(float val)
 	{

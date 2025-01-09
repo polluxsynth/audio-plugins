@@ -4,7 +4,7 @@
 	originally from Obxd synthesizer.
 
 	Copyright © 2013-2014 Filatov Vadim
-	Copyright 2023 Ricard Wanderlof
+	Copyright 2023-2025 Ricard Wanderlof
 
 	Contact original author via email :
 	justdat_@_e1.ru
@@ -32,6 +32,41 @@
 #include "Filter.h"
 #include "Decimator.h"
 #include "SquareDist.h"
+
+float dummyfloat;
+
+class ModRoute
+{
+private:
+	float *dest1, *dest2;
+	float *src;
+	float scale;
+
+public:
+	ModRoute()
+	{
+		src = &dummyfloat;
+		dest1 = &dummyfloat;
+		dest2 = NULL;
+		scale = 0;
+	}
+
+	inline void modulate()
+	{
+		float amount = *src * scale;
+		*dest1 += amount;
+		if (dest2)
+			*dest2 += amount;
+	}
+
+	void set_route(float *source, float *destination1, float *destination2, float scalefactor)
+	{
+		src = source;
+		dest1 = destination1;
+		dest2 = destination2;
+		scale = scalefactor;
+	}
+};
 
 class Voice
 {
@@ -111,18 +146,29 @@ public:
 
 	float cutoffwas,envelopewas;
 
-	bool pitchWheelOsc1, pitchWheelOsc2;
 	float pitchWheel,pitchWheelAmt;
 
 	float lfo1amt, lfo2amt;
 	float lfo1modamt, lfo2modamt;
 	float modw, aftert;
-	bool lfo1o1,lfo1o2,lfo1pw1,lfo1pw2,lfo1f,lfo1bmod,lfo1res;
-	bool lfo2o1,lfo2o2,lfo2pw1,lfo2pw2,lfo2f,lfo2bmod,lfo2res;
 
 	bool invertFenv;
 	bool lfo1modw, lfo1after, lfo1vel;
 	bool lfo2modw, lfo2after, lfo2vel;
+
+	ModRoute lfo1route;
+	ModRoute lfo2route;
+	ModRoute pwroute;
+
+	// LFO source variables for modulation routings
+	float lfo1mod, lfo2mod;
+	float lfo1Delayed, lfo2Delayed;
+
+	// Modulatable entitites
+	float pitchWheelScaled;
+	float osc2FltModCalc;
+	float cutoffnote;
+	float rescalc;
 
 	DelayLineRampable<Samples*2> lenvd,fenvd;
 	DelayLine<Samples*2> lfo1d,lfo2d;
@@ -182,6 +228,9 @@ public:
 		lfo2.waveForm = 1; // Triangle
 		voiceNumber = 0; // Until someone else says something else
 		unused1=unused2=0; // TODO: Remove
+		cutoffnote=0;
+		rescalc=0;
+		osc2FltModCalc=0;
 	}
 	~Voice()
 	{
@@ -212,30 +261,59 @@ public:
 				      lfo2vel ? velocityValue : 0) *
 					lfo2modamt * (1 - lfo2amt);
 
-		float lfo1mod = lfo1In * lfo1totalamt;
-		float lfo2mod = lfo2In * lfo2totalamt;
+		lfo1mod = lfo1In * lfo1totalamt;
+		lfo2mod = lfo2In * lfo2totalamt;
 
-		//portamento on osc input voltage
-		//implements rc circuit
+		// Delayed LFOs for filter related modulation destinations
+		lfo1Delayed = lfo1d.feedReturn(lfo1mod);
+		lfo2Delayed = lfo2d.feedReturn(lfo2mod);
+
+		// Bipolar filter envelope, with delay for later
+		float envm = fenvd.feedReturn(fenv.processSample() *
+				(1 - (1-2*velocityValue)*vflt));
+		envm = 2 * envm - 1; // make bipolar, after delay line
+		if (invertFenv)
+			envm = -envm;
+
+		// PW modulation
+		osc.pw1 = 0;
+		osc.pw2 = 0;
+
+		// Pitch modulation
+		pitchWheelScaled = pitchWheel * pitchWheelAmt;
+		osc.pto1 = 0;
+		osc.pto2 = 0;
+
 		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
 		// Pitch calc base frequency is 440 Hz, but the default
 		// osc pitch is 24 (semitones), resulting in
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
+		// Portamento on osc input voltage using LPF
 		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt),sampleRateInv);
 		osc.notePlaying = ptNote;
+
+		// Filter cutoff
+		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking
+		cutoffnote =
+			cutoff +
+			FltSpread * FltSpreadAmt +
+			fenvamt * envm +
+			-54 + (fltKF * (ptNote + filteroct + filtertune + 54));
+
+		rescalc = res;
+
+		//Bmod
+		osc2FltModCalc = osc2FltMod;
+
+		// Here we provide modulation, so all modulation sources and
+		// destination variables need to be initialized at this point
+		// for the mod routings to take effect.
+		lfo1route.modulate();
+		lfo2route.modulate();
+		pwroute.modulate();
+
 		//both envelopes and filter cv need a delay equal to osc internal delay
-		float lfo1Delayed = lfo1d.feedReturn(lfo1mod);
-		float lfo2Delayed = lfo2d.feedReturn(lfo2mod);
-
-		//PW modulation
-		osc.pw1 = (lfo1pw1?lfo1mod:0) + (lfo2pw1?lfo2mod:0);
-		osc.pw2 = (lfo1pw2?lfo1mod:0) + (lfo2pw2?lfo2mod:0);
-
-		//Pitch modulation
-		osc.pto1 = (pitchWheelOsc1?(pitchWheel*pitchWheelAmt):0) + (lfo1o1?lfo1mod*12:0) + (lfo2o1?lfo2mod*12:0);
-		osc.pto2 = (pitchWheelOsc2?(pitchWheel*pitchWheelAmt):0) + (lfo1o2?lfo1mod*12:0) + (lfo2o2?lfo2mod*12:0);
-
 		//variable sort magic - upsample trick
 		float envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
 
@@ -247,21 +325,6 @@ public:
 		//filter exp cutoff calculation
 		//needs to be done after we've gotten oscmod
 
-		//bipolar filter envelope, with delay for later
-		float envm = fenvd.feedReturn(fenv.processSample() *
-				(1 - (1-2*velocityValue)*vflt));
-		envm = 2 * envm - 1; // make bipolar, after delay line
-		if(invertFenv)
-			envm = -envm;
-
-		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking
-		float cutoffnote =
-			(lfo1f?(lfo1Delayed*60):0)+
-			(lfo2f?(lfo2Delayed*60):0)+
-			cutoff+
-			FltSpread*FltSpreadAmt+
-			fenvamt*envm+
-			-54 + (fltKF*(ptNote+filteroct+filtertune+54));
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
 			// When the positive peak of the mod signal would cause
@@ -282,16 +345,15 @@ public:
 			// us a bit of extra margin, as the final offset is
 			// in fact negative).
 			float maxcutoff = cutoffnote + oscmod_maxpeak * osc2FltMod;
-			float osc2FltModTmp = osc2FltMod + (lfo1bmod?(lfo1Delayed*100):0) + (lfo2bmod?(lfo2Delayed*100):0);
 			if (cutoffnote > maxallowednote)
 				// outside range; disable modulation
-				osc2FltModTmp = 0;
+				osc2FltModCalc = 0;
 			else if (maxcutoff > maxallowednote)
 				// limit osc2FltMod to keep under max allowed.
 				// note: divide by peak of mod signal.
-				osc2FltModTmp = (maxallowednote - cutoffnote) *
+				osc2FltModCalc = (maxallowednote - cutoffnote) *
 						oscmod_maxpeak_inv;
-			cutoffnote += (oscmod-oscmod_offset) * osc2FltModTmp;
+			cutoffnote += (oscmod-oscmod_offset) * osc2FltModCalc;
 		}
 		float cutoffcalc = minf(
 			getPitch(cutoffnote)
@@ -308,8 +370,9 @@ public:
 
 		float x1 = oscps;
 		//TODO: filter oscmod as well to reduce aliasing?
+
 		// Cap resonance at 0 and +1 to avoid nasty artefacts
-		float rescalc = limitf(res + (lfo1res?lfo1Delayed:0) + (lfo2res?lfo2Delayed:0), 0.0f, 1.0f);
+		rescalc = limitf(rescalc, 0.0f, 1.0f);
 
 		x1 = flt.Apply4Pole(x1, cutoffcalc, rescalc);
 
@@ -356,6 +419,74 @@ public:
 	{
 		lfo1.setSpread(expf(Lfo1Spread*d * 2 * logf(1.5)));
 		lfo2.setSpread(expf(Lfo2Spread*d * 2 * logf(1.5)));
+	}
+	void setMod1Route(int param)
+	{
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		switch (param) {
+			case 0: lfo1route.set_route(&lfo1mod, &osc.pto1, NULL, 0.0f);
+				break;
+			case 1: lfo1route.set_route(&lfo1mod, &osc.pto1, NULL, 12.0f);
+				break;
+			case 2: lfo1route.set_route(&lfo1mod, &osc.pto1, &osc.pto2, 12.0f);
+				break;
+			case 3: lfo1route.set_route(&lfo1mod, &osc.pto2, NULL, 12.0f);
+				break;
+			case 4: lfo1route.set_route(&lfo1mod, &osc.pw1, NULL, 1.0f);
+				break;
+			case 5: lfo1route.set_route(&lfo1mod, &osc.pw1, &osc.pw2, 1.0f);
+				break;
+			case 6: lfo1route.set_route(&lfo1Delayed, &osc.pw2, NULL, 1.0f);
+				break;
+			case 7: lfo1route.set_route(&lfo1Delayed, &cutoffnote, NULL, 60.0f);
+				break;
+			case 8: lfo1route.set_route(&lfo1Delayed, &rescalc, NULL, 1.0f);
+				break;
+			case 9: lfo1route.set_route(&lfo1Delayed, &osc2FltModCalc, NULL, 100.0f);
+				break;
+		}
+	}
+	void setMod2Route(int param)
+	{
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		switch (param) {
+			case 0: lfo2route.set_route(&lfo2mod, &osc.pto1, NULL, 0.0f);
+				break;
+			case 1: lfo2route.set_route(&lfo2mod, &osc.pto1, NULL, 12.0f);
+				break;
+			case 2: lfo2route.set_route(&lfo2mod, &osc.pto1, &osc.pto2, 12.0f);
+				break;
+			case 3: lfo2route.set_route(&lfo2mod, &osc.pto2, NULL, 12.0f);
+				break;
+			case 4: lfo2route.set_route(&lfo2mod, &osc.pw1, NULL, 1.0f);
+				break;
+			case 5: lfo2route.set_route(&lfo2mod, &osc.pw1, &osc.pw2, 1.0f);
+				break;
+			case 6: lfo2route.set_route(&lfo2Delayed, &osc.pw2, NULL, 1.0f);
+				break;
+			case 7: lfo2route.set_route(&lfo2Delayed, &cutoffnote, NULL, 60.0f);
+				break;
+			case 8: lfo2route.set_route(&lfo2Delayed, &rescalc, NULL, 1.0f);
+				break;
+			case 9: lfo2route.set_route(&lfo2Delayed, &osc2FltModCalc, NULL, 100.0f);
+				break;
+		}
+	}
+	void setPwRoute(ModRoute &route, int param)
+	{
+		// OFF - OSC1 - OSC1+2
+		// 0     1      2
+		switch (param) {
+			case 0: route.set_route(&pitchWheelScaled, &osc.pto1, NULL, 0.0f);
+
+				break;
+			case 1: route.set_route(&pitchWheelScaled, &osc.pto1, NULL, 1.0f);
+				break;
+			case 2: route.set_route(&pitchWheelScaled, &osc.pto1, &osc.pto2, 1.0f);
+				break;
+		}
 	}
 
 	void setHQ(bool hq)
