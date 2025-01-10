@@ -357,10 +357,9 @@ public:
 	void setLfo1Controller(float val)
 	{
 		int intval = roundToInt(val);
-		// off - modwheel - aftertouch - lfo2
-		ForEachVoice(lfo1modw = (intval == 1));
-		ForEachVoice(lfo1after = (intval == 2));
-		ForEachVoice(lfo1vel = (intval == 3));
+		// off - modwheel - aftertouch - vel
+		for(int i = 0 ; i < synth.MAX_VOICES;i++)
+			synth.voices[i].setModController(&synth.voices[i].lfo1controller, intval);
 	}
 	void setLfo1ControllerAmt(float val)
 	{
@@ -369,10 +368,9 @@ public:
 	void setLfo2Controller(float val)
 	{
 		int intval = roundToInt(val);
-		// off - modwheel - aftertouch - lfo1
-		ForEachVoice(lfo2modw = (intval == 1));
-		ForEachVoice(lfo2after = (intval == 2));
-		ForEachVoice(lfo2vel = (intval == 3));
+		// off - modwheel - aftertouch - vel
+		for(int i = 0 ; i < synth.MAX_VOICES;i++)
+			synth.voices[i].setModController(&synth.voices[i].lfo2controller, intval);
 	}
 	void setLfo2ControllerAmt(float val)
 	{

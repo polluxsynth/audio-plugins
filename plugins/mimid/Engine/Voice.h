@@ -87,6 +87,8 @@ private:
 	const float oscmod_maxpeak = 0.5 - oscmod_offset;
 	const float oscmod_maxpeak_inv = oscmod_maxpeak ? 1/oscmod_maxpeak:0;
 
+	float zero = 0;
+
 	//JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Voice)
 public:
 	bool sustainHold;
@@ -150,11 +152,10 @@ public:
 
 	float lfo1amt, lfo2amt;
 	float lfo1modamt, lfo2modamt;
+	float *lfo1controller, *lfo2controller;
 	float modw, aftert;
 
 	bool invertFenv;
-	bool lfo1modw, lfo1after, lfo1vel;
-	bool lfo2modw, lfo2after, lfo2vel;
 
 	ModRoute lfo1route;
 	ModRoute lfo2route;
@@ -231,6 +232,7 @@ public:
 		cutoffnote=0;
 		rescalc=0;
 		osc2FltModCalc=0;
+		lfo1controller=lfo2controller=&zero;
 	}
 	~Voice()
 	{
@@ -251,15 +253,9 @@ public:
 		//no matter what combination of amount and modwheel/aftertouch
 		//is dialed in.
 		float lfo1totalamt = lfo1amt +
-				     (lfo1modw ? modw :
-				      lfo1after ? aftert :
-				      lfo1vel ? velocityValue : 0) *
-					lfo1modamt * (1 - lfo1amt);
+				     *lfo1controller * lfo1modamt * (1 - lfo1amt);
 		float lfo2totalamt = lfo2amt +
-				     (lfo2modw ? modw :
-				      lfo2after ? aftert :
-				      lfo2vel ? velocityValue : 0) *
-					lfo2modamt * (1 - lfo2amt);
+				     *lfo2controller * lfo2modamt * (1 - lfo2amt);
 
 		lfo1mod = lfo1In * lfo1totalamt;
 		lfo2mod = lfo2In * lfo2totalamt;
@@ -488,7 +484,16 @@ public:
 				break;
 		}
 	}
-
+	void setModController(float **controller, int param)
+	{
+		// off - modwheel - aftertouch - vel
+		switch (param) {
+			case 0: *controller = &zero; break;
+			case 1: *controller = &modw; break;
+			case 2: *controller = &aftert; break;
+			case 3: *controller = &velocityValue; break;
+		}
+	}
 	void setHQ(bool hq)
 	{
 		if(hq)
