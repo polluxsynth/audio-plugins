@@ -4,7 +4,7 @@
   originally from Obxd synthesizer.
 
   Copyright © 2013-2014 Filatov Vadim
-  Copyright 2023 Ricard Wanderlof
+  Copyright 2023-2025 Ricard Wanderlof
 
   Contact original author via email :
   justdat_@_e1.ru
@@ -152,7 +152,7 @@ public:
 		// is not playing.
 		voice.lfo1.update();
 		voice.lfo2.update();
-		if(voice.shouldProcessed||(!economyMode))
+		if(voice.shouldProcess || (!economyMode))
 		{
 			return voice.ProcessSample();
 		}

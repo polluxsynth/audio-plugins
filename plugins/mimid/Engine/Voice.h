@@ -45,6 +45,7 @@ private:
 public:
 	ModRoute()
 	{
+		// Set a dummy route
 		src = &dummyfloat;
 		dest1 = &dummyfloat;
 		dest2 = NULL;
@@ -73,27 +74,22 @@ class Voice
 private:
 	float SampleRate;
 	float sampleRateInv;
-	float Volume;
-	float port;
 	float velocityValue;
 
-	float d1,d2;
-	float c1,c2;
-	float shpf;
+	// State variables for various single pole filters
+	float oschpfst; // 12 Hz oscillator HPF
+	float prtst; // portamento
+	float hpfst; // HPF between filter and VCA
 
 	// offset to get apparent zero cutoff frequency shift with oscmod
 	const float oscmod_offset = 0.20;
 	// maximum peak of oscmod waveform w/ offset applied
 	const float oscmod_maxpeak = 0.5 - oscmod_offset;
-	const float oscmod_maxpeak_inv = oscmod_maxpeak ? 1/oscmod_maxpeak:0;
+	const float oscmod_maxpeak_inv = oscmod_maxpeak ? 1/oscmod_maxpeak : 0;
 
 	float zero = 0;
 
-	//JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Voice)
 public:
-	bool sustainHold;
-	//bool resetAdssrsOnAttack;
-
 	AdssrEnvelope env;
 	AdssrEnvelope fenv;
 	Lfo lfo1;
@@ -102,9 +98,15 @@ public:
 	Filter flt;
 	SquareDist sqdist;
 
+	ModRoute lfo1route;
+	ModRoute lfo2route;
+	ModRoute pwroute;
+
 	SRandom ng;
 
-	float vamp,vflt;
+	bool sustainHold;
+
+	float vamp, vflt;
 	float velscale;
 
 	float cutoff;
@@ -135,7 +137,7 @@ public:
 	int midiIndx;
 
 	bool Active;
-	bool shouldProcessed;
+	bool shouldProcess;
 
 	bool oscKeySync;
 	bool envRst;
@@ -144,22 +146,17 @@ public:
 
 	float porta, portaSaved;
 	bool portaEnable;
-	float prtst;
 
-	float cutoffwas,envelopewas;
-
-	float pitchWheel,pitchWheelAmt;
+	float pitchWheel, pitchWheelAmt;
 
 	float lfo1amt, lfo2amt;
-	float lfo1modamt, lfo2modamt;
+	float lfo1contramt, lfo2contramt;
 	float *lfo1controller, *lfo2controller;
+
+	// Modwheel and aftertouch values
 	float modw, aftert;
 
 	bool invertFenv;
-
-	ModRoute lfo1route;
-	ModRoute lfo2route;
-	ModRoute pwroute;
 
 	// LFO source variables for modulation routings
 	float lfo1mod, lfo2mod;
@@ -171,10 +168,9 @@ public:
 	float cutoffnote;
 	float rescalc;
 
-	DelayLineRampable<Samples*2> lenvd,fenvd;
-	DelayLine<Samples*2> lfo1d,lfo2d;
+	DelayLineRampable<Samples*2> lenvd, fenvd;
+	DelayLine<Samples*2> lfo1d, lfo2d;
 
-	float oscpsw;
 	bool oscmodEnable; // Oscillator modulation output enabled
 
 	bool expvca;
@@ -188,31 +184,28 @@ public:
 		invertFenv = false;
 		ng = SRandom(SRandom::globalRandom().nextInt32());
 		sustainHold = false;
-		shouldProcessed = false;
-		vamp=vflt=0;
-		velscale=1;
-		velocityValue=0;
+		shouldProcess = false;
+		vamp = vflt = 0;
+		velscale = 1;
+		velocityValue = 0;
 		oscKeySync = false;
 		envRst = false;
-		hpffreq=4;
-		hpfcutoff=0;
+		hpffreq = 4;
+		hpfcutoff = 0;
 		osc2FltMod = 0;
-		oscpsw = 0;
-		cutoffwas = envelopewas=0;
-		c1=c2=d1=d2=shpf=0;
-		pitchWheel=pitchWheelAmt=0;
-		PortaSpreadAmt=0;
-		FltSpreadAmt=0;
-		levelSpreadAmt=0;
-		portaSaved=porta =0;
-		portaEnable=false;
-		prtst=0;
-		fltKF= false;
-		cutoff=0;
-		filteroct=0;
-		filtertune=0;
+		pitchWheel = pitchWheelAmt = 0;
+		PortaSpreadAmt = 0;
+		FltSpreadAmt = 0;
+		levelSpreadAmt = 0;
+		portaSaved = porta = 0;
+		portaEnable = false;
+		oschpfst = hpfst = prtst = 0;
+		fltKF = false;
+		cutoff = 0;
+		filteroct = 0;
+		filtertune = 0;
 		fenvamt = 0;
-		res=0;
+		res = 0;
 		Active = false;
 		midiIndx = 30;
 		levelSpread = SRandom::globalRandom().nextFloat()-0.5;
@@ -221,41 +214,36 @@ public:
 		Lfo1Spread = SRandom::globalRandom().nextFloat()-0.5;
 		Lfo2Spread = SRandom::globalRandom().nextFloat()-0.5;
 		FltSpread = SRandom::globalRandom().nextFloat()-0.5;
-		PortaSpread =SRandom::globalRandom().nextFloat()-0.5;
-	//	lenvd=new DelayLine(Samples*2);
-	//	fenvd=new DelayLine(Samples*2);
+		PortaSpread = SRandom::globalRandom().nextFloat()-0.5;
 		oscmodEnable = false;
 		expvca = false;
-		lfo2.waveForm = 1; // Triangle
+		lfo1.waveForm = lfo2.waveForm = 1; // Triangle
 		voiceNumber = 0; // Until someone else says something else
-		unused1=unused2=0; // TODO: Remove
-		cutoffnote=0;
-		rescalc=0;
-		osc2FltModCalc=0;
-		lfo1controller=lfo2controller=&zero;
+		unused1 = unused2 = 0; // TODO: Remove
+		cutoffnote = 0;
+		rescalc = 0;
+		osc2FltModCalc = 0;
+		lfo1controller = lfo2controller = &zero;
 	}
 	~Voice()
 	{
-	//	delete lenvd;
-	//	delete fenvd;
 	}
 	inline float ProcessSample()
 	{
 		float oscps, oscmod;
 
-		//filter envelope undelayed
-
+		// LFOs
 		float lfo1In = lfo1.getVal();
 		float lfo2In = lfo2.getVal();
 
-		//Multiplying modamt with (1-lfoamt) scales
-		//the modulation so that the total value never goes above 1.0
-		//no matter what combination of amount and modwheel/aftertouch
-		//is dialed in.
+		// Multiplying modamt with (1-lfoamt) scales
+		// the modulation so that the total value never goes above 1.0
+		// no matter what combination of amount and modwheel/aftertouch
+		// is dialed in.
 		float lfo1totalamt = lfo1amt +
-				     *lfo1controller * lfo1modamt * (1 - lfo1amt);
+				     *lfo1controller * lfo1contramt * (1 - lfo1amt);
 		float lfo2totalamt = lfo2amt +
-				     *lfo2controller * lfo2modamt * (1 - lfo2amt);
+				     *lfo2controller * lfo2contramt * (1 - lfo2amt);
 
 		lfo1mod = lfo1In * lfo1totalamt;
 		lfo2mod = lfo2In * lfo2totalamt;
@@ -264,12 +252,16 @@ public:
 		lfo1Delayed = lfo1d.feedReturn(lfo1mod);
 		lfo2Delayed = lfo2d.feedReturn(lfo2mod);
 
+		// Both envelopes and filter cv need a delay equal to osc internal delay
 		// Bipolar filter envelope, with delay for later
 		float envm = fenvd.feedReturn(fenv.processSample() *
 				(1 - (1-2*velocityValue)*vflt));
 		envm = 2 * envm - 1; // make bipolar, after delay line
 		if (invertFenv)
 			envm = -envm;
+
+		// Loudness envelope, with delay (same reason as for cutoff)
+		float envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
 
 		// PW modulation
 		osc.pw1 = 0;
@@ -286,10 +278,10 @@ public:
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
 		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt),sampleRateInv);
+		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt), sampleRateInv);
 		osc.notePlaying = ptNote;
 
-		// Filter cutoff
+		// Filter cutoff and resonance
 		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking
 		cutoffnote =
 			cutoff +
@@ -299,7 +291,7 @@ public:
 
 		rescalc = res;
 
-		//Bmod
+		// Bmod
 		osc2FltModCalc = osc2FltMod;
 
 		// Here we provide modulation, so all modulation sources and
@@ -309,17 +301,16 @@ public:
 		lfo2route.modulate();
 		pwroute.modulate();
 
-		//both envelopes and filter cv need a delay equal to osc internal delay
-		//variable sort magic - upsample trick
-		float envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
+		// Audio sample generation
 
+		// Oscillators
 		osc.ProcessSample(oscps, oscmod);
 
 		oscps *= 1 - levelSpreadAmt*levelSpread;
-		oscps = oscps - tptlpupw(c1,oscps,12,sampleRateInv);
 
-		//filter exp cutoff calculation
-		//needs to be done after we've gotten oscmod
+		// HPF on oscillator output to get rid of any DC,
+		// simulating a fairly large coupling capacitor.
+		oscps = oscps - tptlpupw(oschpfst, oscps, 12, sampleRateInv);
 
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
@@ -351,11 +342,18 @@ public:
 						oscmod_maxpeak_inv;
 			cutoffnote += (oscmod-oscmod_offset) * osc2FltModCalc;
 		}
+
+		// Filter exp cutoff calculation
+		// Needs to be done after we've gotten oscmod
+
+		// Limit cutff frequency to Nyquist frequency minus a small
+		// margin, for numerical stability in filter calculations
 		float cutoffcalc = minf(
 			getPitch(cutoffnote)
-			//noisy filter cutoff
-			+(ng.nextFloat()-0.5f)*3.5f
-			, (flt.SampleRate*0.5f-120.0f));//for numerical stability purposes
+			// noisy filter cutoff
+			+ (ng.nextFloat()-0.5f)*3.5f,
+			(flt.SampleRate*0.5f-120.0f));
+
 		// Limit the maximum cutoff frequency to 22 kHz
 		// There's no reason to go higher (the filter frequency
 		// modulation amount is capped when the cutff reaches
@@ -365,7 +363,7 @@ public:
 		cutoffcalc = minf(cutoffcalc, 22000.0f);
 
 		float x1 = oscps;
-		//TODO: filter oscmod as well to reduce aliasing?
+		// TODO: filter oscmod as well to reduce aliasing?
 
 		// Cap resonance at 0 and +1 to avoid nasty artefacts
 		rescalc = limitf(rescalc, 0.0f, 1.0f);
@@ -373,7 +371,7 @@ public:
 		x1 = flt.Apply4Pole(x1, cutoffcalc, rescalc);
 
 		// HPF
-		x1 -= tptpc(shpf, x1, hpfcutoff);
+		x1 -= tptpc(hpfst, x1, hpfcutoff);
 
 		// Distortion/overdrive
 		x1 = sqdist.Apply(x1);
@@ -393,7 +391,7 @@ public:
 	void setHPFfreq(float val)
 	{
 		hpffreq = val;
-		hpfcutoff = tan(hpffreq * sampleRateInv * pi);
+		hpfcutoff = tanf(hpffreq * sampleRateInv * pi);
 	}
 	void setEnvSpreadAmt(float d)
 	{
@@ -496,14 +494,10 @@ public:
 	}
 	void setHQ(bool hq)
 	{
-		if(hq)
-		{
+		if (hq)
 			osc.setDecimation();
-		}
 		else
-		{
 			osc.removeDecimation();
-		}
 	}
 	void setPorta(float newPorta)
 	{
@@ -521,34 +515,35 @@ public:
 		lfo2.setSampleRate(sr);
 		SampleRate = sr;
 		sampleRateInv = 1 / sr;
-		hpfcutoff = tan(hpffreq * sampleRateInv * pi);
+		hpfcutoff = tanf(hpffreq * sampleRateInv * pi);
 	}
 	void checkAdssrState()
 	{
-		shouldProcessed = env.isActive();
+		shouldProcess = env.isActive();
 	}
 	void ResetEnvelopes()
 	{
 		env.ResetEnvelopeState();
 		fenv.ResetEnvelopeState();
 	}
-	void NoteOn(int mididx,float velocity,bool multiTrig,bool doPorta=true)
+	void NoteOn(int mididx, float velocity, bool multiTrig, bool doPorta = true)
 	{
-		if(!shouldProcessed)
+		if (!shouldProcess)
 		{
-			//When your processing is paused we need to clear delay lines and envelopes
-			//Not doing this will cause clicks or glitches
+			// When processing is paused we need to clear delay
+			// lines and envelopes.
+			// Not doing this will cause clicks or glitches.
 			lenvd.fillZeroes();
 			fenvd.fillZeroes();
 			ResetEnvelopes();
 		}
-		shouldProcessed = true;
-		if(velocity!=-0.5)
+		shouldProcess = true;
+		if (velocity != -0.5)
 			// Scale velocity according to velscale [ 8..1..1/8 ]
 			// range is same (0..1 -> 0..1), but scale changes
 			velocityValue = powf(velocity, velscale);
 		midiIndx = mididx;
-		if(!Active || multiTrig) {
+		if (!Active || multiTrig) {
 			if (envRst) {
 				ResetEnvelopes();
 				// Ramp down whatever is in the env delay lines
@@ -570,7 +565,7 @@ public:
 	}
 	void NoteOff()
 	{
-		if(!sustainHold) {
+		if (!sustainHold) {
 			env.triggerRelease();
 			fenv.triggerRelease();
 		}
@@ -583,7 +578,7 @@ public:
 	void sustOff()
 	{
 		sustainHold = false;
-		if(!Active)
+		if (!Active)
 		{
 			env.triggerRelease();
 			fenv.triggerRelease();

@@ -363,7 +363,7 @@ public:
 	}
 	void setLfo1ControllerAmt(float val)
 	{
-		ForEachVoice(lfo1modamt = val * 0.1f);
+		ForEachVoice(lfo1contramt = val * 0.1f);
 	}
 	void setLfo2Controller(float val)
 	{
@@ -374,7 +374,7 @@ public:
 	}
 	void setLfo2ControllerAmt(float val)
 	{
-		ForEachVoice(lfo2modamt = val * 0.1f);
+		ForEachVoice(lfo2contramt = val * 0.1f);
 	}
 	void setLfo2Amt(float param)
 	{
