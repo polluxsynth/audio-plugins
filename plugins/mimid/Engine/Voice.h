@@ -74,6 +74,7 @@ class Voice
 private:
 	float SampleRate;
 	float sampleRateInv;
+	float maxfiltercutoff;
 	float velocityValue;
 
 	// State variables for various single pole filters
@@ -181,6 +182,7 @@ public:
 
 	Voice()
 	{
+		maxfiltercutoff = 22000.0f;
 		invertFenv = false;
 		ng = SRandom(SRandom::globalRandom().nextInt32());
 		sustainHold = false;
@@ -345,22 +347,11 @@ public:
 
 		// Filter exp cutoff calculation
 		// Needs to be done after we've gotten oscmod
-
-		// Limit cutff frequency to Nyquist frequency minus a small
-		// margin, for numerical stability in filter calculations
+		//
 		float cutoffcalc = minf(
 			getPitch(cutoffnote)
 			// noisy filter cutoff
-			+ (ng.nextFloat()-0.5f)*3.5f,
-			(flt.SampleRate*0.5f-120.0f));
-
-		// Limit the maximum cutoff frequency to 22 kHz
-		// There's no reason to go higher (the filter frequency
-		// modulation amount is capped when the cutff reaches
-		// this frequency above), and at around 28 kHz or so there is
-		// a small range where there are 'birdies' evident in the
-		// output for some reason.
-		cutoffcalc = minf(cutoffcalc, 22000.0f);
+			+ (ng.nextFloat()-0.5f)*3.5f, maxfiltercutoff);
 
 		float x1 = oscps;
 		// TODO: filter oscmod as well to reduce aliasing?
@@ -516,6 +507,15 @@ public:
 		SampleRate = sr;
 		sampleRateInv = 1 / sr;
 		hpfcutoff = tanf(hpffreq * sampleRateInv * pi);
+		// Limit filter freq to nyquist frequency minus a small
+		// margin (for numerical stability reasons), or 22 kHz,
+		// whichever is smaller.
+		// There's no reason to go higher (the filter frequency
+		// modulation amount is capped when the cutff reaches
+		// this frequency , and at around 28 kHz or so there is
+		// a small range where there are 'birdies' evident in the
+		// output for some reason).
+		maxfiltercutoff = minf(sr*0.5f - 120.0f, 22000.0f);
 	}
 	void checkAdssrState()
 	{
