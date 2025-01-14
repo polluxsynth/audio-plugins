@@ -39,30 +39,27 @@ class ModRoute
 {
 private:
 	float *dest1, *dest2;
-	float *src;
 	float scale;
 
 public:
 	ModRoute()
 	{
 		// Set a dummy route
-		src = &dummyfloat;
 		dest1 = &dummyfloat;
 		dest2 = NULL;
 		scale = 0;
 	}
 
-	inline void modulate()
+	inline void modulate(float source)
 	{
-		float amount = *src * scale;
+		float amount = source * scale;
 		*dest1 += amount;
 		if (dest2)
 			*dest2 += amount;
 	}
 
-	void set_route(float *source, float *destination1, float *destination2, float scalefactor)
+	void setRoute(float *destination1, float *destination2, float scalefactor)
 	{
-		src = source;
 		dest1 = destination1;
 		dest2 = destination2;
 		scale = scalefactor;
@@ -159,11 +156,7 @@ public:
 
 	bool invertFenv;
 
-	// LFO source variables for modulation routings
-	float lfo1mod, lfo2mod;
-
 	// Modulatable entitites
-	float pitchWheelScaled;
 	float osc2FltModCalc;
 	float cutoffnote;
 	float rescalc;
@@ -246,9 +239,6 @@ public:
 		float lfo2totalamt = lfo2amt +
 			*lfo2controller * lfo2contramt * (1 - lfo2amt);
 
-		lfo1mod = lfo1In * lfo1totalamt;
-		lfo2mod = lfo2In * lfo2totalamt;
-
 		// Both envelopes and filter cv need a delay equal to osc internal delay
 		// Bipolar filter envelope, with delay for later
 		float envm = fenvd.feedReturn(fenv.processSample() *
@@ -265,7 +255,6 @@ public:
 		osc.pw2 = 0;
 
 		// Pitch modulation
-		pitchWheelScaled = pitchWheel * pitchWheelAmt;
 		osc.pto1 = 0;
 		osc.pto2 = 0;
 
@@ -293,9 +282,9 @@ public:
 		// Here we provide modulation, so all modulation sources and
 		// destination variables need to be initialized at this point
 		// for the mod routings to take effect.
-		lfo1route.modulate();
-		lfo2route.modulate();
-		pwroute.modulate();
+		lfo1route.modulate(lfo1In * lfo1totalamt);
+		lfo2route.modulate(lfo2In * lfo2totalamt);
+		pwroute.modulate(pitchWheel * pitchWheelAmt);
 
 		// Filter audio is delayed because it runs on the oscillator
 		// output, so delay control signals to filter as well.
@@ -414,25 +403,25 @@ public:
 		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
-			case 0: lfo1route.set_route(&lfo1mod, &osc.pto1, NULL, 0.0f);
+			case 0: lfo1route.setRoute(&osc.pto1, NULL, 0.0f);
 				break;
-			case 1: lfo1route.set_route(&lfo1mod, &osc.pto1, NULL, 12.0f);
+			case 1: lfo1route.setRoute(&osc.pto1, NULL, 12.0f);
 				break;
-			case 2: lfo1route.set_route(&lfo1mod, &osc.pto1, &osc.pto2, 12.0f);
+			case 2: lfo1route.setRoute(&osc.pto1, &osc.pto2, 12.0f);
 				break;
-			case 3: lfo1route.set_route(&lfo1mod, &osc.pto2, NULL, 12.0f);
+			case 3: lfo1route.setRoute(&osc.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo1route.set_route(&lfo1mod, &osc.pw1, NULL, 1.0f);
+			case 4: lfo1route.setRoute(&osc.pw1, NULL, 1.0f);
 				break;
-			case 5: lfo1route.set_route(&lfo1mod, &osc.pw1, &osc.pw2, 1.0f);
+			case 5: lfo1route.setRoute(&osc.pw1, &osc.pw2, 1.0f);
 				break;
-			case 6: lfo1route.set_route(&lfo1mod, &osc.pw2, NULL, 1.0f);
+			case 6: lfo1route.setRoute(&osc.pw2, NULL, 1.0f);
 				break;
-			case 7: lfo1route.set_route(&lfo1mod, &cutoffnote, NULL, 60.0f);
+			case 7: lfo1route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
-			case 8: lfo1route.set_route(&lfo1mod, &rescalc, NULL, 1.0f);
+			case 8: lfo1route.setRoute(&rescalc, NULL, 1.0f);
 				break;
-			case 9: lfo1route.set_route(&lfo1mod, &osc2FltModCalc, NULL, 100.0f);
+			case 9: lfo1route.setRoute(&osc2FltModCalc, NULL, 100.0f);
 				break;
 		}
 	}
@@ -441,25 +430,25 @@ public:
 		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
-			case 0: lfo2route.set_route(&lfo2mod, &osc.pto1, NULL, 0.0f);
+			case 0: lfo2route.setRoute(&osc.pto1, NULL, 0.0f);
 				break;
-			case 1: lfo2route.set_route(&lfo2mod, &osc.pto1, NULL, 12.0f);
+			case 1: lfo2route.setRoute(&osc.pto1, NULL, 12.0f);
 				break;
-			case 2: lfo2route.set_route(&lfo2mod, &osc.pto1, &osc.pto2, 12.0f);
+			case 2: lfo2route.setRoute(&osc.pto1, &osc.pto2, 12.0f);
 				break;
-			case 3: lfo2route.set_route(&lfo2mod, &osc.pto2, NULL, 12.0f);
+			case 3: lfo2route.setRoute(&osc.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo2route.set_route(&lfo2mod, &osc.pw1, NULL, 1.0f);
+			case 4: lfo2route.setRoute(&osc.pw1, NULL, 1.0f);
 				break;
-			case 5: lfo2route.set_route(&lfo2mod, &osc.pw1, &osc.pw2, 1.0f);
+			case 5: lfo2route.setRoute(&osc.pw1, &osc.pw2, 1.0f);
 				break;
-			case 6: lfo2route.set_route(&lfo2mod, &osc.pw2, NULL, 1.0f);
+			case 6: lfo2route.setRoute(&osc.pw2, NULL, 1.0f);
 				break;
-			case 7: lfo2route.set_route(&lfo2mod, &cutoffnote, NULL, 60.0f);
+			case 7: lfo2route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
-			case 8: lfo2route.set_route(&lfo2mod, &rescalc, NULL, 1.0f);
+			case 8: lfo2route.setRoute(&rescalc, NULL, 1.0f);
 				break;
-			case 9: lfo2route.set_route(&lfo2mod, &osc2FltModCalc, NULL, 100.0f);
+			case 9: lfo2route.setRoute(&osc2FltModCalc, NULL, 100.0f);
 				break;
 		}
 	}
@@ -468,12 +457,12 @@ public:
 		// OFF - OSC1 - OSC1+2
 		// 0     1      2
 		switch (param) {
-			case 0: route.set_route(&pitchWheelScaled, &osc.pto1, NULL, 0.0f);
+			case 0: route.setRoute(&osc.pto1, NULL, 0.0f);
 
 				break;
-			case 1: route.set_route(&pitchWheelScaled, &osc.pto1, NULL, 1.0f);
+			case 1: route.setRoute(&osc.pto1, NULL, 1.0f);
 				break;
-			case 2: route.set_route(&pitchWheelScaled, &osc.pto1, &osc.pto2, 1.0f);
+			case 2: route.setRoute(&osc.pto1, &osc.pto2, 1.0f);
 				break;
 		}
 	}
