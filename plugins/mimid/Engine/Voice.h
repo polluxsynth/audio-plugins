@@ -161,7 +161,6 @@ public:
 
 	// LFO source variables for modulation routings
 	float lfo1mod, lfo2mod;
-	float lfo1Delayed, lfo2Delayed;
 
 	// Modulatable entitites
 	float pitchWheelScaled;
@@ -170,7 +169,7 @@ public:
 	float rescalc;
 
 	DelayLineRampable<Samples*2> lenvd, fenvd;
-	DelayLine<Samples*2> lfo1d, lfo2d;
+	DelayLine<Samples*2> cutoffd, resd, bmodd;
 
 	bool oscmodEnable; // Oscillator modulation output enabled
 
@@ -243,16 +242,12 @@ public:
 		// no matter what combination of amount and modwheel/aftertouch
 		// is dialed in.
 		float lfo1totalamt = lfo1amt +
-				     *lfo1controller * lfo1contramt * (1 - lfo1amt);
+			*lfo1controller * lfo1contramt * (1 - lfo1amt);
 		float lfo2totalamt = lfo2amt +
-				     *lfo2controller * lfo2contramt * (1 - lfo2amt);
+			*lfo2controller * lfo2contramt * (1 - lfo2amt);
 
 		lfo1mod = lfo1In * lfo1totalamt;
 		lfo2mod = lfo2In * lfo2totalamt;
-
-		// Delayed LFOs for filter related modulation destinations
-		lfo1Delayed = lfo1d.feedReturn(lfo1mod);
-		lfo2Delayed = lfo2d.feedReturn(lfo2mod);
 
 		// Both envelopes and filter cv need a delay equal to osc internal delay
 		// Bipolar filter envelope, with delay for later
@@ -288,7 +283,6 @@ public:
 		cutoffnote =
 			cutoff +
 			FltSpread * FltSpreadAmt +
-			fenvamt * envm +
 			-54 + (fltKF * (ptNote + filteroct + filtertune + 54));
 
 		rescalc = res;
@@ -302,6 +296,16 @@ public:
 		lfo1route.modulate();
 		lfo2route.modulate();
 		pwroute.modulate();
+
+		// Filter audio is delayed because it runs on the oscillator
+		// output, so delay control signals to filter as well.
+		// Filter envelope is delayed separately, so that we can use
+		// the decayLine method when restarting envelope.
+		// VCA has no modulation but loudness envelope is delayed
+		// for same reason as filter.
+		cutoffnote = cutoffd.feedReturn(cutoffnote + fenvamt * envm);
+		osc2FltModCalc = bmodd.feedReturn(osc2FltModCalc);
+		rescalc = resd.feedReturn(rescalc);
 
 		// Audio sample generation
 
@@ -422,13 +426,13 @@ public:
 				break;
 			case 5: lfo1route.set_route(&lfo1mod, &osc.pw1, &osc.pw2, 1.0f);
 				break;
-			case 6: lfo1route.set_route(&lfo1Delayed, &osc.pw2, NULL, 1.0f);
+			case 6: lfo1route.set_route(&lfo1mod, &osc.pw2, NULL, 1.0f);
 				break;
-			case 7: lfo1route.set_route(&lfo1Delayed, &cutoffnote, NULL, 60.0f);
+			case 7: lfo1route.set_route(&lfo1mod, &cutoffnote, NULL, 60.0f);
 				break;
-			case 8: lfo1route.set_route(&lfo1Delayed, &rescalc, NULL, 1.0f);
+			case 8: lfo1route.set_route(&lfo1mod, &rescalc, NULL, 1.0f);
 				break;
-			case 9: lfo1route.set_route(&lfo1Delayed, &osc2FltModCalc, NULL, 100.0f);
+			case 9: lfo1route.set_route(&lfo1mod, &osc2FltModCalc, NULL, 100.0f);
 				break;
 		}
 	}
@@ -449,13 +453,13 @@ public:
 				break;
 			case 5: lfo2route.set_route(&lfo2mod, &osc.pw1, &osc.pw2, 1.0f);
 				break;
-			case 6: lfo2route.set_route(&lfo2Delayed, &osc.pw2, NULL, 1.0f);
+			case 6: lfo2route.set_route(&lfo2mod, &osc.pw2, NULL, 1.0f);
 				break;
-			case 7: lfo2route.set_route(&lfo2Delayed, &cutoffnote, NULL, 60.0f);
+			case 7: lfo2route.set_route(&lfo2mod, &cutoffnote, NULL, 60.0f);
 				break;
-			case 8: lfo2route.set_route(&lfo2Delayed, &rescalc, NULL, 1.0f);
+			case 8: lfo2route.set_route(&lfo2mod, &rescalc, NULL, 1.0f);
 				break;
-			case 9: lfo2route.set_route(&lfo2Delayed, &osc2FltModCalc, NULL, 100.0f);
+			case 9: lfo2route.set_route(&lfo2mod, &osc2FltModCalc, NULL, 100.0f);
 				break;
 		}
 	}
@@ -535,6 +539,9 @@ public:
 			// Not doing this will cause clicks or glitches.
 			lenvd.fillZeroes();
 			fenvd.fillZeroes();
+			cutoffd.fillZeroes();
+			bmodd.fillZeroes();
+			resd.fillZeroes();
 			ResetEnvelopes();
 		}
 		shouldProcess = true;
