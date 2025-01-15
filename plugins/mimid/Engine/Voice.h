@@ -542,11 +542,10 @@ public:
 		if (!Active || multiTrig) {
 			if (envRst) {
 				ResetEnvelopes();
-				// Ramp down whatever is in the env delay lines
-				// to zero to minimize clicking when envelopes
-				// are reset.
+				// Ramp down whatever is in the loudness env
+				// delay line to zero to minimize clicking
+				// when envelopes are reset.
 				lenvd.decayLine();
-				fenvd.decayLine();
 			}
 			env.triggerAttack();
 			fenv.triggerAttack();
