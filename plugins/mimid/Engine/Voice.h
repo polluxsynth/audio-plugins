@@ -161,7 +161,7 @@ public:
 	float cutoffnote;
 	float rescalc;
 
-	DelayLineRampable<Samples*2> lenvd, fenvd;
+	DelayLineRampable<Samples*2> lenvd;
 	DelayLine<Samples*2> cutoffd, resd, bmodd;
 
 	bool oscmodEnable; // Oscillator modulation output enabled
@@ -240,10 +240,9 @@ public:
 			*lfo2controller * lfo2contramt * (1 - lfo2amt);
 
 		// Both envelopes and filter cv need a delay equal to osc internal delay
-		// Bipolar filter envelope, with delay for later
-		float envm = fenvd.feedReturn(fenv.processSample() *
-				(1 - (1-2*velocityValue)*vflt));
-		envm = 2 * envm - 1; // make bipolar, after delay line
+		// Bipolar filter envelope
+		float envm = fenv.processSample() * (1 - (1-2*velocityValue)*vflt);
+		envm = 2 * envm - 1; // make bipolar
 		if (invertFenv)
 			envm = -envm;
 
@@ -272,6 +271,7 @@ public:
 		cutoffnote =
 			cutoff +
 			FltSpread * FltSpreadAmt +
+                        fenvamt * envm +
 			-54 + (fltKF * (ptNote + filteroct + filtertune + 54));
 
 		rescalc = res;
@@ -288,11 +288,9 @@ public:
 
 		// Filter audio is delayed because it runs on the oscillator
 		// output, so delay control signals to filter as well.
-		// Filter envelope is delayed separately, so that we can use
-		// the decayLine method when restarting envelope.
-		// VCA has no modulation but loudness envelope is delayed
-		// for same reason as filter.
-		cutoffnote = cutoffd.feedReturn(cutoffnote + fenvamt * envm);
+		// VCA has no modulation but loudness envelope is delayed too
+		// because it comes after the filter
+		cutoffnote = cutoffd.feedReturn(cutoffnote);
 		osc2FltModCalc = bmodd.feedReturn(osc2FltModCalc);
 		rescalc = resd.feedReturn(rescalc);
 
@@ -527,7 +525,6 @@ public:
 			// lines and envelopes.
 			// Not doing this will cause clicks or glitches.
 			lenvd.fillZeroes();
-			fenvd.fillZeroes();
 			cutoffd.fillZeroes();
 			bmodd.fillZeroes();
 			resd.fillZeroes();
