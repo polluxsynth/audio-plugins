@@ -107,6 +107,7 @@ public:
 	float vamp, vflt;
 	float velscale;
 
+	float envVal;
 	float cutoff;
 	float filteroct;
 	float filtertune;
@@ -222,10 +223,8 @@ public:
 	~Voice()
 	{
 	}
-	inline float ProcessSample()
+	inline void processModulation()
 	{
-		float oscps, oscmod;
-
 		// LFOs
 		float lfo1In = lfo1.getVal();
 		float lfo2In = lfo2.getVal();
@@ -247,7 +246,7 @@ public:
 			envm = -envm;
 
 		// Loudness envelope, with delay (same reason as for cutoff)
-		float envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
+		envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
 
 		// PW modulation
 		osc.pw1 = 0;
@@ -293,6 +292,10 @@ public:
 		cutoffnote = cutoffd.feedReturn(cutoffnote);
 		osc2FltModCalc = bmodd.feedReturn(osc2FltModCalc);
 		rescalc = resd.feedReturn(rescalc);
+	}
+	inline float processAudioSample()
+	{
+		float oscps, oscmod;
 
 		// Audio sample generation
 

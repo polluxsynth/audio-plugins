@@ -154,7 +154,8 @@ public:
 		voice.lfo2.update();
 		if(voice.shouldProcess || (!economyMode))
 		{
-			return voice.ProcessSample();
+			voice.processModulation();
+			return voice.processAudioSample();
 		}
 		return 0;
 	}
