@@ -69,8 +69,8 @@ public:
 class Voice
 {
 private:
-	float SampleRate;
-	float sampleRateInv;
+	float audioRate;
+	float audioRateInv;
 	float maxfiltercutoff;
 	float velocityValue;
 
@@ -262,7 +262,7 @@ public:
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
 		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt), sampleRateInv);
+		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt), audioRateInv);
 		osc.notePlaying = ptNote;
 
 		// Filter cutoff and resonance
@@ -306,7 +306,7 @@ public:
 
 		// HPF on oscillator output to get rid of any DC,
 		// simulating a fairly large coupling capacitor.
-		oscps = oscps - tptlpupw(oschpfst, oscps, 12, sampleRateInv);
+		oscps = oscps - tptlpupw(oschpfst, oscps, 12, audioRateInv);
 
 		if (oscmodEnable) {
 			// Alias limiting for oscillator filter modulation:
@@ -376,7 +376,7 @@ public:
 	void setHPFfreq(float val)
 	{
 		hpffreq = val;
-		hpfcutoff = tanf(hpffreq * sampleRateInv * pi);
+		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 	}
 	void setEnvSpreadAmt(float d)
 	{
@@ -490,17 +490,18 @@ public:
 		if (portaEnable)
 			porta = portaSaved;
 	}
-	void setSampleRate(float sr)
+	void setSampleRate(float sr, int oversamplingRatio)
 	{
-		flt.setSampleRate(sr);
-		osc.setSampleRate(sr);
-		env.setSampleRate(sr);
-		fenv.setSampleRate(sr);
-		lfo1.setSampleRate(sr);
-		lfo2.setSampleRate(sr);
-		SampleRate = sr;
-		sampleRateInv = 1 / sr;
-		hpfcutoff = tanf(hpffreq * sampleRateInv * pi);
+		audioRate = sr * oversamplingRatio;
+		audioRateInv = 1 / audioRate;
+
+		flt.setSampleRate(audioRate);
+		osc.setSampleRate(audioRate);
+		env.setSampleRate(audioRate);
+		fenv.setSampleRate(audioRate);
+		lfo1.setSampleRate(audioRate);
+		lfo2.setSampleRate(audioRate);
+		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
 		// whichever is smaller.

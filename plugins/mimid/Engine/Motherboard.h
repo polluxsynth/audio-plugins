@@ -43,7 +43,7 @@ private:
 	Decimator17 left,right;
 	int asPlayedCounter;
 	float lkl,lkr;
-	float sampleRate,sampleRateInv;
+	float sampleRate;
 	//JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Motherboard)
 public:
 	bool asPlayedMode;
@@ -110,10 +110,7 @@ public:
 	void setSampleRate(float sr)
 	{
 		sampleRate = sr;
-		sampleRateInv = 1 / sampleRate;
-		for(int i = 0 ; i < MAX_VOICES;++i)
-			voices[i].setSampleRate(sr);
-		SetOversample(Oversample);
+		SetOversample(Oversample); // This sets the sample rate too
 	}
 	void sustainOn()
 	{
@@ -127,13 +124,11 @@ public:
 	}
 	void SetOversample(bool over)
 	{
+		int ratio = over ? 2 : 1;
 		for(int i = 0 ; i < MAX_VOICES;i++)
 		{
 			voices[i].setHQ(over);
-			if(over)
-				voices[i].setSampleRate(sampleRate*2);
-			else
-				voices[i].setSampleRate(sampleRate);
+			voices[i].setSampleRate(sampleRate, ratio);
 		}
 		Oversample = over;
 	}
