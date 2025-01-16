@@ -71,6 +71,8 @@ class Voice
 private:
 	float audioRate;
 	float audioRateInv;
+	float modRate;
+	float modRateInv;
 	float maxfiltercutoff;
 	float velocityValue;
 
@@ -262,7 +264,7 @@ public:
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
 		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt), audioRateInv);
+		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt), modRateInv);
 		osc.notePlaying = ptNote;
 
 		// Filter cutoff and resonance
@@ -492,15 +494,17 @@ public:
 	}
 	void setSampleRate(float sr, int oversamplingRatio)
 	{
+		modRate = sr;
+		modRateInv = 1 / modRate;
 		audioRate = sr * oversamplingRatio;
 		audioRateInv = 1 / audioRate;
 
 		flt.setSampleRate(audioRate);
 		osc.setSampleRate(audioRate);
-		env.setSampleRate(audioRate);
-		fenv.setSampleRate(audioRate);
-		lfo1.setSampleRate(audioRate);
-		lfo2.setSampleRate(audioRate);
+		env.setSampleRate(modRate);
+		fenv.setSampleRate(modRate);
+		lfo1.setSampleRate(modRate);
+		lfo2.setSampleRate(modRate);
 		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
@@ -510,7 +514,17 @@ public:
 		// this frequency , and at around 28 kHz or so there is
 		// a small range where there are 'birdies' evident in the
 		// output for some reason).
-		maxfiltercutoff = minf(sr*0.5f - 120.0f, 22000.0f);
+		maxfiltercutoff = minf(audioRate*0.5f - 120.0f, 22000.0f);
+
+		// Delay lines compensate for the delay added in
+		// oscillator class, so we need to adjust the length
+		// depending on the oversampling ratio so the delay
+		// lines have the same length in units of time.
+		int delayLineLength = 2 * Samples / oversamplingRatio;
+		lenvd.setLength(delayLineLength);
+		cutoffd.setLength(delayLineLength);
+		resd.setLength(delayLineLength);
+		bmodd.setLength(delayLineLength);
 	}
 	void checkAdssrState()
 	{

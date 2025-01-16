@@ -139,17 +139,20 @@ public:
 			// panSpread is [-0.5..+0.5] and val is 0..1
 			pannings[i] = panSpread[i] * val + 0.5;
 	}
-	inline float processSynthVoice(Voice& voice)
+	inline float processSynthVoice(Voice& voice, bool processMod)
 	{
-		if(economyMode)
-			voice.checkAdssrState();
-		// Always update LFOs to keep them in phase even if voice
-		// is not playing.
-		voice.lfo1.update();
-		voice.lfo2.update();
-		if(voice.shouldProcess || (!economyMode))
+		if (processMod) {
+			if (economyMode)
+				voice.checkAdssrState();
+			// Always update LFOs to keep them in phase even if
+			// voice is not playing.
+			voice.lfo1.update();
+			voice.lfo2.update();
+		}
+		if (voice.shouldProcess || (!economyMode))
 		{
-			voice.processModulation();
+			if (processMod)
+				voice.processModulation();
 			return voice.processAudioSample();
 		}
 		return 0;
@@ -161,10 +164,10 @@ public:
 
 		for(int i = 0 ; i < totalvc;i++)
 		{
-				float x1 = processSynthVoice(voices[i]);
+				float x1 = processSynthVoice(voices[i], true);
 				if(Oversample)
 				{
-					float x2 =  processSynthVoice(voices[i]);
+					float x2 =  processSynthVoice(voices[i], false);
 					vlo+=x2*(1-pannings[i]);
 					vro+=x2*(pannings[i]);
 				}
