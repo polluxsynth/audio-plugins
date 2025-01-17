@@ -32,64 +32,37 @@
 class Motherboard
 {
 public:
-	const static int MAX_VOICES=32;
+	const static int MAX_VOICES = 32;
 private:
 	Voice *voiceList[MAX_VOICES];
 	int totalvc;
-	bool wasUni;
-	bool awaitingkeys[129];
-	int priorities[129];
+	Decimator17 leftDecim, rightDecim;
 
-	Decimator17 left,right;
-	int asPlayedCounter;
-	float lkl,lkr;
-	float sampleRate;
-	//JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Motherboard)
 public:
-	bool asPlayedMode;
-
-	float Volume;
+	float volume;
 	float panSpread[MAX_VOICES];
 	float pannings[MAX_VOICES];
 	Voice voices[MAX_VOICES];
 	VoiceAllocator<MAX_VOICES> voiceAlloc;
+	float sampleRate;
 	bool oversample;
-
 	bool economyMode;
-	Motherboard(): left(),right()
+	Motherboard(): leftDecim(), rightDecim()
 	{
 		economyMode = true;
-		lkl=lkr=0;
-		asPlayedMode = false;
-		asPlayedCounter = 0;
-		for(int i = 0 ; i < 129 ; i++)
-		{
-			awaitingkeys[i] = false;
-			priorities[i] = 0;
-		}
-		oversample=false;
-		wasUni = false;
-		Volume=0;
-	//	voices = new Voice* [MAX_VOICES];
-	//	pannings = new float[MAX_VOICES];
+		oversample = false;
+		volume = 0;
 		totalvc = MAX_VOICES;
-		for(int i = 0 ; i < MAX_VOICES;++i)
-		{
+		for (int i = 0; i < MAX_VOICES;++i) {
 			voices[i].voiceNumber = i;
 			voiceList[i] = &voices[i];
-			panSpread[i]= SRandom::globalRandom().nextFloat()-0.5;
+			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
 		}
-		voiceAlloc.init(MAX_VOICES,voiceList);
+		voiceAlloc.init(MAX_VOICES, voiceList);
 	}
 	~Motherboard()
 	{
-		//delete pannings;
-		//for(int i = 0 ; i < MAX_VOICES;++i)
-		//{
-		//	delete voices[i];
-		//}
-		//delete voices;
 	}
 	void setVoiceCount(int count)
 	{
@@ -110,7 +83,7 @@ public:
 	void setSampleRate()
 	{
 		int ratio = oversample ? 2 : 1;
-		for(int i = 0; i < MAX_VOICES; i++) {
+		for (int i = 0; i < MAX_VOICES; i++) {
 			voices[i].setHQ(oversample);
 			voices[i].setSampleRate(sampleRate, ratio);
 		}
@@ -120,24 +93,24 @@ public:
 		sampleRate = sr;
 		setSampleRate();
 	}
-	void SetOversample(bool over)
+	void setOversample(bool over)
 	{
 		oversample = over;
 		setSampleRate();
 	}
 	void sustainOn()
 	{
-		for(int i = 0 ; i < MAX_VOICES;i++)
+		for (int i = 0; i < MAX_VOICES; i++)
 			voices[i].sustOn();
 	}
 	void sustainOff()
 	{
-		for(int i = 0 ; i < MAX_VOICES;i++)
+		for (int i = 0; i < MAX_VOICES; i++)
 			voices[i].sustOff();
 	}
-	void SetPanSpreadAmt(float val)
+	void setPanSpreadAmt(float val)
 	{
-		for(int i = 0 ; i < MAX_VOICES;i++)
+		for (int i = 0; i < MAX_VOICES; i++)
 			// pannings are 0..1, with 0.5 being center, whereas
 			// panSpread is [-0.5..+0.5] and val is 0..1
 			pannings[i] = panSpread[i] * val + 0.5;
@@ -152,37 +125,33 @@ public:
 			voice.lfo1.update();
 			voice.lfo2.update();
 		}
-		if (voice.shouldProcess || (!economyMode))
-		{
+		if (voice.shouldProcess || !economyMode) {
 			if (processMod)
 				voice.processModulation();
 			return voice.processAudioSample();
 		}
 		return 0;
 	}
-	void processSample(float* sm1,float* sm2)
+	void processSample(float* sm1, float* sm2)
 	{
-		float vl=0,vr=0;
-		float vlo = 0 , vro = 0 ;
+		float vl = 0, vr = 0;
+		float vlo = 0, vro = 0;
 
-		for(int i = 0 ; i < totalvc;i++)
-		{
-				float x1 = processSynthVoice(voices[i], true);
-				if(oversample)
-				{
-					float x2 =  processSynthVoice(voices[i], false);
-					vlo+=x2*(1-pannings[i]);
-					vro+=x2*(pannings[i]);
-				}
-				vl+=x1*(1-pannings[i]);
-				vr+=x1*(pannings[i]);
+		for (int i = 0; i < totalvc; i++) {
+			float x1 = processSynthVoice(voices[i], true);
+			if (oversample) {
+				float x2 = processSynthVoice(voices[i], false);
+				vlo += x2 * (1 - pannings[i]);
+				vro += x2 * pannings[i];
+			}
+			vl += x1 * (1 - pannings[i]);
+			vr += x1 * pannings[i];
 		}
-		if(oversample)
-		{
-			vl = left.Calc(vl,vlo);
-			vr = right.Calc(vr,vro);
+		if (oversample) {
+			vl = leftDecim.Calc(vl, vlo);
+			vr = rightDecim.Calc(vr, vro);
 		}
-		*sm1 = vl*Volume;
-		*sm2 = vr*Volume;
+		*sm1 = vl * volume;
+		*sm2 = vr * volume;
 	}
 };

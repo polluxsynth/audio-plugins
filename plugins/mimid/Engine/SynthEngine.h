@@ -288,7 +288,7 @@ public:
 	}
 	void setPanSpread(float param)
 	{
-		synth.SetPanSpreadAmt(param * 0.1f);
+		synth.setPanSpreadAmt(param * 0.1f);
 	}
 	void setTune(float param)
 	{
@@ -314,7 +314,7 @@ public:
 	}
 	void setVolume(float param)
 	{
-		synth.Volume = linsc(param, 0, 0.30f);
+		synth.volume = linsc(param, 0, 0.30f);
 	}
 	void setLfo1Frequency(float param)
 	{
@@ -508,7 +508,7 @@ public:
 	}
 	void setOversampling(float param)
 	{
-		synth.SetOversample(roundToInt(param));
+		synth.setOversample(roundToInt(param));
 	}
 	void setFilterEnvelopeAmt(float param)
 	{
