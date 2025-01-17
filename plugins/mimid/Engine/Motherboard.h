@@ -53,7 +53,7 @@ public:
 	float pannings[MAX_VOICES];
 	Voice voices[MAX_VOICES];
 	VoiceAllocator<MAX_VOICES> voiceAlloc;
-	bool Oversample;
+	bool oversample;
 
 	bool economyMode;
 	Motherboard(): left(),right()
@@ -67,7 +67,7 @@ public:
 			awaitingkeys[i] = false;
 			priorities[i] = 0;
 		}
-		Oversample=false;
+		oversample=false;
 		wasUni = false;
 		Volume=0;
 	//	voices = new Voice* [MAX_VOICES];
@@ -107,10 +107,23 @@ public:
 		voiceAlloc.reinit(count, voiceList);
 		totalvc = count;
 	}
+	void setSampleRate()
+	{
+		int ratio = oversample ? 2 : 1;
+		for(int i = 0; i < MAX_VOICES; i++) {
+			voices[i].setHQ(oversample);
+			voices[i].setSampleRate(sampleRate, ratio);
+		}
+	}
 	void setSampleRate(float sr)
 	{
 		sampleRate = sr;
-		SetOversample(Oversample); // This sets the sample rate too
+		setSampleRate();
+	}
+	void SetOversample(bool over)
+	{
+		oversample = over;
+		setSampleRate();
 	}
 	void sustainOn()
 	{
@@ -121,16 +134,6 @@ public:
 	{
 		for(int i = 0 ; i < MAX_VOICES;i++)
 			voices[i].sustOff();
-	}
-	void SetOversample(bool over)
-	{
-		int ratio = over ? 2 : 1;
-		for(int i = 0 ; i < MAX_VOICES;i++)
-		{
-			voices[i].setHQ(over);
-			voices[i].setSampleRate(sampleRate, ratio);
-		}
-		Oversample = over;
 	}
 	void SetPanSpreadAmt(float val)
 	{
@@ -165,7 +168,7 @@ public:
 		for(int i = 0 ; i < totalvc;i++)
 		{
 				float x1 = processSynthVoice(voices[i], true);
-				if(Oversample)
+				if(oversample)
 				{
 					float x2 =  processSynthVoice(voices[i], false);
 					vlo+=x2*(1-pannings[i]);
@@ -174,7 +177,7 @@ public:
 				vl+=x1*(1-pannings[i]);
 				vr+=x1*(pannings[i]);
 		}
-		if(Oversample)
+		if(oversample)
 		{
 			vl = left.Calc(vl,vlo);
 			vr = right.Calc(vr,vro);
