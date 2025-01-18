@@ -294,6 +294,43 @@ public:
 		cutoffnote = cutoffd.feedReturn(cutoffnote);
 		osc2FltModCalc = bmodd.feedReturn(osc2FltModCalc);
 		rescalc = resd.feedReturn(rescalc);
+
+		// Cap resonance at 0 and +1 to avoid nasty artefacts
+		rescalc = limitf(rescalc, 0.0f, 1.0f);
+
+		// Alias limiting for oscillator filter modulation:
+		// When the positive peak of the mod signal would cause
+		// the filter frequency to go above ~22 kHz, scale down
+		// the mod amount accordingly.
+		// This gives a seamless transition from the mod value
+		// set by osc2FltMod down to zero as the filter
+		// frequency is increased. The effectiveness of this
+		// mod routing is rather diminished at high filter
+		// frequency settings anyway.
+		// Note that we only limit the modulation amount, the
+		// filter frequency without modulation is not limited
+		// at this time.
+		static const float maxfltfreq = 22000;
+		static const float maxallowednote = getNote(maxfltfreq);
+		// maxcutoff = cutoff freq at +ve peak of mod wave
+		// (without considering oscmod_offset, which gives
+		// us a bit of extra margin, as the final offset is
+		// in fact negative).
+		if (!oscmodEnable || cutoffnote > maxallowednote)
+			// disabled or outside range; disable modulation
+			osc2FltModCalc = 0;
+		else {
+			// TODO: Should osc2FltMod be osc2FltModCalc?
+			// On the one hand, it makes sense to consider the
+			// modulation excursion of osc2FltMod, on the other
+			// hand it makes sense to have a stable maxcutoff.
+			float maxcutoff = cutoffnote + oscmod_maxpeak * osc2FltMod;
+			if (maxcutoff > maxallowednote)
+			// limit osc2FltMod to keep under max allowed.
+			// note: divide by peak of mod signal.
+				osc2FltModCalc = (maxallowednote - cutoffnote) *
+						  oscmod_maxpeak_inv;
+		}
 	}
 	inline float processAudioSample()
 	{
@@ -308,52 +345,19 @@ public:
 
 		// HPF on oscillator output to get rid of any DC,
 		// simulating a fairly large coupling capacitor.
+		// TODO: filter oscmod as well to reduce aliasing?
 		oscps = oscps - tptlpupw(oschpfst, oscps, 12, audioRateInv);
-
-		if (oscmodEnable) {
-			// Alias limiting for oscillator filter modulation:
-			// When the positive peak of the mod signal would cause
-			// the filter frequency to go above ~22 kHz, scale down
-			// the mod amount accordingly.
-			// This gives a seamless transition from the mod value
-			// set by osc2FltMod down to zero as the filter
-			// frequency is increased. The effectiveness of this
-			// mod routing is rather diminished at high filter
-			// frequency settings anyway.
-			// Note that we only limit the modulation amount, the
-			// filter frequency without modulation is not limited
-			// at this time.
-			static const float maxfltfreq = 22000;
-			static const float maxallowednote = getNote(maxfltfreq);
-			// maxcutoff = cutoff freq at +ve peak of mod wave
-			// (without considering oscmod_offset, which gives
-			// us a bit of extra margin, as the final offset is
-			// in fact negative).
-			float maxcutoff = cutoffnote + oscmod_maxpeak * osc2FltMod;
-			if (cutoffnote > maxallowednote)
-				// outside range; disable modulation
-				osc2FltModCalc = 0;
-			else if (maxcutoff > maxallowednote)
-				// limit osc2FltMod to keep under max allowed.
-				// note: divide by peak of mod signal.
-				osc2FltModCalc = (maxallowednote - cutoffnote) *
-						oscmod_maxpeak_inv;
-			cutoffnote += (oscmod-oscmod_offset) * osc2FltModCalc;
-		}
 
 		// Filter exp cutoff calculation
 		// Needs to be done after we've gotten oscmod
 		//
 		float cutoffcalc = minf(
-			getPitch(cutoffnote)
+			getPitch(cutoffnote +
+				 (oscmod-oscmod_offset) * osc2FltModCalc)
 			// noisy filter cutoff
 			+ (ng.nextFloat()-0.5f)*3.5f, maxfiltercutoff);
 
 		float x1 = oscps;
-		// TODO: filter oscmod as well to reduce aliasing?
-
-		// Cap resonance at 0 and +1 to avoid nasty artefacts
-		rescalc = limitf(rescalc, 0.0f, 1.0f);
 
 		x1 = flt.Apply4Pole(x1, cutoffcalc, rescalc);
 
