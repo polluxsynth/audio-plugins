@@ -357,9 +357,7 @@ public:
 			// noisy filter cutoff
 			+ (ng.nextFloat()-0.5f)*3.5f, maxfiltercutoff);
 
-		float x1 = oscps;
-
-		x1 = flt.Apply4Pole(x1, cutoffcalc, rescalc);
+		float x1 = flt.Apply4Pole(oscps, cutoffcalc, rescalc);
 
 		// HPF
 		x1 -= tptpc(hpfst, x1, hpfcutoff);
@@ -374,7 +372,8 @@ public:
 			// - Actually goes down to zero when envelope goes t0 0
 			// Empirically, MiMi-a exponential VCA would be:
 			// envVal = expf(7.5*(envVal-1)); // 1..0 -> 0..-65 dB
-			envVal *= envVal * envVal * envVal * envVal;
+			float envValSquared = envVal * envVal;
+			envVal *= envValSquared * envValSquared;
 		}
 		x1 *= envVal;
 		return x1;
