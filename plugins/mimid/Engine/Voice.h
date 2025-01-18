@@ -128,8 +128,8 @@ public:
 	float PortaSpread;
 	float PortaSpreadAmt;
 
-	float levelSpread;
-	float levelSpreadAmt;
+	float levelSpread; // Random amount calculated at start
+	float levelSpreadAmt; // Calculated value depending on parameter
 
 	float osc2FltMod;
 
@@ -193,7 +193,7 @@ public:
 		pitchWheel = pitchWheelAmt = 0;
 		PortaSpreadAmt = 0;
 		FltSpreadAmt = 0;
-		levelSpreadAmt = 0;
+		levelSpreadAmt = 1;
 		portaSaved = porta = 0;
 		portaEnable = false;
 		oschpfst = hpfst = prtst = 0;
@@ -341,7 +341,7 @@ public:
 		// Oscillators
 		osc.ProcessSample(oscps, oscmod);
 
-		oscps *= 1 - levelSpreadAmt*levelSpread;
+		oscps *= levelSpreadAmt;
 
 		// HPF on oscillator output to get rid of any DC,
 		// simulating a fairly large coupling capacitor.

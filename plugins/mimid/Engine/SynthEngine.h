@@ -573,7 +573,10 @@ public:
 	}
 	void setLoudnessSpread(float param)
 	{
-		ForEachVoice(levelSpreadAmt = linsc(param, 0.0f, 0.67f));
+		float levelSpreadAmt = linsc(param, 0.0f, 0.67f);
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].levelSpreadAmt =
+				1 - levelSpreadAmt * synth.voices[i].levelSpread;
 	}
 	void setOscKeySync(float param)
 	{
