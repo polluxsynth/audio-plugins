@@ -565,7 +565,10 @@ public:
 	}
 	void setFilterSpread(float param)
 	{
-		ForEachVoice(FltSpreadAmt = linsc(param, 0, 18));
+		float FltSpreadAmt = linsc(param, 0, 18);
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].FltSpreadAmt =
+				FltSpreadAmt * synth.voices[i].FltSpread;
 	}
 	void setPortamentoSpread(float param)
 	{

@@ -122,8 +122,8 @@ public:
 	float Lfo1Spread;
 	float Lfo2Spread;
 
-	float FltSpread;
-	float FltSpreadAmt;
+	float FltSpread; // Random amount calculated at start
+	float FltSpreadAmt; // Calculated value depending on parameter
 
 	float PortaSpread;
 	float PortaSpreadAmt;
@@ -271,7 +271,7 @@ public:
 		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking
 		cutoffnote =
 			cutoff +
-			FltSpread * FltSpreadAmt +
+			FltSpreadAmt +
                         fenvamt * envm +
 			-54 + (fltKF * (ptNote + filteroct + filtertune + 54));
 
