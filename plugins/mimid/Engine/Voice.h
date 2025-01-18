@@ -125,8 +125,8 @@ public:
 	float FltSpread; // Random amount calculated at start
 	float FltSpreadAmt; // Calculated value depending on parameter
 
-	float PortaSpread;
-	float PortaSpreadAmt;
+	float PortaSpread; // Random amount calculated at start
+	float PortaSpreadAmt; // Calculated value depending on parameter
 
 	float levelSpread; // Random amount calculated at start
 	float levelSpreadAmt; // Calculated value depending on parameter
@@ -191,7 +191,7 @@ public:
 		hpfcutoff = 0;
 		osc2FltMod = 0;
 		pitchWheel = pitchWheelAmt = 0;
-		PortaSpreadAmt = 0;
+		PortaSpreadAmt = 1;
 		FltSpreadAmt = 0;
 		levelSpreadAmt = 1;
 		portaSaved = porta = 0;
@@ -264,7 +264,7 @@ public:
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
 		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpupw(prtst, midiIndx-93, porta * (1+PortaSpread*PortaSpreadAmt), modRateInv);
+		float ptNote = tptlpupw(prtst, midiIndx-93, porta * PortaSpreadAmt, modRateInv);
 		osc.notePlaying = ptNote;
 
 		// Filter cutoff and resonance
