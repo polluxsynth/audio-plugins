@@ -495,9 +495,10 @@ public:
 		if (portaEnable)
 			porta = portaSaved;
 	}
-	void setSampleRate(float sr, int oversamplingRatio)
+	void setSampleRate(float sr, int oversamplingRatio, int modulationRatio)
 	{
-		modRate = sr;
+		modulationRatio += (modulationRatio == 0); // avoid div by 0
+		modRate = sr / modulationRatio;
 		modRateInv = 1 / modRate;
 		audioRate = sr * oversamplingRatio;
 		audioRateInv = 1 / audioRate;
@@ -523,7 +524,9 @@ public:
 		// oscillator class, so we need to adjust the length
 		// depending on the oversampling ratio so the delay
 		// lines have the same length in units of time.
-		int delayLineLength = 2 * Samples / oversamplingRatio;
+		int delayLineLength = 2 * Samples / oversamplingRatio  / modulationRatio;
+		// If length is 1 we get no delay at all, so minimize at 2
+		if (delayLineLength < 2) delayLineLength = 2;
 		lenvd.setLength(delayLineLength);
 		cutoffd.setLength(delayLineLength);
 		resd.setLength(delayLineLength);

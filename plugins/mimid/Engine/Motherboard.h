@@ -33,6 +33,7 @@ class Motherboard
 {
 public:
 	const static int MAX_VOICES = 32;
+	const static int modRatio = 1;
 private:
 	Voice *voiceList[MAX_VOICES];
 	int totalvc;
@@ -46,11 +47,13 @@ public:
 	VoiceAllocator<MAX_VOICES> voiceAlloc;
 	float sampleRate;
 	bool oversample;
+	int modCount;
 	bool economyMode;
 	Motherboard(): leftDecim(), rightDecim()
 	{
 		economyMode = true;
 		oversample = false;
+		modCount = 0;
 		volume = 0;
 		totalvc = MAX_VOICES;
 		for (int i = 0; i < MAX_VOICES;++i) {
@@ -82,10 +85,10 @@ public:
 	}
 	void setSampleRate()
 	{
-		int ratio = oversample ? 2 : 1;
+		int oversampleRatio = oversample ? 2 : 1;
 		for (int i = 0; i < MAX_VOICES; i++) {
 			voices[i].setHQ(oversample);
-			voices[i].setSampleRate(sampleRate, ratio);
+			voices[i].setSampleRate(sampleRate, oversampleRatio, modRatio);
 		}
 	}
 	void setSampleRate(float sr)
@@ -137,8 +140,12 @@ public:
 		float vl = 0, vr = 0;
 		float vlo = 0, vro = 0;
 
+		// Run modulation at fraction of sample rate, up to 1:1
+		if (++modCount >= modRatio) modCount = 0;
+		bool processMod = (modCount == 0);
+
 		for (int i = 0; i < totalvc; i++) {
-			float x1 = processSynthVoice(voices[i], true);
+			float x1 = processSynthVoice(voices[i], processMod);
 			if (oversample) {
 				float x2 = processSynthVoice(voices[i], false);
 				vlo += x2 * (1 - pannings[i]);
