@@ -65,6 +65,16 @@ private:
 		 { S_H, 0 }, // S/H (symmetry unused)
 	};
 
+	struct PolarityDef {
+		float factor;
+		float offset;
+	} PolarityDef_Table[4] = {
+		{ 2, -1 },	// Normal (bipolar) (-1..+1)
+		{ -2, 1 },	// Invert (+1..-1)
+		{ 1, 0 },	// Unipolar (0..+1)
+		{ -1, 0 },	// Unipolar inverted (0..-1)
+	};
+
 	const float ratioTable[11] = {
 		1.0 / 8,	// 0
 		1.0 / 6,	// 1
@@ -86,8 +96,7 @@ public:
 	float rawFrequency;
 	float bpm;
 	int waveForm;
-	bool invert;
-	bool unipolar;
+	float polarity_factor, polarity_offset;
 	Lfo(enum WaveType default_wavetype = OFF)
 	{
 		phaseInc = 0;
@@ -102,7 +111,8 @@ public:
 		phase=0;
 		spread=1;
 		waveForm=0;
-		invert=unipolar=false;
+		polarity_factor=2.0;
+		polarity_offset=-1.0;
 		sh=0;
 		newCycle=false;
 		rg=SRandom(SRandom::globalRandom().nextInt32());
@@ -211,14 +221,20 @@ public:
 				Res = sh;
 				break;
 		}
-		if (wavetype != OFF) {
-			if (!unipolar)
-				Res = Res * 2 - 1;
-			if (invert)
-				Res = -Res;
-		}
+		Res = Res * polarity_factor + polarity_offset;
 		newCycle = false;
 		return tptlpupw(s1, Res,3000,SampleRateInv);
+	}
+	// Polarity encoding: bit 0 is 'invert' bit, bit 1 is 'unipolar' bit
+	// 0: Normal: factor = 2, offset = -1 (bipolar)
+	// 1: Invert: factor = -2, offset = +1
+	// 2: Unipol: factor = 1, offset = 0
+	// 3: UnnInv: factor = -1, offset = 0
+	void setPolarity(int polarity)
+	{
+		struct PolarityDef &polarity_def = PolarityDef_Table[polarity];
+		polarity_factor = polarity_def.factor;
+		polarity_offset = polarity_def.offset;
 	}
 	void setSampleRate(float sr)
 	{
@@ -227,15 +243,13 @@ public:
 	}
 	inline void update()
 	{
+		phase += phaseInc * SampleRateInv;
 		if (oneShot) {
 			// Oneshot mode - stop when phase reaches 1
-			if (phase < 1)
-				phase+=((phaseInc * SampleRateInv));
 			if (phase > 1)
 				phase = 1;
 		} else {
 			// Normal LFO mode - reset phase when > 1
-			phase+=((phaseInc * SampleRateInv));
 			if (phase > 1) {
 				phase -= 1;
 				newCycle = true;

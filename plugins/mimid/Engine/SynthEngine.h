@@ -135,16 +135,16 @@ public:
 	void setLfo1Polarity(float val)
 	{
 		// Normal - Invert - Unipolar - Unipolar+Invert
-		int intval = roundToInt(val);
-		ForEachVoice(lfo1.invert = (intval & 1));
-		ForEachVoice(lfo1.unipolar = (intval & 2));
+		int intval = roundToInt(val) & 3;
+
+		ForEachVoice(lfo1.setPolarity(intval));
 	}
 	void setLfo2Polarity(float val)
 	{
 		// Normal - Invert - Unipolar - Unipolar+Invert
-		int intval = roundToInt(val);
-		ForEachVoice(lfo2.invert = (intval & 1));
-		ForEachVoice(lfo2.unipolar = (intval & 2));
+		int intval = roundToInt(val) & 3;
+
+		ForEachVoice(lfo2.setPolarity(intval));
 	}
 	void setKeyAsgnRsz(float val)
 	{
