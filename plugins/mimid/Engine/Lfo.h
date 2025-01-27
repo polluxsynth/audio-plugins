@@ -31,7 +31,7 @@ private:
 	float phase; // 0 -> 1
 	float sh; // peak +1/-1
 	bool newCycle;
-	float s1;
+	float lpstate;
 	float spread;
 	SRandom rg;
 	float SampleRate;
@@ -90,9 +90,8 @@ private:
 	};
 
 public:
-	float Frequency;
 	float phaseInc;
-	float frequency;//frequency value without sync
+	float frequency; // frequency value without sync
 	float rawFrequency;
 	float bpm;
 	int waveForm;
@@ -100,24 +99,23 @@ public:
 	Lfo(enum WaveType default_wavetype = OFF)
 	{
 		phaseInc = 0;
-		frequency=0;
-		bpm=0;
+		frequency = 0;
+		bpm = 0;
 		syncRatio = 1;
-		rawFrequency=0;
+		rawFrequency = 0;
 		clockSynced = false;
 		keySynced = false;
-		s1=0;
-		Frequency=1;
-		phase=0;
-		spread=1;
-		waveForm=0;
-		polarity_factor=2.0;
-		polarity_offset=-1.0;
-		sh=0;
-		newCycle=false;
-		rg=SRandom(SRandom::globalRandom().nextInt32());
-		wavetype=default_wavetype;
-		oneShot=false;
+		lpstate = 0;
+		phase = 0;
+		spread = 1;
+		waveForm = 0;
+		polarity_factor = 2.0;
+		polarity_offset = -1.0;
+		sh = 0;
+		newCycle = false;
+		rg = SRandom(SRandom::globalRandom().nextInt32());
+		wavetype = default_wavetype;
+		oneShot = false;
 		setSymmetry(0.5);
 	}
 	void setClockSync(bool enable)
@@ -181,7 +179,7 @@ public:
 	{
 		if(clockSynced)
 		{
-			phase = syncRatio*beatpos;
+			phase = syncRatio * beatpos;
 			float phaseOld = phase;
 			phase = fmod(phase, 1);
 			// It's unlikely that the beat sync will cause the
@@ -223,7 +221,7 @@ public:
 		}
 		Res = Res * polarity_factor + polarity_offset;
 		newCycle = false;
-		return tptlpupw(s1, Res,3000,SampleRateInv);
+		return tptlpupw(lpstate, Res, 3000, SampleRateInv);
 	}
 	// Polarity encoding: bit 0 is 'invert' bit, bit 1 is 'unipolar' bit
 	// 0: Normal: factor = 2, offset = -1 (bipolar)
@@ -264,10 +262,10 @@ public:
 	void setFrequency(float val)
 	{
 		frequency = val;
-		if(!clockSynced)
+		if (!clockSynced)
 			phaseInc = frequency * spread;
 	}
-	void setRawFrequency(float param)//used for clock synced rate changes
+	void setRawFrequency(float param) // for clock synced rate changes
 	{
 		rawFrequency = param;
 		if (clockSynced)
