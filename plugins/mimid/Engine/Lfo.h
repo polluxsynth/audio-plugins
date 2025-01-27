@@ -47,6 +47,11 @@ private:
 	float symmetryInv;
 	float symmetryRevInv;
 
+	float phaseInc;
+	float frequency; // frequency value without sync
+	float rawFrequency;
+	float bpm;
+	float polarity_factor, polarity_offset;
 	enum WaveType { OFF, TRIANGLE, PULSE, S_H } wavetype;
 
 	struct WaveDef {
@@ -90,12 +95,7 @@ private:
 	};
 
 public:
-	float phaseInc;
-	float frequency; // frequency value without sync
-	float rawFrequency;
-	float bpm;
 	int waveForm;
-	float polarity_factor, polarity_offset;
 	Lfo(enum WaveType default_wavetype = OFF)
 	{
 		phaseInc = 0;
