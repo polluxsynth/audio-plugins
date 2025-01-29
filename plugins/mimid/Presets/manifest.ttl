@@ -66,6 +66,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Chinese_Fourths_Echo.ttl> .
 
+<Chinese_Mallets.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Chinese_Mallets.ttl> .
+
 <Chiptune.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
@@ -90,6 +95,11 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Dansande_Man.ttl> .
+
+<Dark_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Dark_Pad.ttl> .
 
 <Default.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -210,6 +220,16 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Overdriven.ttl> .
+
+<Overdriven_FM_Clav.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Overdriven_FM_Clav.ttl> .
+
+<Overdriven_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Overdriven_Pad.ttl> .
 
 <Polysequencer.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -380,6 +400,11 @@
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Voice_Piano.ttl> .
+
+<Weedy_Pad.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Weedy_Pad.ttl> .
 
 <Wet_FM_Clav.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
