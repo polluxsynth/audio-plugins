@@ -36,7 +36,7 @@ private:
 	float ua, uh, ud, us, ur; // saved parameter values (not for sustain)
 	float coef_atk, coef_dec, coef_sust, coef_rel;
 	float coef_atk_lin, coef_hld_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
-	int dir; // decay curve direction (1 => down, -1 = up)
+	float dir; // decay curve direction (1 => down, -1 = up)
 	enum { INI, ATK, HLD, DEC, SUS, SUST, REL, OFF } state, post_dec_state;
 	float SampleRateKcInv;
 	float uf;
@@ -107,7 +107,7 @@ public:
 		coef_atk = coef_dec = coef_sust = coef_rel = 0;
 		coef_atk_lin = coef_dec_lin = coef_sust_lin = coef_rel_lin = 0;
 		post_dec_state = SUS;
-		dir = 1; // going down
+		dir = 1.0f; // going down
 		state = OFF;
 		SampleRateKcInv = 1000.0 / 44100.0;
 		adsrMode = true;
@@ -175,10 +175,10 @@ public:
 			// level changed in ADSR mode, or in ADSSR mode
 			// while decay phase is still active.
 			if (Value > sustain) {
-				dir = 1;
+				dir = 1.0f;
 				state = DEC;
 			} else if (Value < sustain) {
-				dir = -1;
+				dir = -1.0f;
 				state = DEC;
 			}
 		}
@@ -199,7 +199,7 @@ public:
 	{
 		state = INI;
 		HValue = 0.0f;
-		dir = 1;
+		dir = 1.0f;
 		//Value = Value + 0.00001f;
 	}
 	void triggerRelease()
