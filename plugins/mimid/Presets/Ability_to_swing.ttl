@@ -241,7 +241,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "velocityscale" ;
-		pset:value 5.69999981
+		pset:value 7.0
 	] , [
 		lv2:symbol "vfltfactor" ;
 		pset:value 2.95000005

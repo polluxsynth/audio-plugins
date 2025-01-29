@@ -55,7 +55,7 @@
 		pset:value 5.75
 	] , [
 		lv2:symbol "filterenvamount" ;
-		pset:value 1.04999995
+		pset:value 0.85000002
 	] , [
 		lv2:symbol "filterrelease" ;
 		pset:value 5.01000023
@@ -121,7 +121,7 @@
 		pset:value 3.0
 	] , [
 		lv2:symbol "lfo2amount" ;
-		pset:value 6.8499999
+		pset:value 7.3499999
 	] , [
 		lv2:symbol "lfo2amtcont" ;
 		pset:value 1.0
@@ -208,7 +208,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "release" ;
-		pset:value 5.32000017
+		pset:value 4.42000008
 	] , [
 		lv2:symbol "resonance" ;
 		pset:value 0.0
