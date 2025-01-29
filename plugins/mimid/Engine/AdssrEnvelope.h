@@ -33,7 +33,7 @@ private:
 	float sustain_asymptote;
 	bool adsrMode;
 	bool linear;
-	float ua,uh,ud,us,ur; // saved parameter values (not for sustain)
+	float ua, uh, ud, us, ur; // saved parameter values (not for sustain)
 	float coef_atk, coef_dec, coef_sust, coef_rel;
 	float coef_atk_lin, coef_hld_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
 	int dir; // decay curve direction (1 => down, -1 = up)
@@ -101,9 +101,9 @@ public:
 	{
 		uf = 1;
 		Value = HValue = 0.0f;
-		attack=hold=decay=sustain=sustainTime=release=0.0001f;
+		attack = hold = decay = sustain = sustainTime = release = 0.0001f;
 		sustain_asymptote = sustain; // It is, in ADSR mode
-		ua=uh=ud=us=ur=0.0001;
+		ua = uh = ud = us = ur = 0.0001f;
 		coef_atk = coef_dec = coef_sust = coef_rel = 0;
 		coef_atk_lin = coef_dec_lin = coef_sust_lin = coef_rel_lin = 0;
 		post_dec_state = SUS;
@@ -150,19 +150,19 @@ public:
 	void setAttack(float atk)
 	{
 		ua = atk;
-		attack = atk*uf;
+		attack = atk * uf;
 		calc_coef_atk(attack);
 	}
 	void setHold(float hld)
 	{
 		uh = hld;
-		hold = hld*uf;
+		hold = hld * uf;
 		calc_coef_hld(hold);
 	}
 	void setDecay(float dec)
 	{
 		ud = dec;
-		decay = dec*uf;
+		decay = dec * uf;
 		calc_coef_dec(decay);
 	}
 	void setSustain(float sus)
@@ -186,13 +186,13 @@ public:
 	void setSustainTime(float sust)
 	{
 		us = sust;
-		sustainTime = sust*uf;
+		sustainTime = sust * uf;
 		calc_coef_sust(sustainTime);
 	}
 	void setRelease(float rel)
 	{
 		ur = rel;
-		release = rel*uf;
+		release = rel * uf;
 		calc_coef_rel(release);
 	}
 	void triggerAttack()
@@ -200,7 +200,7 @@ public:
 		state = INI;
 		HValue = 0.0f;
 		dir = 1;
-		//Value = Value +0.00001f;
+		//Value = Value + 0.00001f;
 	}
 	void triggerRelease()
 	{
