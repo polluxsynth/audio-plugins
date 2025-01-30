@@ -3,7 +3,7 @@
         This file is part of the MiMi-d synthesizer,
         originally from Obxd synthesizer.
 
-        Copyright © 2013-2014 Filatov Vadim
+        Copyright Â© 2013-2014 Filatov Vadim
         Copyright 2023 Ricard Wanderlof
 
         Contact original author via email :
@@ -31,7 +31,7 @@ private:
 	float phase; // 0 -> 1
 	float sh; // peak +1/-1
 	bool newCycle;
-	float s1;
+	float lpstate;
 	float spread;
 	SRandom rg;
 	float SampleRate;
@@ -47,6 +47,11 @@ private:
 	float symmetryInv;
 	float symmetryRevInv;
 
+	float phaseInc;
+	float frequency; // frequency value without sync
+	float rawFrequency;
+	float bpm;
+	float polarity_factor, polarity_offset;
 	enum WaveType { OFF, TRIANGLE, PULSE, S_H } wavetype;
 
 	struct WaveDef {
@@ -65,6 +70,16 @@ private:
 		 { S_H, 0 }, // S/H (symmetry unused)
 	};
 
+	struct PolarityDef {
+		float factor;
+		float offset;
+	} PolarityDef_Table[4] = {
+		{ 2, -1 },	// Normal (bipolar) (-1..+1)
+		{ -2, 1 },	// Invert (+1..-1)
+		{ 1, 0 },	// Unipolar (0..+1)
+		{ -1, 0 },	// Unipolar inverted (0..-1)
+	};
+
 	const float ratioTable[11] = {
 		1.0 / 8,	// 0
 		1.0 / 6,	// 1
@@ -80,34 +95,27 @@ private:
 	};
 
 public:
-	float Frequency;
-	float phaseInc;
-	float frequency;//frequency value without sync
-	float rawFrequency;
-	float bpm;
 	int waveForm;
-	bool invert;
-	bool unipolar;
 	Lfo(enum WaveType default_wavetype = OFF)
 	{
 		phaseInc = 0;
-		frequency=0;
-		bpm=0;
+		frequency = 0;
+		bpm = 0;
 		syncRatio = 1;
-		rawFrequency=0;
+		rawFrequency = 0;
 		clockSynced = false;
 		keySynced = false;
-		s1=0;
-		Frequency=1;
-		phase=0;
-		spread=1;
-		waveForm=0;
-		invert=unipolar=false;
-		sh=0;
-		newCycle=false;
-		rg=SRandom(SRandom::globalRandom().nextInt32());
-		wavetype=default_wavetype;
-		oneShot=false;
+		lpstate = 0;
+		phase = 0;
+		spread = 1;
+		waveForm = 0;
+		polarity_factor = 2.0;
+		polarity_offset = -1.0;
+		sh = 0;
+		newCycle = false;
+		rg = SRandom(SRandom::globalRandom().nextInt32());
+		wavetype = default_wavetype;
+		oneShot = false;
 		setSymmetry(0.5);
 	}
 	void setClockSync(bool enable)
@@ -171,7 +179,7 @@ public:
 	{
 		if(clockSynced)
 		{
-			phase = syncRatio*beatpos;
+			phase = syncRatio * beatpos;
 			float phaseOld = phase;
 			phase = fmod(phase, 1);
 			// It's unlikely that the beat sync will cause the
@@ -211,14 +219,20 @@ public:
 				Res = sh;
 				break;
 		}
-		if (wavetype != OFF) {
-			if (!unipolar)
-				Res = Res * 2 - 1;
-			if (invert)
-				Res = -Res;
-		}
+		Res = Res * polarity_factor + polarity_offset;
 		newCycle = false;
-		return tptlpupw(s1, Res,3000,SampleRateInv);
+		return tptlpupw(lpstate, Res, 3000, SampleRateInv);
+	}
+	// Polarity encoding: bit 0 is 'invert' bit, bit 1 is 'unipolar' bit
+	// 0: Normal: factor = 2, offset = -1 (bipolar)
+	// 1: Invert: factor = -2, offset = +1
+	// 2: Unipol: factor = 1, offset = 0
+	// 3: UnnInv: factor = -1, offset = 0
+	void setPolarity(int polarity)
+	{
+		struct PolarityDef &polarity_def = PolarityDef_Table[polarity];
+		polarity_factor = polarity_def.factor;
+		polarity_offset = polarity_def.offset;
 	}
 	void setSampleRate(float sr)
 	{
@@ -227,15 +241,13 @@ public:
 	}
 	inline void update()
 	{
+		phase += phaseInc * SampleRateInv;
 		if (oneShot) {
 			// Oneshot mode - stop when phase reaches 1
-			if (phase < 1)
-				phase+=((phaseInc * SampleRateInv));
 			if (phase > 1)
 				phase = 1;
 		} else {
 			// Normal LFO mode - reset phase when > 1
-			phase+=((phaseInc * SampleRateInv));
 			if (phase > 1) {
 				phase -= 1;
 				newCycle = true;
@@ -250,10 +262,10 @@ public:
 	void setFrequency(float val)
 	{
 		frequency = val;
-		if(!clockSynced)
+		if (!clockSynced)
 			phaseInc = frequency * spread;
 	}
-	void setRawFrequency(float param)//used for clock synced rate changes
+	void setRawFrequency(float param) // for clock synced rate changes
 	{
 		rawFrequency = param;
 		if (clockSynced)

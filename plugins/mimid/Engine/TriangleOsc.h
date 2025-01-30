@@ -29,13 +29,13 @@ class TriangleOsc
 {
 	bool fall;
 	float buffer1[Samples * 2];
-	const int n;
+	const int n, nmask;
 	float const *blepPTR;
 	float const *blampPTR;
 
 	int bP1,bP2;
 public:
-	TriangleOsc(): n(Samples * 2)
+	TriangleOsc(): n(Samples * 2), nmask(Samples * 2 - 1)
 	{
 		fall = false;
 		bP1 = bP2 = 0;
@@ -151,7 +151,7 @@ public:
 		for (int i = 0; i < n; i++)
 		{
 			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
+			buf[(bpos + i) & nmask] += mixvalue * scale;
 			lpIn++;
 		}
 	}
@@ -164,13 +164,13 @@ public:
 		for (int i = 0; i < n; i++)
 		{
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
+			buf[(bpos + i) & nmask] += mixvalue * scale;
 			lpIn++;
 		}
 	}
 	inline float getNextBlep(float *buf, int &bpos)
 	{
-		bpos = (bpos + 1) & (n - 1);
+		bpos = (bpos + 1) & nmask;
 		float value = buf[bpos];
 		buf[bpos] = 0.0f;
 

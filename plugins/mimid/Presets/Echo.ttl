@@ -25,7 +25,7 @@
 		pset:value 12.0
 	] , [
 		lv2:symbol "cutoff" ;
-		pset:value 3.40000001
+		pset:value 4.0999999
 	] , [
 		lv2:symbol "decay" ;
 		pset:value 6.96999979
@@ -55,19 +55,19 @@
 		pset:value 5.75
 	] , [
 		lv2:symbol "filterenvamount" ;
-		pset:value 1.04999995
+		pset:value 0.85000002
 	] , [
 		lv2:symbol "filterrelease" ;
 		pset:value 5.01000023
+	] , [
+		lv2:symbol "filterspread" ;
+		pset:value 3.04999995
 	] , [
 		lv2:symbol "filtersustain" ;
 		pset:value 5.0
 	] , [
 		lv2:symbol "filtersustaintime" ;
 		pset:value 8.60000038
-	] , [
-		lv2:symbol "filterspread" ;
-		pset:value 3.04999995
 	] , [
 		lv2:symbol "hpffreq" ;
 		pset:value 0.0
@@ -121,7 +121,7 @@
 		pset:value 3.0
 	] , [
 		lv2:symbol "lfo2amount" ;
-		pset:value 6.8499999
+		pset:value 7.3499999
 	] , [
 		lv2:symbol "lfo2amtcont" ;
 		pset:value 1.0
@@ -208,7 +208,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "release" ;
-		pset:value 5.32000017
+		pset:value 4.42000008
 	] , [
 		lv2:symbol "resonance" ;
 		pset:value 0.0
@@ -229,10 +229,10 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "unused_1" ;
-		pset:value 0.63999999
+		pset:value 0.0
 	] , [
 		lv2:symbol "unused_2" ;
-		pset:value 0.72500002
+		pset:value 0.0
 	] , [
 		lv2:symbol "vampfactor" ;
 		pset:value 1.73000002
@@ -250,9 +250,8 @@
 		pset:value 6.0
 	] , [
 		lv2:symbol "volume" ;
-		pset:value 5.1500001
+		pset:value 5.94999981
 	] , [
 		lv2:symbol "xmod" ;
 		pset:value 0.0
 	] .
-
