@@ -3,7 +3,7 @@
 	This file is part of the MiMi-d synthesizer.
 
 	Copyright © 2013-2014 Filatov Vadim
-	Copyright 2023-2024 Ricard Wanderlof
+	Copyright 2023-2025 Ricard Wanderlof
 	
 	Contact author via email :
 	justdat_@_e1.ru
@@ -36,7 +36,7 @@ public:
 	{
 		bP1 = 0;
 		for (int i = 0; i < n; i++)
-			buffer1[i]=0;
+			buffer1[i] = 0;
 		blepPTR = blep;
 	}
 	~SawOsc()
@@ -52,16 +52,14 @@ public:
 	}
 	inline void processMaster(float x, float delta, bool waveformReset)
 	{
-		if (waveformReset)
-		{
+		if (waveformReset) {
 			float trans = x - delta;
-			mixInImpulseCenter(buffer1, bP1, 1, trans);
+			mixInImpulseCenter(buffer1, bP1, 1.0f, trans);
 			return;
 		}
-		if (x >= 1.0f)
-		{
+		if (x >= 1.0f) {
 			x -= 1.0f;
-			mixInImpulseCenter(buffer1, bP1, x / delta, 1);
+			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 		}
 	}
 	inline float getValue(float x)
@@ -72,26 +70,21 @@ public:
 		// Samples (which corresponds to subtracting (or adding, for
 		// that matter) half the buffer size and discarding the carry),
 		// since the buffer is 2 * Samples long.
-		buffer1[bP1 ^ Samples] += x - 0.5;
+		buffer1[bP1 ^ Samples] += x - 0.5f;
 		return getNextBlep(buffer1, bP1);
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac)
 	{
-		if (x >= 1.0f)
-		{
+		if (x >= 1.0f) {
 			x -= 1.0f;
-			if (!hardSyncReset || (x / delta > hardSyncFrac)) //de morgan processed equation
-			{
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1);
-			}
-			else
-			{
-				//if transition do not ocurred
-				x += 1;
+			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
+				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
+			} else {
+				// if transition do not ocurred
+				x += 1.0f;
 			}
 		}
-		if (hardSyncReset)
-		{
+		if (hardSyncReset) {
 			float fracMaster = delta * hardSyncFrac;
 			float trans = x - fracMaster;
 			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, trans);
@@ -103,8 +96,7 @@ public:
 		float frac = offset * B_OVERSAMPLING - lpIn;
 		float f1 = 1.0f - frac;
 		lpIn *= Blepsize;
-		for (int i = 0 ; i < n; i++)
-		{
+		for (int i = 0 ; i < n; i++) {
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
 			buf[(bpos + i) & nmask] += mixvalue * scale;
 			lpIn++;
