@@ -3,7 +3,7 @@
 	This file is part of the MiMi-d synthesizer.
 
 	Copyright © 2013-2014 Filatov Vadim
-	Copyright 2023-2024 Ricard Wanderlof
+	Copyright 2023-2025 Ricard Wanderlof
 	
 	Contact author via email :
 	justdat_@_e1.ru
@@ -28,7 +28,7 @@
 class PulseOsc
 {
 	bool pw1t;
-	float buffer1[Samples*2];
+	float buffer1[Samples * 2];
 	const int n, nmask;
 	float const *blepPTR;
 	int bP1;
@@ -54,32 +54,28 @@ public:
 	}
 	inline void processMaster(float x, float delta, float pulseWidth, float pulseWidthWas, bool waveformReset)
 	{
-		if (waveformReset)
-		{
-			float trans = pw1t ? 1 : 0;
-			mixInImpulseCenter(buffer1, bP1, 1, trans);
+		if (waveformReset) {
+			float trans = pw1t ? 1.0f : 0.0f;
+			mixInImpulseCenter(buffer1, bP1, 1.0f, trans);
 			pw1t = false;
 			return;
 		}
-		float summated = delta- (pulseWidth - pulseWidthWas);
-		if (pw1t && x >= 1.0f)
-		{
+		float summated = delta - (pulseWidth - pulseWidthWas);
+		if (pw1t && x >= 1.0f) {
 			x -= 1.0f;
 			if (pw1t)
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1);
-			pw1t=false;
+				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
+			pw1t = false;
 		}
-		if (!pw1t && (x >= pulseWidth) && (x - summated <=pulseWidth))
-		{
+		if (!pw1t && (x >= pulseWidth) && (x - summated <= pulseWidth)) {
 			pw1t = true;
 			float frac = (x - pulseWidth) / summated;
-			mixInImpulseCenter(buffer1, bP1, frac, -1);
+			mixInImpulseCenter(buffer1, bP1, frac, -1.0f);
 		}
-		if (pw1t && x >= 1.0f)
-		{
+		if (pw1t && x >= 1.0f) {
 			x -= 1.0f;
 			if (pw1t)
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1);
+				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 			pw1t = false;
 		}
 
@@ -89,9 +85,9 @@ public:
 		float oscmix;
 
 		if (x >= pulseWidth)
-			oscmix = 1 - (0.5 - pulseWidth) - 0.5;
+			oscmix = 1 - (0.5f - pulseWidth) - 0.5f;
 		else
-			oscmix = -(0.5 - pulseWidth) - 0.5;
+			oscmix = -(0.5f - pulseWidth) - 0.5f;
                 // Instead of subtracting Samples to get to the middle of the
                 // BLEP buffer, and then masking with size-1 to keep the
                 // offset inside the buffer, we can just XOR the offset with
@@ -103,58 +99,47 @@ public:
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float pulseWidth, float pulseWidthWas)
 	{
-		float summated = delta- (pulseWidth - pulseWidthWas);
+		float summated = delta - (pulseWidth - pulseWidthWas);
 
 		if (pw1t && x >= 1.0f)
 		{
 			x -= 1.0f;
-			if (!hardSyncReset || (x / delta > hardSyncFrac)) //de morgan processed equation
-			{
+			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
 				if (pw1t)
-					mixInImpulseCenter(buffer1, bP1, x / delta, 1);
+					mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 				pw1t = false;
-			}
-			else
-			{
-				x+=1;
+			} else {
+				x += 1.0f;
 			}
 		}
 
-		if (!pw1t && (x >= pulseWidth) && (x - summated <=pulseWidth))
+		if (!pw1t && (x >= pulseWidth) && (x - summated <= pulseWidth))
 		{
 			pw1t = true;
 			float frac = (x - pulseWidth) / summated;
-			if (!hardSyncReset || (frac > hardSyncFrac)) //de morgan processed equation
-			{
-				//transition to 1
-				mixInImpulseCenter(buffer1, bP1, frac, -1);
-			}
-			else
-			{
-				//if transition did not occur
+			if (!hardSyncReset || (frac > hardSyncFrac)) { // de morgan processed equation
+				// transition to 1
+				mixInImpulseCenter(buffer1, bP1, frac, -1.0f);
+			} else {
+				// if transition did not occur
 				pw1t = false;
 			}
-
 		}
 		if (pw1t && x >= 1.0f)
 		{
 			x -= 1.0f;
-			if (!hardSyncReset || (x / delta > hardSyncFrac)) //de morgan processed equation
-			{
+			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
 				if (pw1t)
-					mixInImpulseCenter(buffer1, bP1, x / delta, 1);
+					mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 				pw1t = false;
-			}
-			else
-			{
-				x += 1;
+			} else {
+				x += 1.0f;
 			}
 		}
 
-		if (hardSyncReset)
-		{
-			//float fracMaster = (delta * hardSyncFrac);
-			float trans = pw1t ? 1 : 0;
+		if (hardSyncReset) {
+			// float fracMaster = delta * hardSyncFrac;
+			float trans = pw1t ? 1.0f : 0.0f;
 			mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, trans);
 			pw1t = false;
 		}
@@ -162,12 +147,11 @@ public:
 	}
 	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
 	{
-		int lpIn =(int)(B_OVERSAMPLING * offset);
+		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
 		float f1 = 1.0f - frac;
 		lpIn *= Blepsize;
-		for (int i = 0; i < n; i++)
-		{
+		for (int i = 0; i < n; i++) {
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
 			buf[(bpos + i) & nmask] += mixvalue * scale;
 			lpIn++;
