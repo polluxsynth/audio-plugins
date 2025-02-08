@@ -133,10 +133,9 @@ public:
 			}
 		}
 
-		if (hardSyncReset) {
+		if (hardSyncReset && pw1t) {
 			// float fracMaster = delta * hardSyncFrac;
-			float trans = pw1t ? 1.0f : 0.0f;
-			mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, trans);
+			mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, 1.0f);
 			pw1t = false;
 		}
 
