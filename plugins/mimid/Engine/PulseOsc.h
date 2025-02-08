@@ -63,8 +63,7 @@ public:
 		float summated = delta - (pulseWidth - pulseWidthWas);
 		if (pw1t && x >= 1.0f) {
 			x -= 1.0f;
-			if (pw1t)
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
+			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 			pw1t = false;
 		}
 		if (!pw1t && (x >= pulseWidth) && (x - summated <= pulseWidth)) {
@@ -74,8 +73,7 @@ public:
 		}
 		if (pw1t && x >= 1.0f) {
 			x -= 1.0f;
-			if (pw1t)
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
+			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 			pw1t = false;
 		}
 
@@ -105,8 +103,7 @@ public:
 		{
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				if (pw1t)
-					mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
+				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 				pw1t = false;
 			} else {
 				x += 1.0f;
@@ -129,8 +126,7 @@ public:
 		{
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				if (pw1t)
-					mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
+				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 				pw1t = false;
 			} else {
 				x += 1.0f;
