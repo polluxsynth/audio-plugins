@@ -82,7 +82,7 @@
 	PARAMPOINTS(SP_LFOCONTR, " None ", " Modw ", "Aftert", " Vel ")
 	PARAMPOINTS(SP_LFODEST, "Off", "Osc1", "Osc1+2", "Osc2", "PW1", "PW1+2", "PW2", "Cutoff", "Res", "Osc2Filt")
 	PARAMPOINTS(SP_POLARITY, " Norm ", " Inv ", " Uni ", "InvUni")
-	PARAMPOINTS(SP_OSCWAVE, " Off ", " Saw ", " Pul ", " Tri ")
+	PARAMPOINTS(SP_OSCWAVE, " Off ", " Saw ", " Pul ", " Tri ", " Tra ")
 	PARAMPOINTS(SP_KEYSYNC, "FreeRun", "KeySync")
 	PARAMPOINTS(SP_OSC3WAVE, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
 	PARAMPOINTS(SP_ENVMODE, "Exp/Lin ", "Lin/Lin", "Lin/Exp")

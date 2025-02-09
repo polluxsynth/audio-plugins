@@ -34,6 +34,7 @@
 #include "SawOsc.h"
 #include "PulseOsc.h"
 #include "TriangleOsc.h"
+#include "TrapezoidOsc.h"
 #include "SubOsc.h"
 
 class Oscillators
@@ -41,6 +42,8 @@ class Oscillators
 private:
 	float SampleRate;
 	float sampleRateInv;
+	// MinTraSymmetry: unit: sample interval
+	static constexpr float MinTraSymmetry = 0.15f; /* Empirically determined */
 
 	float x1, x2;
 
@@ -59,6 +62,7 @@ private:
 	SawOsc o1s, o2s;
 	PulseOsc o1p, o2p;
 	TriangleOsc o1t, o2t;
+	TrapezoidOsc o1z, o2z;
 	SubOsc o2sub;
 public:
 
@@ -81,8 +85,8 @@ public:
 	float pto1, pto2;
 
 	//osc waveshapes
-	bool osc1Saw, osc1Pul, osc1Tri;
-	bool osc2Saw, osc2Pul, osc2Tri;
+	bool osc1Saw, osc1Pul, osc1Tri, osc1Tra;
+	bool osc2Saw, osc2Pul, osc2Tri, osc2Tra;
 	int osc2SubWaveform;
 
 	float osc1p,osc2p;
@@ -99,7 +103,8 @@ public:
 		hsam(Samples),
 		o1s(), o2s(),
 		o1p(), o2p(),
-		o1t(), o2t()
+		o1t(), o2t(),
+		o1z(), o2z()
 	{
 		dirt = 0.1;
 		totalSpread = 0;
@@ -132,9 +137,11 @@ public:
 		o1p.setDecimation();
 		o1t.setDecimation();
 		o1s.setDecimation();
+		o1z.setDecimation();
 		o2p.setDecimation();
 		o2t.setDecimation();
 		o2s.setDecimation();
+		o2z.setDecimation();
 		o2sub.setDecimation();
 	}
 	void removeDecimation()
@@ -142,9 +149,11 @@ public:
 		o1p.removeDecimation();
 		o1t.removeDecimation();
 		o1s.removeDecimation();
+		o1z.removeDecimation();
 		o2p.removeDecimation();
 		o2t.removeDecimation();
 		o2s.removeDecimation();
+		o2z.removeDecimation();
 		o2sub.removeDecimation();
 	}
 	void setSampleRate(float sr)
@@ -165,12 +174,19 @@ public:
 		x2 += fs;
 		float osc2mix = 0.0f;
 		float pwcalc = limitf((osc2pw + pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
+		// TODO: Need to calculate these every sample?
+		// (i.e. let mod do it - same w/ pwcalc)
+		float symmetry = limitf((osc2pw + pw2) * 0.5f + 0.5f, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+		float riseGradient = symmetry > 0.0f ? 1.0f / symmetry : 0.0f;
+		float fallGradient = symmetry < 1.0f ? 1.0f / (symmetry - 1.0f) : 0.0f;
 		if (osc2Pul)
 			o2p.processMaster(x2, fs, pwcalc, keyReset);
 		else if (osc2Saw)
 			o2s.processMaster(x2, fs, keyReset);
 		else if (osc2Tri)
 			o2t.processMaster(x2, fs, keyReset);
+		else if (osc2Tra)
+			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
 
 		if (keyReset) {
 			x2 = 0.0f;
@@ -194,6 +210,8 @@ public:
 			osc2mix = o2s.getValue(x2);
 		else if (osc2Tri)
 			osc2mix = o2t.getValue(x2);
+		else if (osc2Tra)
+			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
 
 		// osc2sub: osc2 sub oscillator
 		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
@@ -230,6 +248,11 @@ public:
 		fs = minf(pitch1 * sampleRateInv, 0.45f);
 
 		pwcalc = limitf((osc1pw + pw1) * 0.5f + 0.5f, 0.0f, 1.0f);
+		// TODO: Need to calculate these every sample?
+		// (i.e. let mod do it - same w/ pwcalc)
+		symmetry = limitf((osc1pw + pw1) * 0.5f + 0.5f, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+		riseGradient = symmetry > 0.0f ? 1.0f / symmetry : 0.0f;
+		fallGradient = symmetry < 1.0f ? 1.0f / (symmetry - 1.0f) : 0.0f;
 
 		float osc1mix = 0.0f;
 
@@ -250,6 +273,8 @@ public:
 			o1s.processSlave(x1, fs, hsr, hsfrac);
 		else if (osc1Tri)
 			o1t.processSlave(x1, fs, hsr, hsfrac);
+		else if (osc1Tra)
+			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
 
 		if (x1 >= 1.0f)
 			x1 -= 1.0f;
@@ -274,6 +299,8 @@ public:
 			osc1mix = o1s.getValue(x1);
 		else if (osc1Tri)
 			osc1mix = o1t.getValue(x1);
+		else if (osc1Tra)
+			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
 
 		//mixing
 		// TODO: have separate noise generator for the dither noise?
