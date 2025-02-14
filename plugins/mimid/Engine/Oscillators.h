@@ -166,7 +166,7 @@ public:
 		float fs = minf(pitch2 * sampleRateInv, 0.45f);
 		x2 += fs;
 		float osc2mix = 0.0f;
-		float pwcalc = limitf((osc2pw + pw2) * 0.5f + 0.5f, 0.1f, 1.0f);
+		float pwcalc = limitf((osc2pw + pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
 		if (osc2Pul)
 			o2p.processMaster(x2, fs, pwcalc, pw2w, keyReset);
 		else if (osc2Saw)
@@ -233,7 +233,7 @@ public:
 
 		fs = minf(pitch1 * sampleRateInv, 0.45f);
 
-		pwcalc = limitf((osc1pw + pw1) * 0.5f + 0.5f, 0.1f, 1.0f);
+		pwcalc = limitf((osc1pw + pw1) * 0.5f + 0.5f, 0.0f, 1.0f);
 
 		float osc1mix = 0.0f;
 
