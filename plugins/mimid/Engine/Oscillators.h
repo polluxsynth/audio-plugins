@@ -47,7 +47,6 @@ private:
 	float osc1Factor;
 	float osc2Factor;
 
-	float pw1w, pw2w;
 	//blep const
 	const int n;
 	const int hsam;
@@ -110,7 +109,6 @@ public:
 		nmx = 0;
 		oct = 0;
 		tune = 0;
-		pw1w = pw2w = 0;
 		pto1 = pto2 = 0;
 		pw1 = pw2 = 0;
 		xmod = 0;
@@ -168,7 +166,7 @@ public:
 		float osc2mix = 0.0f;
 		float pwcalc = limitf((osc2pw + pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
 		if (osc2Pul)
-			o2p.processMaster(x2, fs, pwcalc, pw2w, keyReset);
+			o2p.processMaster(x2, fs, pwcalc, keyReset);
 		else if (osc2Saw)
 			o2s.processMaster(x2, fs, keyReset);
 		else if (osc2Tri)
@@ -185,8 +183,6 @@ public:
 			hsfrac = x2 / fs;
 			hsr = 1; // hard sync governed by sync level
 		}
-
-		pw2w = pwcalc;
 
 		// Delaying our hard sync gate signal and frac
 		hsr = syncd.feedReturn(hsr);
@@ -249,7 +245,7 @@ public:
 			hsr &= (syncLevel <= 0.99f) && (x1 - hsfrac * fs >= syncLevel);
 
 		if (osc1Pul)
-			o1p.processSlave(x1, fs, hsr, hsfrac, pwcalc, pw1w);
+			o1p.processSlave(x1, fs, hsr, hsfrac, pwcalc);
 		else if (osc1Saw)
 			o1s.processSlave(x1, fs, hsr, hsfrac);
 		else if (osc1Tri)
@@ -258,7 +254,6 @@ public:
 		if (x1 >= 1.0f)
 			x1 -= 1.0f;
 
-		pw1w = pwcalc;
 		// On hard sync reset slave phase is affected that way
 		if (hsr)
 		{

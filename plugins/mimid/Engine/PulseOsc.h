@@ -28,6 +28,7 @@
 class PulseOsc
 {
 	bool pw1t;
+	float prevPulseWidth;
 	float buffer1[Samples * 2];
 	const int n, nmask;
 	float const *blepPTR;
@@ -52,7 +53,7 @@ public:
 	{
 		blepPTR = blep;
 	}
-	inline void processMaster(float x, float delta, float pulseWidth, float pulseWidthWas, bool waveformReset)
+	inline void processMaster(float x, float delta, float pulseWidth, bool waveformReset)
 	{
 		if (waveformReset) {
 			float trans = pw1t ? 1.0f : 0.0f;
@@ -60,7 +61,7 @@ public:
 			pw1t = false;
 			return;
 		}
-		float summated = delta - (pulseWidth - pulseWidthWas);
+		float summated = delta - (pulseWidth - prevPulseWidth);
 		if (pw1t && x >= 1.0f) {
 			x -= 1.0f;
 			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
@@ -76,7 +77,7 @@ public:
 			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
 			pw1t = false;
 		}
-
+		prevPulseWidth = pulseWidth;
 	}
 	inline float getValue(float x, float pulseWidth)
 	{
@@ -95,9 +96,9 @@ public:
                 buffer1[bP1 ^ Samples] += oscmix;
                 return getNextBlep(buffer1, bP1);
 	}
-	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float pulseWidth, float pulseWidthWas)
+	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float pulseWidth)
 	{
-		float summated = delta - (pulseWidth - pulseWidthWas);
+		float summated = delta - (pulseWidth - prevPulseWidth);
 
 		if (pw1t && x >= 1.0f)
 		{
@@ -138,7 +139,7 @@ public:
 			mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, 1.0f);
 			pw1t = false;
 		}
-
+		prevPulseWidth = pulseWidth;
 	}
 	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
 	{
