@@ -454,6 +454,7 @@ public:
 			synth.voices[i].osc.osc1Pul = intparam == 2;
 			synth.voices[i].osc.osc1Tri = intparam == 3;
 			synth.voices[i].osc.osc1Tra = intparam == 4;
+			synth.voices[i].osc.osc1Var = intparam == 5;
 		}
 	}
 
@@ -465,6 +466,7 @@ public:
 			synth.voices[i].osc.osc2Pul = intparam == 2;
 			synth.voices[i].osc.osc2Tri = intparam == 3;
 			synth.voices[i].osc.osc2Tra = intparam == 4;
+			synth.voices[i].osc.osc2Var = intparam == 5;
 			synth.voices[i].osc.osc2modout =
 			synth.voices[i].oscmodEnable = intparam != 0;
 		}

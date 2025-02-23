@@ -35,6 +35,7 @@
 #include "PulseOsc.h"
 #include "TriangleOsc.h"
 #include "TrapezoidOsc.h"
+#include "VariSawOsc.h"
 #include "SubOsc.h"
 
 class Oscillators
@@ -44,6 +45,8 @@ private:
 	float sampleRateInv;
 	// MinTraSymmetry: unit: sample interval
 	static constexpr float MinTraSymmetry = 0.15f; /* Empirically determined */
+	// SawMinSlopeus: unit: s
+	static constexpr float SawMinSlopeus = 28.0e-6f; /* Empirically determined */
 
 	float x1, x2;
 
@@ -63,6 +66,7 @@ private:
 	PulseOsc o1p, o2p;
 	TriangleOsc o1t, o2t;
 	TrapezoidOsc o1z, o2z;
+	VariSawOsc o1v, o2v;
 	SubOsc o2sub;
 public:
 
@@ -85,8 +89,8 @@ public:
 	float pto1, pto2;
 
 	//osc waveshapes
-	bool osc1Saw, osc1Pul, osc1Tri, osc1Tra;
-	bool osc2Saw, osc2Pul, osc2Tri, osc2Tra;
+	bool osc1Saw, osc1Pul, osc1Tri, osc1Tra, osc1Var;
+	bool osc2Saw, osc2Pul, osc2Tri, osc2Tra, osc2Var;
 	int osc2SubWaveform;
 
 	float osc1p,osc2p;
@@ -104,7 +108,8 @@ public:
 		o1s(), o2s(),
 		o1p(), o2p(),
 		o1t(), o2t(),
-		o1z(), o2z()
+		o1z(), o2z(),
+		o1v(), o2v()
 	{
 		dirt = 0.1;
 		totalSpread = 0;
@@ -138,10 +143,12 @@ public:
 		o1t.setDecimation();
 		o1s.setDecimation();
 		o1z.setDecimation();
+		o1v.setDecimation();
 		o2p.setDecimation();
 		o2t.setDecimation();
 		o2s.setDecimation();
 		o2z.setDecimation();
+		o2v.setDecimation();
 		o2sub.setDecimation();
 	}
 	void removeDecimation()
@@ -150,10 +157,12 @@ public:
 		o1t.removeDecimation();
 		o1s.removeDecimation();
 		o1z.removeDecimation();
+		o1v.removeDecimation();
 		o2p.removeDecimation();
 		o2t.removeDecimation();
 		o2s.removeDecimation();
 		o2z.removeDecimation();
+		o2v.removeDecimation();
 		o2sub.removeDecimation();
 	}
 	void setSampleRate(float sr)
@@ -177,8 +186,33 @@ public:
 		// TODO: Need to calculate these every sample?
 		// (i.e. let mod do it - same w/ pwcalc)
 		float symmetry = limitf((osc2pw + pw2) * 0.5f + 0.5f, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+		// TODO: with limitation above, don't need 0 check here
 		float riseGradient = symmetry > 0.0f ? 1.0f / symmetry : 0.0f;
 		float fallGradient = symmetry < 1.0f ? 1.0f / (symmetry - 1.0f) : 0.0f;
+
+		float ssymmetry = limitf(0.7f * osc2pw + pw2, -1.0f, 1.0f);
+		// Squared, with sign
+		//ssymmetry *= fabsf(ssymmetry);
+		//ssymmetry *= ssymmetry * (1 - 2 * (symmetry < 0));
+		// 1 - (1 - x)**5
+		ssymmetry = (1 - fabsf(ssymmetry)); // 1 - x (w/o sign)
+		float symmsquared = ssymmetry * ssymmetry;
+		ssymmetry *= symmsquared * symmsquared; // (1 - x)**5
+		ssymmetry = 1 - ssymmetry; // 1 - (1 - x) ** 5;
+		// put back sign
+		ssymmetry *= 1 - 2 * ((osc2pw + pw2) < 0);
+
+		// We can't allow limit for ssymmetry to go above 1.
+		float symm_limit = SawMinSlopeus * SampleRate * fs;
+		if (symm_limit > 1) symm_limit = 1;
+		//ssymmetry = 1 - (1 - ssymmetry) * (1 - ssymmetry); // sharpen up curve
+		ssymmetry = limitf(ssymmetry, -1.0f + symm_limit, 1.0f - symm_limit);
+		// breakpoint is the break point between slope and straight
+		// part of waveform, regardless if symmetry is > 0 or < 0
+		float breakpoint = ssymmetry + (ssymmetry < 0);
+		// TODO: In the end shouldn't need to check for out of range
+		// here, as the range should already be limited
+		float sgradient = ssymmetry < 1.0f && ssymmetry > -1.0f ? 1.0f / (1.0f - fabsf(ssymmetry)) : 0.0f;
 		if (osc2Pul)
 			o2p.processMaster(x2, fs, pwcalc, keyReset);
 		else if (osc2Saw)
@@ -187,6 +221,8 @@ public:
 			o2t.processMaster(x2, fs, keyReset);
 		else if (osc2Tra)
 			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
+		else if (osc2Var)
+			o2v.processMaster(x2, fs, ssymmetry, breakpoint, sgradient, keyReset);
 
 		if (keyReset) {
 			x2 = 0.0f;
@@ -212,6 +248,8 @@ public:
 			osc2mix = o2t.getValue(x2);
 		else if (osc2Tra)
 			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
+		else if (osc2Var)
+			osc2mix = o2v.getValue(x2, ssymmetry, breakpoint, sgradient);
 
 		// osc2sub: osc2 sub oscillator
 		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
@@ -253,6 +291,29 @@ public:
 		symmetry = limitf((osc1pw + pw1) * 0.5f + 0.5f, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 		riseGradient = symmetry > 0.0f ? 1.0f / symmetry : 0.0f;
 		fallGradient = symmetry < 1.0f ? 1.0f / (symmetry - 1.0f) : 0.0f;
+		ssymmetry = limitf(0.7f * osc1pw + pw1, -1.0f, 1.0f);
+		// Squared, with sign
+		//ssymmetry *= fabsf(ssymmetry);
+		//ssymmetry *= ssymmetry * (1 - 2 * (symmetry < 0));
+		// 1 - (1 - x)**5
+		ssymmetry = (1 - fabsf(ssymmetry)); // 1 - x (w/o sign)
+		symmsquared = ssymmetry * ssymmetry;
+		ssymmetry *= symmsquared * symmsquared; // (1 - x)**5
+		ssymmetry = 1 - ssymmetry; // 1 - (1 - x) ** 5;
+		// put back sign
+		ssymmetry *= 1 - 2 * ((osc1pw + pw1) < 0);
+
+		// We can't allow limit for ssymmetry to go above 1.
+		symm_limit = SawMinSlopeus * SampleRate * fs;
+		if (symm_limit > 1) symm_limit = 1;
+		//ssymmetry = 1 - (1 - ssymmetry) * (1 - ssymmetry); // sharpen up curve
+		ssymmetry = limitf(ssymmetry, -1.0f + symm_limit, 1.0f - symm_limit);
+		// breakpoint is the break point between slope and straight
+		// part of waveform, regardless if symmetry is > 0 or < 0
+		breakpoint = ssymmetry + (ssymmetry < 0);
+		// TODO: In the end shouldn't need to check for out of range
+		// here, as the range should already be limited
+		sgradient = ssymmetry < 1.0f && ssymmetry > -1.0f ? 1.0f / (1.0f - fabsf(ssymmetry)) : 0.0f;
 
 		float osc1mix = 0.0f;
 
@@ -275,6 +336,8 @@ public:
 			o1t.processSlave(x1, fs, hsr, hsfrac);
 		else if (osc1Tra)
 			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
+		else if (osc1Var)
+			o1v.processSlave(x1, fs, hsr, hsfrac, ssymmetry, breakpoint, sgradient);
 
 		if (x1 >= 1.0f)
 			x1 -= 1.0f;
@@ -301,6 +364,8 @@ public:
 			osc1mix = o1t.getValue(x1);
 		else if (osc1Tra)
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
+		else if (osc1Var)
+			osc1mix = o1v.getValue(x1, ssymmetry, breakpoint, sgradient);
 
 		//mixing
 		// TODO: have separate noise generator for the dither noise?
