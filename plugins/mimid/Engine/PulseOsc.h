@@ -135,10 +135,18 @@ public:
 		}
 
 		if (hardSyncReset && pw1t) {
-			// float fracMaster = delta * hardSyncFrac;
 			mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, 1.0f);
 			pw1t = false;
+			x = hardSyncFrac * delta;
+			// If pulsewidth is very small, we might get an event
+			// in the same sample period as the hard sync event
+			if ((x >= pulseWidth) && (x - summated <= pulseWidth)) {
+				pw1t = true;
+				float frac = (x - pulseWidth) / summated;
+				mixInImpulseCenter(buffer1, bP1, frac, -1.0f);
+			}
 		}
+
 		prevPulseWidth = pulseWidth;
 	}
 	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
