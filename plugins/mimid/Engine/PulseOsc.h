@@ -134,8 +134,9 @@ public:
 			}
 		}
 
-		if (hardSyncReset && pw1t) {
-			mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, 1.0f);
+		if (hardSyncReset) {
+			if (pw1t)
+				mixInImpulseCenter(buffer1 ,bP1, hardSyncFrac, 1.0f);
 			pw1t = false;
 			x = hardSyncFrac * delta;
 			// If pulsewidth is very small, we might get an event
