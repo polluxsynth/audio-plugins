@@ -47,6 +47,7 @@ private:
 	static constexpr float MinTraSymmetry = 0.15f; /* Empirically determined */
 	// SawMinSlopeus: unit: s
 	static constexpr float SawMinSlopeus = 28.0e-6f; /* Empirically determined */
+	float SawMinSlope;
 
 	float x1, x2;
 
@@ -93,6 +94,15 @@ public:
 	bool osc2Saw, osc2Pul, osc2Tri, osc2Tra, osc2Var;
 	int osc2SubWaveform;
 
+	// Osc waveshaping parameters
+	// These are calculated at the mod rate by Voice
+	// Pulse wave
+	float pw1calc, pw2calc;
+	// Trapezoid wave
+	float symmetry1, symmetry2;
+	// VariSaw wave
+	float ssymmetry1, ssymmetry2;
+
 	float osc1p,osc2p;
 	float syncLevel;
 	float xmod;
@@ -121,6 +131,9 @@ public:
 		tune = 0;
 		pto1 = pto2 = 0;
 		pw1 = pw2 = 0;
+		pw1calc = pw2calc = 0;
+		symmetry1 = symmetry2 = 0;
+		ssymmetry1 = ssymmetry2 = 0;
 		xmod = 0;
 		syncLevel = 1.0f;
 		osc1p = osc2p = 24.0f;
@@ -131,6 +144,7 @@ public:
 		o1mx = o2mx = 0;
 		x1 = wn.nextFloat();
 		x2 = wn.nextFloat(); // osc2 and 3 start in phase
+		SawMinSlope = 1.0f;
 		osc2SubWaveform = 0; // off
 		keyReset = false;
 	}
@@ -169,6 +183,7 @@ public:
 	{
 		SampleRate = sr;
 		sampleRateInv = 1.0f / SampleRate;
+		SawMinSlope = SawMinSlopeus * sr; // In units of sample int'vl
 	}
 	inline void ProcessSample(float &audioOutput, float &modOutput)
 	{
@@ -182,47 +197,39 @@ public:
 		float fs = minf(pitch2 * sampleRateInv, 0.45f);
 		x2 += fs;
 		float osc2mix = 0.0f;
-		float pwcalc = limitf((osc2pw + pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
-		// TODO: Need to calculate these every sample?
-		// (i.e. let mod do it - same w/ pwcalc)
-		float symmetry = limitf((osc2pw + pw2) * 0.5f + 0.5f, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
-		// TODO: with limitation above, don't need 0 check here
-		float riseGradient = symmetry > 0.0f ? 1.0f / symmetry : 0.0f;
-		float fallGradient = symmetry < 1.0f ? 1.0f / (symmetry - 1.0f) : 0.0f;
 
-		float ssymmetry = limitf(0.7f * osc2pw + pw2, -1.0f, 1.0f);
-		// Squared, with sign
-		//ssymmetry *= fabsf(ssymmetry);
-		//ssymmetry *= ssymmetry * (1 - 2 * (symmetry < 0));
-		// 1 - (1 - x)**5
-		ssymmetry = (1 - fabsf(ssymmetry)); // 1 - x (w/o sign)
-		float symmsquared = ssymmetry * ssymmetry;
-		ssymmetry *= symmsquared * symmsquared; // (1 - x)**5
-		ssymmetry = 1 - ssymmetry; // 1 - (1 - x) ** 5;
-		// put back sign
-		ssymmetry *= 1 - 2 * ((osc2pw + pw2) < 0);
+		// Local variables for waveshaping. Set for antialising,
+		// reused for same oscillator's waveform calculation,
+		// then reused for other oscillator.
+		float symmetry = 0, riseGradient = 0, fallGradient = 0;
+		float ssymmetry = 0, breakpoint = 0, sgradient = 0;
 
-		// We can't allow limit for ssymmetry to go above 1.
-		float symm_limit = SawMinSlopeus * SampleRate * fs;
-		if (symm_limit > 1) symm_limit = 1;
-		//ssymmetry = 1 - (1 - ssymmetry) * (1 - ssymmetry); // sharpen up curve
-		ssymmetry = limitf(ssymmetry, -1.0f + symm_limit, 1.0f - symm_limit);
-		// breakpoint is the break point between slope and straight
-		// part of waveform, regardless if symmetry is > 0 or < 0
-		float breakpoint = ssymmetry + (ssymmetry < 0);
-		// TODO: In the end shouldn't need to check for out of range
-		// here, as the range should already be limited
-		float sgradient = ssymmetry < 1.0f && ssymmetry > -1.0f ? 1.0f / (1.0f - fabsf(ssymmetry)) : 0.0f;
-		if (osc2Pul)
-			o2p.processMaster(x2, fs, pwcalc, keyReset);
-		else if (osc2Saw)
+		if (osc2Pul) {
+			o2p.processMaster(x2, fs, pw2calc, keyReset);
+		} else if (osc2Saw) {
 			o2s.processMaster(x2, fs, keyReset);
-		else if (osc2Tri)
+		} else if (osc2Tri) {
 			o2t.processMaster(x2, fs, keyReset);
-		else if (osc2Tra)
+		} else if (osc2Tra) {
+			symmetry = limitf(symmetry2, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+			// With limitation above, don't need 0 check here
+			riseGradient = 1.0f / symmetry;
+			fallGradient = 1.0f / (symmetry - 1.0f);
+
 			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
-		else if (osc2Var)
+		} else if (osc2Var) {
+			float symm_limit = SawMinSlope * fs;
+			// We can't allow limit for ssymmetry to go above 1.
+			if (symm_limit > 1) symm_limit = 1;
+			ssymmetry = limitf(ssymmetry2, -1.0f + symm_limit, 1.0f - symm_limit);
+			// breakpoint is the break point between slope and straight
+			// part of waveform, regardless if symmetry is > 0 or < 0
+			breakpoint = ssymmetry + (ssymmetry < 0);
+			// Range limited, so no need to check here
+			sgradient = 1.0f / (1.0f - fabsf(ssymmetry));
+
 			o2v.processMaster(x2, fs, ssymmetry, breakpoint, sgradient, keyReset);
+		}
 
 		if (keyReset) {
 			x2 = 0.0f;
@@ -241,7 +248,7 @@ public:
 		hsfrac = syncFracd.feedReturn(hsfrac);
 
 		if (osc2Pul)
-			osc2mix = o2p.getValue(x2, pwcalc);
+			osc2mix = o2p.getValue(x2, pw2calc);
 		else if (osc2Saw)
 			osc2mix = o2s.getValue(x2);
 		else if (osc2Tri)
@@ -285,36 +292,6 @@ public:
 
 		fs = minf(pitch1 * sampleRateInv, 0.45f);
 
-		pwcalc = limitf((osc1pw + pw1) * 0.5f + 0.5f, 0.0f, 1.0f);
-		// TODO: Need to calculate these every sample?
-		// (i.e. let mod do it - same w/ pwcalc)
-		symmetry = limitf((osc1pw + pw1) * 0.5f + 0.5f, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
-		riseGradient = symmetry > 0.0f ? 1.0f / symmetry : 0.0f;
-		fallGradient = symmetry < 1.0f ? 1.0f / (symmetry - 1.0f) : 0.0f;
-		ssymmetry = limitf(0.7f * osc1pw + pw1, -1.0f, 1.0f);
-		// Squared, with sign
-		//ssymmetry *= fabsf(ssymmetry);
-		//ssymmetry *= ssymmetry * (1 - 2 * (symmetry < 0));
-		// 1 - (1 - x)**5
-		ssymmetry = (1 - fabsf(ssymmetry)); // 1 - x (w/o sign)
-		symmsquared = ssymmetry * ssymmetry;
-		ssymmetry *= symmsquared * symmsquared; // (1 - x)**5
-		ssymmetry = 1 - ssymmetry; // 1 - (1 - x) ** 5;
-		// put back sign
-		ssymmetry *= 1 - 2 * ((osc1pw + pw1) < 0);
-
-		// We can't allow limit for ssymmetry to go above 1.
-		symm_limit = SawMinSlopeus * SampleRate * fs;
-		if (symm_limit > 1) symm_limit = 1;
-		//ssymmetry = 1 - (1 - ssymmetry) * (1 - ssymmetry); // sharpen up curve
-		ssymmetry = limitf(ssymmetry, -1.0f + symm_limit, 1.0f - symm_limit);
-		// breakpoint is the break point between slope and straight
-		// part of waveform, regardless if symmetry is > 0 or < 0
-		breakpoint = ssymmetry + (ssymmetry < 0);
-		// TODO: In the end shouldn't need to check for out of range
-		// here, as the range should already be limited
-		sgradient = ssymmetry < 1.0f && ssymmetry > -1.0f ? 1.0f / (1.0f - fabsf(ssymmetry)) : 0.0f;
-
 		float osc1mix = 0.0f;
 
 		x1 += fs;
@@ -328,16 +305,31 @@ public:
 		if (hsr > 0) // hard sync
 			hsr &= (syncLevel <= 0.99f) && (x1 - hsfrac * fs >= syncLevel);
 
-		if (osc1Pul)
-			o1p.processSlave(x1, fs, hsr, hsfrac, pwcalc);
-		else if (osc1Saw)
+		if (osc1Pul) {
+			o1p.processSlave(x1, fs, hsr, hsfrac, pw1calc);
+		} else if (osc1Saw) {
 			o1s.processSlave(x1, fs, hsr, hsfrac);
-		else if (osc1Tri)
+		} else if (osc1Tri) {
 			o1t.processSlave(x1, fs, hsr, hsfrac);
-		else if (osc1Tra)
+		} else if (osc1Tra) {
+			symmetry = limitf(symmetry1, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+			// With limitation above, don't need 0 check here
+			riseGradient = 1.0f / symmetry;
+			fallGradient = 1.0f / (symmetry - 1.0f);
 			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
-		else if (osc1Var)
+		} else if (osc1Var) {
+			float symm_limit = SawMinSlope * fs;
+			// We can't allow limit for ssymmetry to go above 1.
+			if (symm_limit > 1) symm_limit = 1;
+			ssymmetry = limitf(ssymmetry1, -1.0f + symm_limit, 1.0f - symm_limit);
+			// breakpoint is the break point between slope and straight
+			// part of waveform, regardless if symmetry is > 0 or < 0
+			breakpoint = ssymmetry + (ssymmetry < 0);
+			// Range limited, so no need to check here
+			sgradient = 1.0f / (1.0f - fabsf(ssymmetry));
+
 			o1v.processSlave(x1, fs, hsr, hsfrac, ssymmetry, breakpoint, sgradient);
+		}
 
 		if (x1 >= 1.0f)
 			x1 -= 1.0f;
@@ -357,7 +349,7 @@ public:
 		osc2mix = osc2d.feedReturn(osc2mix);
 
 		if (osc1Pul)
-			osc1mix = o1p.getValue(x1, pwcalc);
+			osc1mix = o1p.getValue(x1, pw1calc);
 		else if (osc1Saw)
 			osc1mix = o1s.getValue(x1);
 		else if (osc1Tri)

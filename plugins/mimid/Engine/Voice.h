@@ -331,6 +331,38 @@ public:
 				osc2FltModCalc = (maxallowednote - cutoffnote) *
 						  oscmod_maxpeak_inv;
 		}
+		// Calculate waveshape parameters
+		if (osc.osc2Pul) {
+			osc.pw2calc = limitf((osc.osc2pw + osc.pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
+		} else if (osc.osc2Tra) {
+			osc.symmetry2 = (osc.osc2pw + osc.pw2) * 0.5f + 0.5f;
+		} else if (osc.osc2Var) {
+			float pwtot = 0.7f * osc.osc2pw + osc.pw2;
+			float ssymmetry = limitf(pwtot, -1.0f, 1.0f);
+			// Scale by 1 - (1 - x)**5
+			ssymmetry = (1 - fabsf(ssymmetry)); // 1 - x (w/o sign)
+			float symmsquared = ssymmetry * ssymmetry;
+			ssymmetry *= symmsquared * symmsquared; // (1 - x)**5
+			ssymmetry = 1 - ssymmetry; // 1 - (1 - x) ** 5;
+			// put back sign
+			osc.ssymmetry2 = ssymmetry * (1 - 2 * (pwtot < 0));
+		}
+		// Calculate waveshape parameters
+		if (osc.osc1Pul) {
+			osc.pw1calc = limitf((osc.osc1pw + osc.pw1) * 0.5f + 0.5f, 0.0f, 1.0f);
+		} else if (osc.osc1Tra) {
+			osc.symmetry1 = (osc.osc1pw + osc.pw1) * 0.5f + 0.5f;
+		} else if (osc.osc1Var) {
+			float pwtot = 0.7f * osc.osc1pw + osc.pw1;
+			float ssymmetry = limitf(pwtot, -1.0f, 1.0f);
+			// Scale by 1 - (1 - x)**5
+			ssymmetry = (1 - fabsf(ssymmetry)); // 1 - x (w/o sign)
+			float symmsquared = ssymmetry * ssymmetry;
+			ssymmetry *= symmsquared * symmsquared; // (1 - x)**5
+			ssymmetry = 1 - ssymmetry; // 1 - (1 - x) ** 5;
+			// put back sign
+			osc.ssymmetry1 = ssymmetry * (1 - 2 * (pwtot < 0));
+		}
 	}
 	inline float processAudioSample()
 	{
