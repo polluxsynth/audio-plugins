@@ -46,8 +46,10 @@ private:
 	// MinTraSymmetry: unit: sample interval
 	static constexpr float MinTraSymmetry = 0.15f; /* Empirically determined */
 	// SawMinSlopeus: unit: s
-	static constexpr float SawMinSlopeus = 28.0e-6f; /* Empirically determined */
-	float SawMinSlope;
+	static constexpr float SawMinSlopeus = 58.0e-6f; /* Empirically determined */
+	// Derating factor when saw slope is < SawMinSlopeus
+	static constexpr float SawMinDerate = 0.1f;
+	float SawMaxGrad;
 
 	float x1, x2;
 
@@ -101,7 +103,7 @@ public:
 	// Trapezoid wave
 	float symmetry1, symmetry2;
 	// VariSaw wave
-	float ssymmetry1, ssymmetry2;
+	float sgradient1, sgradient2;
 
 	float osc1p,osc2p;
 	float syncLevel;
@@ -133,7 +135,7 @@ public:
 		pw1 = pw2 = 0;
 		pw1calc = pw2calc = 0;
 		symmetry1 = symmetry2 = 0;
-		ssymmetry1 = ssymmetry2 = 0;
+		sgradient1 = sgradient2 = 1;
 		xmod = 0;
 		syncLevel = 1.0f;
 		osc1p = osc2p = 24.0f;
@@ -144,7 +146,7 @@ public:
 		o1mx = o2mx = 0;
 		x1 = wn.nextFloat();
 		x2 = wn.nextFloat(); // osc2 and 3 start in phase
-		SawMinSlope = 1.0f;
+		SawMaxGrad = 1.0f;
 		osc2SubWaveform = 0; // off
 		keyReset = false;
 	}
@@ -183,7 +185,7 @@ public:
 	{
 		SampleRate = sr;
 		sampleRateInv = 1.0f / SampleRate;
-		SawMinSlope = SawMinSlopeus * sr; // In units of sample int'vl
+		SawMaxGrad = 1.0f / (SawMinSlopeus * sr);
 	}
 	inline void ProcessSample(float &audioOutput, float &modOutput)
 	{
@@ -202,7 +204,7 @@ public:
 		// reused for same oscillator's waveform calculation,
 		// then reused for other oscillator.
 		float symmetry = 0, riseGradient = 0, fallGradient = 0;
-		float ssymmetry = 0, breakpoint = 0, sgradient = 0;
+		float sgrad = 0, sbreakpoint = 0;
 
 		if (osc2Pul) {
 			o2p.processMaster(x2, fs, pw2calc, keyReset);
@@ -218,17 +220,16 @@ public:
 
 			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
 		} else if (osc2Var) {
-			float symm_limit = SawMinSlope * fs;
-			// We can't allow limit for ssymmetry to go above 1.
-			if (symm_limit > 1) symm_limit = 1;
-			ssymmetry = limitf(ssymmetry2, -1.0f + symm_limit, 1.0f - symm_limit);
-			// breakpoint is the break point between slope and straight
-			// part of waveform, regardless if symmetry is > 0 or < 0
-			breakpoint = ssymmetry + (ssymmetry < 0);
-			// Range limited, so no need to check here
-			sgradient = 1.0f / (1.0f - fabsf(ssymmetry));
+			float grad_limit = SawMaxGrad / fs;
+			sgrad = sgradient2;
+			float grad_derate = SawMinDerate;
+			if (sgrad < grad_limit) grad_derate = 1.0f;
+			sgrad = (sgrad - grad_limit) * grad_derate + grad_limit;
 
-			o2v.processMaster(x2, fs, ssymmetry, breakpoint, sgradient, keyReset);
+			sbreakpoint = 1.0f;
+			if (sgrad > 1.0f)
+				sbreakpoint = 1.0f / sgrad;
+			o2v.processMaster(x2, fs, sbreakpoint, sgrad, keyReset);
 		}
 
 		if (keyReset) {
@@ -256,7 +257,7 @@ public:
 		else if (osc2Tra)
 			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
 		else if (osc2Var)
-			osc2mix = o2v.getValue(x2, ssymmetry, breakpoint, sgradient);
+			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
 
 		// osc2sub: osc2 sub oscillator
 		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
@@ -318,17 +319,15 @@ public:
 			fallGradient = 1.0f / (symmetry - 1.0f);
 			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
 		} else if (osc1Var) {
-			float symm_limit = SawMinSlope * fs;
-			// We can't allow limit for ssymmetry to go above 1.
-			if (symm_limit > 1) symm_limit = 1;
-			ssymmetry = limitf(ssymmetry1, -1.0f + symm_limit, 1.0f - symm_limit);
-			// breakpoint is the break point between slope and straight
-			// part of waveform, regardless if symmetry is > 0 or < 0
-			breakpoint = ssymmetry + (ssymmetry < 0);
-			// Range limited, so no need to check here
-			sgradient = 1.0f / (1.0f - fabsf(ssymmetry));
-
-			o1v.processSlave(x1, fs, hsr, hsfrac, ssymmetry, breakpoint, sgradient);
+			float grad_limit = SawMaxGrad / fs;
+			sgrad = sgradient1;
+			float grad_derate = SawMinDerate;
+			if (sgrad < grad_limit) grad_derate = 1.0f;
+			sgrad = (sgrad - grad_limit) * grad_derate + grad_limit;
+			sbreakpoint = 1.0;
+			if (sgrad > 1.0f)
+				sbreakpoint = 1.0f / sgrad;
+			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
 		}
 
 		if (x1 >= 1.0f)
@@ -357,7 +356,7 @@ public:
 		else if (osc1Tra)
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
 		else if (osc1Var)
-			osc1mix = o1v.getValue(x1, ssymmetry, breakpoint, sgradient);
+			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
 
 		//mixing
 		// TODO: have separate noise generator for the dither noise?

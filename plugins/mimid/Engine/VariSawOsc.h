@@ -57,16 +57,18 @@ public:
 		blepPTR = blep;
 		blampPTR = blamp;
 	}
-	inline void processMaster(float x, float delta, float symm, float bp, float grad, bool waveformReset)
+	// breakpoint is 0..1 (spikey sawtooth .. standard sawtooth)
+	// (Sawtooth is actually inverted when spikey)
+	// gradient is normally 1/breakpoint, so
+	// breakpoint 0 .. 1 => gradient inf .. 1, but gradient can also
+	// be < 1, in which case breakpoint remains at 1, and the saw peak
+	// (at right hand edge) starts dropping instead.
+	inline void processMaster(float x, float delta, float bp, float grad, bool waveformReset)
 	{
 		if (waveformReset) {
 			float trans = x - delta;
-			float mix = symm >= 0 ?
-				trans <= bp ? 0 : (trans - bp) * grad :
-		                trans >= bp  ? 1 : trans * grad;
-			if (symm > 0 && trans > symm)
-				mixInBlampCenter(buffer1, bP1, 1.0f, grad * Samples * delta);
-			else if (symm < 0 && trans > bp)
+			float mix = x > bp ? 1.0f : x * grad;
+			if (trans > bp)
 				mixInBlampCenter(buffer1, bP1, 1.0f, -grad * Samples * delta);
 			mixInImpulseCenter(buffer1, bP1, 1.0f, mix);
 			pastBp = false; // Waveform restarted
@@ -75,44 +77,37 @@ public:
 		float summated = delta - (bp - prevBp);
 		if (pastBp && x >= 1.0f) {
 			x -= 1.0f;
-			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
-			if (symm > 0)
-				mixInBlampCenter(buffer1, bP1, x / delta, grad * Samples * delta);
-			else if (symm < 0)
+			mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+			if (bp < 1.0f)
 				mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
 			pastBp = false;
 		}
 		if (!pastBp && x >= bp && x - summated <= bp) {
 			pastBp = true;
-			if (symm > 0) {
-				float frac = (x - bp) / summated;
-				mixInBlampCenter(buffer1, bP1, frac, -grad * Samples * summated);
-			} else if (symm < 0) {
+			if (bp < 1.0f) {
 				float frac = (x - bp) / summated;
 				mixInBlampCenter(buffer1, bP1, frac, grad * Samples * summated);
 			}
 		}
 		if (pastBp && x >= 1.0f) {
 			x -= 1.0f;
-			mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
-			if (symm > 0)
-				mixInBlampCenter(buffer1, bP1, x / delta, grad * Samples * delta);
-			else if (symm < 0)
+			mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+			if (bp < 1.0f)
 				mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
 			pastBp = false;
 		}
 		prevBp = bp;
 	}
-	inline float getValue(float x, float symm, float bp, float gradient)
+	inline float getValue(float x, float bp, float grad)
 	{
-		float mix = symm >= 0 ? x <= bp ? 0 : (x - bp) * gradient :
-			                x >= bp ? 1 : x * gradient;
-		// DC level: symm > 0: half of sawtooth peak, so
-		// (1 - symm) * 0.5
-		// symm < 0: half of sawtooth peak, so
-		// (1 + fabsf(symm)) * 0.5 = (1 - symm) * 0.5
-		// total (1 - symm) * 0.5
-		mix -= (1 - symm) * 0.5;
+		float mix = x > bp ? 1.0f : x * grad;
+		// DC level: gradient <= 1: half of end of sawtooth peak,
+		// so, simply, 0.5 * gradient .
+		// gradient > 1: 1 for bp..1, 1/2 for 0..bp, so
+		// (1 - bp) + 0.5 * bp = 1 - bp + 0.5 * bp =
+		// 1 - 0.5 * bp
+		// all in all: gradient <= 1 ? 0.5 * grad : 1 - 0.5 * bp;
+		mix -= grad <= 1.0f ? 0.5f * grad : 1.0f - 0.5f * bp;
 
 		// Instead of subtracting Samples to get to the middle of the
 		// BLEP buffer, and then masking with size-1 to keep the
@@ -123,17 +118,15 @@ public:
 		buffer1[bP1 ^ Samples] += mix;
 		return getNextBlep(buffer1, bP1);
 	}
-	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float symm, float bp, float grad)
+	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float bp, float grad)
 	{
 		bool hspass = true;
 		float summated = delta - (bp - prevBp);
 		if (pastBp && x >= 1.0f) {
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
-				if (symm > 0)
-					mixInBlampCenter(buffer1, bP1, x / delta, grad * Samples * delta);
-				else if (symm < 0)
+				mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+				if (bp < 1.0f)
 					mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
 				pastBp = false;
 			} else {
@@ -146,9 +139,7 @@ public:
 			pastBp = true;
 			float frac = (x - bp) / summated;
 			if (!hardSyncReset || (frac > hardSyncFrac)) { // de morgan processed equation
-				if (symm > 0)
-					mixInBlampCenter(buffer1, bP1, frac, -grad * Samples * summated);
-				else if (symm < 0)
+				if (bp < 1.0f)
 					mixInBlampCenter(buffer1, bP1, frac, grad * Samples * summated);
 			} else {
 				// if transition did not occur
@@ -158,10 +149,8 @@ public:
 		if (pastBp && x >= 1.0f && hspass) {
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1.0f);
-				if (symm > 0)
-					mixInBlampCenter(buffer1, bP1, x / delta, grad * Samples * delta);
-				else if (symm < 0)
+				mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+				if (bp < 1.0f)
 					mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
 				pastBp = false;
 			} else {
@@ -173,24 +162,17 @@ public:
 			// Reset the waveform, and restart it at hardSyncFrac
 			float fracMaster = delta * hardSyncFrac;
 			float trans = x - fracMaster;
-			float mix = symm >= 0 ?
-				trans <= bp ? 0 : (trans - bp) * grad :
-		                trans >= bp  ? 1 : trans * grad;
-			if (symm > 0 && trans > symm)
-				mixInBlampCenter(buffer1, bP1, hardSyncFrac, grad * Samples * delta);
-			else if (symm < 0 && trans > bp)
+			float mix = x > bp ? 1.0f : x * grad;
+			if (trans > bp)
 				mixInBlampCenter(buffer1, bP1, hardSyncFrac, -grad * Samples * delta);
 			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, mix);
 			pastBp = false;
-			// If symmetry is very small, we might get an event
+			// If bp is very small, we might get an event
 			// in the same sample period as the hard sync event
 			x = fracMaster;
 			if (x >= bp && x - summated < bp) {
 				pastBp = true;
-				if (symm > 0) {
-					float frac = (x - bp) / summated;
-					mixInBlampCenter(buffer1, bP1, frac, -grad * Samples * summated);
-				} else if (symm < 0) {
+				if (bp < 1.0f) {
 					float frac = (x - bp) / summated;
 					mixInBlampCenter(buffer1, bP1, frac, grad * Samples * summated);
 				}
