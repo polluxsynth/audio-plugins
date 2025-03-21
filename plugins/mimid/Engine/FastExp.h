@@ -332,8 +332,11 @@ float ExpAdjustment[256] = {
 // The algorithm breaks down for very large or small values of x, in the
 // original version roughly outside the range -700..+700, when used with an
 // 11 bit double floating point representation exponent; and considerably less
-// in the float version we use here (roughly an eighth, so about -87..+87,
-// but in our case, we're happy with a range of +/- 60 semitones, corresponding
+// in the float version we use here; theoretically, roughly an eighth, so
+// about -87..+87, but in practice (empirically verified) the value x can
+// between -126 and +128, and 12 times that if the argument is in semitones.
+//
+// In our case, we're happy with a range of +/- 60 semitones, corresponding
 // to +/- 5 octaves, i.e. corresponding to x being in the range -5..+5 .
 //
 // Note that standard C++ does not permit type punning (using a union
