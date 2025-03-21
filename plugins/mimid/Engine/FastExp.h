@@ -20,9 +20,12 @@
 // Licensing: from https://stackoverflow.com/help/licensing:
 // CC BY-SA 3.0 (post created in 2012, and edited in 2014).
 //
-// The original Schaudolph algorithm was designed for double precision floats,
-// but in the interest of avoiding type conversions and keeping everything
-// as floats it has been reworked by Ricard Wanderlof.
+// The original Schraudolph algorithm was designed for double precision
+// floats, but in the interest of avoiding type conversions and keeping
+// everything as floats it has been reworked by Ricard Wanderlof 2024.
+// The rework is licensed under CC BY-SA 3.0 for simplicity.
+
+#pragma once
 
 float ExpAdjustment[256] = {
 	1.040389835,
@@ -341,7 +344,7 @@ float ExpAdjustment[256] = {
 //
 // Note that standard C++ does not permit type punning (using a union
 // to convert the binary representation between int32 and float), but GCC
-// (and certain other compilers) do, so we use that here to avoid resporting
+// (and certain other compilers) do, so we use that here to avoid resorting
 // to more esoteric methos of converting between int32 and float.
 
 static inline float fast_exp2f12(float x)
