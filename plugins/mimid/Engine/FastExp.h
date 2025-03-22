@@ -347,6 +347,7 @@ float ExpAdjustment[256] = {
 // (and certain other compilers) do, so we use that here to avoid resorting
 // to more esoteric methos of converting between int32 and float.
 
+// semitones -> frequency factor
 static inline float fast_exp2f12(float x)
 {
 	union { float f; int32_t i; } u;
@@ -355,4 +356,23 @@ static inline float fast_exp2f12(float x)
 
 	u.i = tmp;
 	return u.f * ExpAdjustment[index];
+}
+
+
+// shape parameter (-10..+10) -> gradient factor
+// Multiplier is empirically compared against MiMi-a sawtooth shape
+// control. It gives roughly a halving of the sawtooth slope (or "one
+// octave" of shape change, if you will) per parameter value whole step
+// in the range 0..10 .
+// Skip adjustment table as we don't need the precision for this case.
+// The fudge term is set to 0x3f800000 to get a shape value of 0 to result
+// in a gradient of 1.0f, at the expense of a higher maximum deviation
+// (double in fact) from a true exponential.
+static inline float superfast_exp2f_shape(float x)
+{
+	union { float f; int32_t i; } u;
+	int32_t tmp = (int32_t)((0x800000 * 8.0f) * x) + 0x3f800000;
+
+	u.i = tmp;
+	return u.f;
 }
