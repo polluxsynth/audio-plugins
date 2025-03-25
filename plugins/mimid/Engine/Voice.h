@@ -339,7 +339,7 @@ public:
 			osc.symmetry2 = (osc.osc2pw + osc.pw2) * 0.5f + 0.5f;
 		} else if (osc.osc2Var) {
 			float pwtot = osc.osc2pw + osc.pw2;
-			osc.sgradient2 = fast_exp2f12(pwtot * 100);
+			osc.sgradient2 = superfast_exp2f_shape(pwtot);
 		}
 		// Calculate waveshape parameters
 		if (osc.osc1Pul) {
@@ -348,7 +348,7 @@ public:
 			osc.symmetry1 = (osc.osc1pw + osc.pw1) * 0.5f + 0.5f;
 		} else if (osc.osc1Var) {
 			float pwtot = osc.osc1pw + osc.pw1;
-			osc.sgradient1 = fast_exp2f12(pwtot * 100);
+			osc.sgradient1 = superfast_exp2f_shape(pwtot);
 		}
 	}
 	inline float processAudioSample()
