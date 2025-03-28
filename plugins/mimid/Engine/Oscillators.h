@@ -244,10 +244,6 @@ public:
 			hsr = 1; // hard sync governed by sync level
 		}
 
-		// Delaying our hard sync gate signal and frac
-		hsr = syncd.feedReturn(hsr);
-		hsfrac = syncFracd.feedReturn(hsfrac);
-
 		if (osc2Pul)
 			osc2mix = o2p.getValue(x2, pw2calc);
 		else if (osc2Saw)
@@ -259,10 +255,14 @@ public:
 		else if (osc2Var)
 			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
 
-		// osc2sub: osc2 sub oscillator
-		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
+		// Delaying our hard sync gate signal and frac
+		hsr = syncd.feedReturn(hsr);
+		hsfrac = syncFracd.feedReturn(hsfrac);
 
+		// osc2sub: osc2 sub oscillator
 		float osc2submix = 0.0f;
+
+		noiseGen = wn.nextFloat()-0.5; // for noise + osc1 dirt + mix dither
 
 		// Send hard sync reset as trigger for sub osc counter
 		// Because they're delayed above, we don't need to
@@ -340,13 +340,6 @@ public:
 			x1 = fracMaster;
 		}
 
-		// Delay osc2 to get in phase with osc1 which is
-		// in itself delayed due to delay after pitch calc.
-		// TOOD: Review this: Should the xmod really be delayed
-		// in the osc1 pitch calc, it would seem to be one delay
-		// too many in the xmod path.
-		osc2mix = osc2d.feedReturn(osc2mix);
-
 		if (osc1Pul)
 			osc1mix = o1p.getValue(x1, pw1calc);
 		else if (osc1Saw)
@@ -357,6 +350,13 @@ public:
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
 		else if (osc1Var)
 			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
+
+		// Delay osc2 to get in phase with osc1 which is
+		// in itself delayed due to delay after pitch calc.
+		// TOOD: Review this: Should the xmod really be delayed
+		// in the osc1 pitch calc, it would seem to be one delay
+		// too many in the xmod path.
+		osc2mix = osc2d.feedReturn(osc2mix);
 
 		//mixing
 		// TODO: have separate noise generator for the dither noise?
