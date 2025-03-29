@@ -222,13 +222,24 @@ public:
 		} else if (osc2Var) {
 			float grad_limit = SawMaxGrad / fs;
 			sgrad = sgradient2;
-			float grad_derate = SawMinDerate;
-			if (sgrad < grad_limit) grad_derate = 1.0f;
+			// Above a certain gradient, the waveform amplitude
+			// starts decreasing. We could put a hard limit here,
+			// but that would cause the resulting parameter to
+			// hit a brick wall when increased which gives a
+			// confusing user experience. Therefore, derate
+			// the increase instead, only bringing in 10% of the
+			// increase above the gradient limit, so that there
+			// still some albeit much less severe change in the
+			// waveform all the way to the max parameter value.
+			float grad_derate = sgrad < grad_limit ? 1.0f : SawMinDerate;
 			sgrad = (sgrad - grad_limit) * grad_derate + grad_limit;
-
-			sbreakpoint = 1.0f;
-			if (sgrad > 1.0f)
-				sbreakpoint = 1.0f / sgrad;
+			// breakpoint is 1 / gradient, but only when
+			// gradient is > 1. Otherwise it is 1 (maxed).
+			// The normal case here is 1 / gradient, so optimize
+			// for that, with the lack of branches ensuring
+			// that it is no worse for the more unusual case.
+			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
+			sbreakpoint = dividend / sgrad;
 			o2v.processMaster(x2, fs, sbreakpoint, sgrad, keyReset);
 		}
 
@@ -321,12 +332,10 @@ public:
 		} else if (osc1Var) {
 			float grad_limit = SawMaxGrad / fs;
 			sgrad = sgradient1;
-			float grad_derate = SawMinDerate;
-			if (sgrad < grad_limit) grad_derate = 1.0f;
+			float grad_derate = sgrad < grad_limit ? 1.0f : SawMinDerate;
 			sgrad = (sgrad - grad_limit) * grad_derate + grad_limit;
-			sbreakpoint = 1.0;
-			if (sgrad > 1.0f)
-				sbreakpoint = 1.0f / sgrad;
+			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
+			sbreakpoint = dividend / sgrad;
 			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
 		}
 
