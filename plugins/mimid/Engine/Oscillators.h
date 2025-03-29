@@ -192,15 +192,32 @@ public:
 		float symmetry = 0, riseGradient = 0, fallGradient = 0;
 		float sgrad = 0, sbreakpoint = 0;
 
+#define PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset) \
+		if (keyReset) { \
+			x2 = 0.0f; \
+			hsfrac = 1.0f; \
+			hsr = -1; /* unconditional hard sync */ \
+		} else if (x2 >= 1.0f) { \
+			x2 -= 1.0f; \
+			hsfrac = x2 / fs; \
+			hsr = 1; /* hard sync governed by sync level */ \
+		}
+
 		switch (osc2Wave) {
 		case 1: // Saw
 			o2s.processMaster(x2, fs, keyReset);
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
+			osc2mix = o2s.getValue(x2);
 			break;
 		case 2: // Pulse
 			o2p.processMaster(x2, fs, pw2calc, keyReset);
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
+			osc2mix = o2p.getValue(x2, pw2calc);
 			break;
 		case 3: // Triangle
 			o2t.processMaster(x2, fs, keyReset);
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
+			osc2mix = o2t.getValue(x2);
 			break;
 		case 4:	{ // Trapezoid
 			symmetry = limitf(symmetry2, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
@@ -209,6 +226,8 @@ public:
 			fallGradient = 1.0f / (symmetry - 1.0f);
 
 			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
+			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
 			}
 			break;
 		case 5:	{ // VariSaw
@@ -233,43 +252,13 @@ public:
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
 			sbreakpoint = dividend / sgrad;
 			o2v.processMaster(x2, fs, sbreakpoint, sgrad, keyReset);
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
+			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
 			}
 			break;
 		case 0: // Off
 		default:
-			break;
-		}
-
-		if (keyReset) {
-			x2 = 0.0f;
-			hsfrac = 1.0f;
-			hsr = -1; // unconditional hard sync
-		}
-		else if (x2 >= 1.0f)
-		{
-			x2 -= 1.0f;
-			hsfrac = x2 / fs;
-			hsr = 1; // hard sync governed by sync level
-		}
-
-		switch (osc2Wave) {
-		case 1: // Saw
-			osc2mix = o2s.getValue(x2);
-			break;
-		case 2: // Pulse
-			osc2mix = o2p.getValue(x2, pw2calc);
-			break;
-		case 3: // Triangle
-			osc2mix = o2t.getValue(x2);
-			break;
-		case 4: // Trapezoid
-			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
-			break;
-		case 5: // VariSaw
-			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
-			break;
-		case 0: // Off
-		default:
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
 			break;
 		}
 
@@ -324,15 +313,30 @@ public:
 		if (hsr > 0) // hard sync
 			hsr &= (syncLevel <= 0.99f) && (x1 - hsfrac * fs >= syncLevel);
 
+#define PhaseResetSlave(x1, fs, hsr, hsfrac) \
+		if (x1 >= 1.0f) \
+			x1 -= 1.0f; \
+		/* On hard sync reset slave phase is affected that way */ \
+		if (hsr) { \
+			float fracMaster = fs * hsfrac; \
+			x1 = fracMaster; \
+		}
+
 		switch (osc1Wave) {
 		case 1: // Saw
 			o1s.processSlave(x1, fs, hsr, hsfrac);
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
+			osc1mix = o1s.getValue(x1);
 			break;
 		case 2: // Pulse
 			o1p.processSlave(x1, fs, hsr, hsfrac, pw1calc);
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
+			osc1mix = o1p.getValue(x1, pw1calc);
 			break;
 		case 3: // Triangle
 			o1t.processSlave(x1, fs, hsr, hsfrac);
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
+			osc1mix = o1t.getValue(x1);
 			break;
 		case 4:	{ // Trapezoid
 			symmetry = limitf(symmetry1, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
@@ -340,6 +344,8 @@ public:
 			riseGradient = 1.0f / symmetry;
 			fallGradient = 1.0f / (symmetry - 1.0f);
 			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
+			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
 			}
 			break;
 		case 5:	{ // VariSaw
@@ -350,41 +356,13 @@ public:
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
 			sbreakpoint = dividend / sgrad;
 			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
+			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
 			}
 			break;
 		case 0: // Off
 		default:
-			break;
-		}
-
-		if (x1 >= 1.0f)
-			x1 -= 1.0f;
-
-		// On hard sync reset slave phase is affected that way
-		if (hsr)
-		{
-			float fracMaster = fs * hsfrac;
-			x1 = fracMaster;
-		}
-
-		switch (osc1Wave) {
-		case 1: // Saw
-			osc1mix = o1s.getValue(x1);
-			break;
-		case 2: // Pulse
-			osc1mix = o1p.getValue(x1, pw1calc);
-			break;
-		case 3: // Triangle
-			osc1mix = o1t.getValue(x1);
-			break;
-		case 4: // Trapezoid
-			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
-			break;
-		case 5: // VariSaw
-			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
-			break;
-		case 0: // Off
-		default:
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
 			break;
 		}
 
