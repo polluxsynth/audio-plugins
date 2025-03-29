@@ -186,12 +186,6 @@ public:
 		x2 += fs;
 		float osc2mix = 0.0f;
 
-		// Local variables for waveshaping. Set for antialising,
-		// reused for same oscillator's waveform calculation,
-		// then reused for other oscillator.
-		float symmetry = 0, riseGradient = 0, fallGradient = 0;
-		float sgrad = 0, sbreakpoint = 0;
-
 #define PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset) \
 		if (keyReset) { \
 			x2 = 0.0f; \
@@ -220,10 +214,10 @@ public:
 			osc2mix = o2t.getValue(x2);
 			break;
 		case 4:	{ // Trapezoid
-			symmetry = limitf(symmetry2, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+			float symmetry = limitf(symmetry2, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 			// With limitation above, don't need 0 check here
-			riseGradient = 1.0f / symmetry;
-			fallGradient = 1.0f / (symmetry - 1.0f);
+			float riseGradient = 1.0f / symmetry;
+			float fallGradient = 1.0f / (symmetry - 1.0f);
 
 			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
 			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
@@ -232,7 +226,6 @@ public:
 			break;
 		case 5:	{ // VariSaw
 			float grad_limit = SawMaxGrad / fs;
-			sgrad = sgradient2;
 			// Above a certain gradient, the waveform amplitude
 			// starts decreasing. We could put a hard limit here,
 			// but that would cause the resulting parameter to
@@ -242,15 +235,15 @@ public:
 			// increase above the gradient limit, so that there
 			// still some albeit much less severe change in the
 			// waveform all the way to the max parameter value.
-			float grad_derate = sgrad < grad_limit ? 1.0f : SawMinDerate;
-			sgrad = (sgrad - grad_limit) * grad_derate + grad_limit;
+			float grad_derate = sgradient2 < grad_limit ? 1.0f : SawMinDerate;
+			float sgrad = (sgradient2 - grad_limit) * grad_derate + grad_limit;
 			// breakpoint is 1 / gradient, but only when
 			// gradient is > 1. Otherwise it is 1 (maxed).
 			// The normal case here is 1 / gradient, so optimize
 			// for that, with the lack of branches ensuring
 			// that it is no worse for the more unusual case.
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
-			sbreakpoint = dividend / sgrad;
+			float sbreakpoint = dividend / sgrad;
 			o2v.processMaster(x2, fs, sbreakpoint, sgrad, keyReset);
 			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
 			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
@@ -338,10 +331,10 @@ public:
 			osc1mix = o1t.getValue(x1);
 			break;
 		case 4:	{ // Trapezoid
-			symmetry = limitf(symmetry1, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
+			float symmetry = limitf(symmetry1, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 			// With limitation above, don't need 0 check here
-			riseGradient = 1.0f / symmetry;
-			fallGradient = 1.0f / (symmetry - 1.0f);
+			float riseGradient = 1.0f / symmetry;
+			float fallGradient = 1.0f / (symmetry - 1.0f);
 			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
 			PhaseResetSlave(x1, fs, hsr, hsfrac);
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
@@ -349,11 +342,10 @@ public:
 			break;
 		case 5:	{ // VariSaw
 			float grad_limit = SawMaxGrad / fs;
-			sgrad = sgradient1;
-			float grad_derate = sgrad < grad_limit ? 1.0f : SawMinDerate;
-			sgrad = (sgrad - grad_limit) * grad_derate + grad_limit;
+			float grad_derate = sgradient1 < grad_limit ? 1.0f : SawMinDerate;
+			float sgrad = (sgradient1 - grad_limit) * grad_derate + grad_limit;
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
-			sbreakpoint = dividend / sgrad;
+			float sbreakpoint = dividend / sgrad;
 			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
 			PhaseResetSlave(x1, fs, hsr, hsfrac);
 			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
