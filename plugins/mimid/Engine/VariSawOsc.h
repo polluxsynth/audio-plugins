@@ -81,6 +81,12 @@ public:
 			if (bp < 1.0f)
 				mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
 			pastBp = false;
+			// We can return early here, becuase there are
+			// limits to the gradient and consequently breakpoint
+			// which mean that for sane sample rates and osc
+			// frequencies, we will never reach the breakpoint in
+			// the same sample interval as a waveform reset.
+			return;
 		}
 		if (!pastBp && x >= bp && x - summated <= bp) {
 			pastBp = true;
@@ -167,16 +173,12 @@ public:
 				mixInBlampCenter(buffer1, bP1, hardSyncFrac, -grad * Samples * delta);
 			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, mix);
 			pastBp = false;
-			// If bp is very small, we might get an event
-			// in the same sample period as the hard sync event
 			x = fracMaster;
-			if (x >= bp && x - summated < bp) {
-				pastBp = true;
-				if (bp < 1.0f) {
-					float frac = (x - bp) / summated;
-					mixInBlampCenter(buffer1, bP1, frac, grad * Samples * summated);
-				}
-			}
+			// Since the maximum gradient limits the breakpoint to
+			// more than a sample period, for practical sample
+			// rates, we don't need to consider a ramp-to-flatline
+			// transition (which would have resulted in a blamp
+			// insertion) here.
 		}
 		prevBp = bp;
 	}
