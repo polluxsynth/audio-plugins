@@ -314,13 +314,12 @@ public:
 			hsr &= (syncLevel <= 0.99f) && (x1 - hsfrac * fs >= syncLevel);
 
 #define PhaseResetSlave(x1, fs, hsr, hsfrac) \
-		if (x1 >= 1.0f) \
-			x1 -= 1.0f; \
-		/* On hard sync reset slave phase is affected that way */ \
 		if (hsr) { \
+			/* On hard sync reset slave phase to master frac */ \
 			float fracMaster = fs * hsfrac; \
 			x1 = fracMaster; \
-		}
+		} else if (x1 >= 1.0f) \
+			x1 -= 1.0f; \
 
 		switch (osc1Wave) {
 		case 1: // Saw
