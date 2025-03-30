@@ -93,8 +93,7 @@ public:
 	float pto1, pto2;
 
 	//osc waveshapes
-	bool osc1Saw, osc1Pul, osc1Tri, osc1Tra, osc1Var;
-	bool osc2Saw, osc2Pul, osc2Tri, osc2Tra, osc2Var;
+	int osc1Wave, osc2Wave;
 	int osc2SubWaveform;
 
 	// Osc waveshaping parameters
@@ -142,7 +141,7 @@ public:
 		xmod = 0;
 		syncLevel = 1.0f;
 		osc1p = osc2p = 24.0f;
-		osc1Saw = osc2Saw = osc1Pul = osc2Pul = false;
+		osc1Wave = osc2Wave = 0;
 		osc1Det = osc2Det = 0;
 		notePlaying = 30;
 		osc1pw = osc2pw = 0;
@@ -193,20 +192,26 @@ public:
 		float symmetry = 0, riseGradient = 0, fallGradient = 0;
 		float sgrad = 0, sbreakpoint = 0;
 
-		if (osc2Pul) {
-			o2p.processMaster(x2, fs, pw2calc, keyReset);
-		} else if (osc2Saw) {
+		switch (osc2Wave) {
+		case 1: // Saw
 			o2s.processMaster(x2, fs, keyReset);
-		} else if (osc2Tri) {
+			break;
+		case 2: // Pulse
+			o2p.processMaster(x2, fs, pw2calc, keyReset);
+			break;
+		case 3: // Triangle
 			o2t.processMaster(x2, fs, keyReset);
-		} else if (osc2Tra) {
+			break;
+		case 4:	{ // Trapezoid
 			symmetry = limitf(symmetry2, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 			// With limitation above, don't need 0 check here
 			riseGradient = 1.0f / symmetry;
 			fallGradient = 1.0f / (symmetry - 1.0f);
 
 			o2z.processMaster(x2, fs, symmetry, riseGradient, fallGradient, keyReset);
-		} else if (osc2Var) {
+			}
+			break;
+		case 5:	{ // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			sgrad = sgradient2;
 			// Above a certain gradient, the waveform amplitude
@@ -228,6 +233,11 @@ public:
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
 			sbreakpoint = dividend / sgrad;
 			o2v.processMaster(x2, fs, sbreakpoint, sgrad, keyReset);
+			}
+			break;
+		case 0: // Off
+		default:
+			break;
 		}
 
 		if (keyReset) {
@@ -242,16 +252,26 @@ public:
 			hsr = 1; // hard sync governed by sync level
 		}
 
-		if (osc2Pul)
-			osc2mix = o2p.getValue(x2, pw2calc);
-		else if (osc2Saw)
+		switch (osc2Wave) {
+		case 1: // Saw
 			osc2mix = o2s.getValue(x2);
-		else if (osc2Tri)
+			break;
+		case 2: // Pulse
+			osc2mix = o2p.getValue(x2, pw2calc);
+			break;
+		case 3: // Triangle
 			osc2mix = o2t.getValue(x2);
-		else if (osc2Tra)
+			break;
+		case 4: // Trapezoid
 			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
-		else if (osc2Var)
+			break;
+		case 5: // VariSaw
 			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
+			break;
+		case 0: // Off
+		default:
+			break;
+		}
 
 		// Delaying our hard sync gate signal and frac
 		hsr = syncd.feedReturn(hsr);
@@ -304,19 +324,25 @@ public:
 		if (hsr > 0) // hard sync
 			hsr &= (syncLevel <= 0.99f) && (x1 - hsfrac * fs >= syncLevel);
 
-		if (osc1Pul) {
-			o1p.processSlave(x1, fs, hsr, hsfrac, pw1calc);
-		} else if (osc1Saw) {
+		switch (osc1Wave) {
+		case 1: // Saw
 			o1s.processSlave(x1, fs, hsr, hsfrac);
-		} else if (osc1Tri) {
+			break;
+		case 2: // Pulse
+			o1p.processSlave(x1, fs, hsr, hsfrac, pw1calc);
+			break;
+		case 3: // Triangle
 			o1t.processSlave(x1, fs, hsr, hsfrac);
-		} else if (osc1Tra) {
+			break;
+		case 4:	{ // Trapezoid
 			symmetry = limitf(symmetry1, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 			// With limitation above, don't need 0 check here
 			riseGradient = 1.0f / symmetry;
 			fallGradient = 1.0f / (symmetry - 1.0f);
 			o1z.processSlave(x1, fs, hsr, hsfrac, symmetry, riseGradient, fallGradient);
-		} else if (osc1Var) {
+			}
+			break;
+		case 5:	{ // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			sgrad = sgradient1;
 			float grad_derate = sgrad < grad_limit ? 1.0f : SawMinDerate;
@@ -324,6 +350,11 @@ public:
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
 			sbreakpoint = dividend / sgrad;
 			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
+			}
+			break;
+		case 0: // Off
+		default:
+			break;
 		}
 
 		if (x1 >= 1.0f)
@@ -336,16 +367,26 @@ public:
 			x1 = fracMaster;
 		}
 
-		if (osc1Pul)
-			osc1mix = o1p.getValue(x1, pw1calc);
-		else if (osc1Saw)
+		switch (osc1Wave) {
+		case 1: // Saw
 			osc1mix = o1s.getValue(x1);
-		else if (osc1Tri)
+			break;
+		case 2: // Pulse
+			osc1mix = o1p.getValue(x1, pw1calc);
+			break;
+		case 3: // Triangle
 			osc1mix = o1t.getValue(x1);
-		else if (osc1Tra)
+			break;
+		case 4: // Trapezoid
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
-		else if (osc1Var)
+			break;
+		case 5: // VariSaw
 			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
+			break;
+		case 0: // Off
+		default:
+			break;
+		}
 
 		// Delay osc2 to get in phase with osc1 which is
 		// in itself delayed due to delay after pitch calc.

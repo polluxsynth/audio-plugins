@@ -332,23 +332,36 @@ public:
 				osc2FltModCalc = (maxallowednote - cutoffnote) *
 						  oscmod_maxpeak_inv;
 		}
-		// Calculate waveshape parameters
-		if (osc.osc2Pul) {
+		// Calculate osc 2 waveshape parameters
+		switch (osc.osc2Wave) {
+		case 2: // Pulse
 			osc.pw2calc = limitf((osc.osc2pw + osc.pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
-		} else if (osc.osc2Tra) {
+			break;
+		case 4: // Trapezoid
 			osc.symmetry2 = (osc.osc2pw + osc.pw2) * 0.5f + 0.5f;
-		} else if (osc.osc2Var) {
-			float pwtot = osc.osc2pw + osc.pw2;
-			osc.sgradient2 = superfast_exp2f_shape(pwtot);
+			break;
+		case 5:	// VariSaw
+			osc.sgradient2 = superfast_exp2f_shape(osc.osc2pw + osc.pw2);
+			break;
+		case 0: // Off
+		default:
+			break;
 		}
-		// Calculate waveshape parameters
-		if (osc.osc1Pul) {
+
+		// Calculate osc 1 waveshape parameters
+		switch (osc.osc1Wave) {
+		case 2: // Pulse
 			osc.pw1calc = limitf((osc.osc1pw + osc.pw1) * 0.5f + 0.5f, 0.0f, 1.0f);
-		} else if (osc.osc1Tra) {
+			break;
+		case 4: // Trapezoid
 			osc.symmetry1 = (osc.osc1pw + osc.pw1) * 0.5f + 0.5f;
-		} else if (osc.osc1Var) {
-			float pwtot = osc.osc1pw + osc.pw1;
-			osc.sgradient1 = superfast_exp2f_shape(pwtot);
+			break;
+		case 5:	// VariSaw
+			osc.sgradient1 = superfast_exp2f_shape(osc.osc1pw + osc.pw1);
+			break;
+		case 0: // Off
+		default:
+			break;
 		}
 	}
 	inline float processAudioSample()
