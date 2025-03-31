@@ -25,37 +25,27 @@
 #pragma once
 #include "SynthEngine.h"
 #include "BlepData.h"
+#include "Antialias.h"
+
 class TriangleOsc 
 {
 	bool fall;
-	float buffer1[Samples * 2];
-	const int n, nmask;
-	float const *blepPTR;
-	float const *blampPTR;
-
-	int bP1, bP2;
+	Antialias antialias;
 public:
-	TriangleOsc(): n(Samples * 2), nmask(Samples * 2 - 1)
+	TriangleOsc(): antialias()
 	{
 		fall = false;
-		bP1 = bP2 = 0;
-		for (int i = 0; i < n; i++)
-			buffer1[i] = 0;
-		blepPTR = blep;
-		blampPTR = blamp;
 	}
 	~TriangleOsc()
 	{
 	}
 	inline void setDecimation()
 	{
-		blepPTR = blepd2;
-		blampPTR = blampd2;
+		antialias.setDecimation();
 	}
 	inline void removeDecimation()
 	{
-		blepPTR = blep;
-		blampPTR = blamp;
+		antialias.removeDecimation();
 	}
 	inline void processMaster(float x, float delta, bool waveformReset)
 	{
@@ -63,33 +53,27 @@ public:
 			float trans = x - delta;
 			float mix = trans < 0.5f ? 2.0f * trans - 0.5f : 1.5f - 2.0f * trans;
 			if (trans > 0.5f)
-				mixInBlampCenter(buffer1, bP1, 1.0f, -4.0f * Samples * delta);
-			mixInImpulseCenter(buffer1, bP1, 1.0f, mix + 0.5f);
+				antialias.mixInBlampCenter(1.0f, -4.0f * Samples * delta);
+			antialias.mixInImpulseCenter(1.0f, mix + 0.5f);
 			return;
 		}
 		if (x >= 1.0f) {
 			x -= 1.0f;
-			mixInBlampCenter(buffer1, bP1, x / delta, -4.0f * Samples * delta);
+			antialias.mixInBlampCenter(x / delta, -4.0f * Samples * delta);
 		}
 		if (x >= 0.5f && x - delta < 0.5f) {
-			mixInBlampCenter(buffer1, bP1, (x - 0.5f) / delta, 4.0f * Samples * delta);
+			antialias.mixInBlampCenter((x - 0.5f) / delta, 4.0f * Samples * delta);
 		}
 		if (x >= 1.0f) {
 			x -= 1.0f;
-			mixInBlampCenter(buffer1, bP1, x / delta, -4.0f * Samples * delta);
+			antialias.mixInBlampCenter(x / delta, -4.0f * Samples * delta);
 		}
 	}
 	inline float getValue(float x)
 	{
 		float mix = x < 0.5f ? 2.0f * x - 0.5f : 1.5f - 2.0f * x;
-		// Instead of subtracting Samples to get to the middle of the
-		// BLEP buffer, and then masking with size-1 to keep the
-		// offset inside the buffer, we can just XOR the offset with
-		// Samples (which corresponds to subtracting (or adding, for
-		// that matter) half the buffer size and discarding the carry),
-		// since the buffer is 2 * Samples long.
-		buffer1[bP1 ^ Samples] += mix;
-		return getNextBlep(buffer1, bP1);
+		antialias.putSample(mix);
+		return antialias.getNextSample();
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac)
 	{
@@ -97,7 +81,7 @@ public:
 		if (x >= 1.0f) {
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				mixInBlampCenter(buffer1, bP1, x / delta, -4.0f * Samples * delta);
+				antialias.mixInBlampCenter(x / delta, -4.0f * Samples * delta);
 			} else {
 				x += 1.0f;
 				hspass = false;
@@ -106,12 +90,12 @@ public:
 		if (x >= 0.5f && x - delta < 0.5f && hspass) {
 			float frac = (x - 0.5f) / delta;
 			if (!hardSyncReset || (frac > hardSyncFrac)) // de morgan processed equation
-				mixInBlampCenter(buffer1, bP1, frac, 4.0f * Samples * delta);
+				antialias.mixInBlampCenter(frac, 4.0f * Samples * delta);
 		}
 		if (x >= 1.0f && hspass) {
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				mixInBlampCenter(buffer1, bP1, x / delta, -4.0f * Samples * delta);
+				antialias.mixInBlampCenter(x / delta, -4.0f * Samples * delta);
 			} else {
 				// if transition did not occur
 				x += 1.0f;
@@ -123,40 +107,8 @@ public:
 			float trans = x - fracMaster;
 			float mix = trans < 0.5f ? 2.0f * trans - 0.5f : 1.5f - 2.0f * trans;
 			if (trans > 0.5f)
-				mixInBlampCenter(buffer1, bP1, hardSyncFrac, -4.0f * Samples * delta);
-			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, mix + 0.5f);
+				antialias.mixInBlampCenter(hardSyncFrac, -4.0f * Samples * delta);
+			antialias.mixInImpulseCenter(hardSyncFrac, mix + 0.5f);
 		}
-	}
-	inline void mixInBlampCenter(float *buf, int &bpos, float offset, float scale)
-	{
-		int lpIn = (int)(B_OVERSAMPLING * offset);
-		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
-		lpIn *= Blepsize;
-		for (int i = 0; i < n; i++) {
-			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & nmask] += mixvalue * scale;
-			lpIn++;
-		}
-	}
-	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale) 
-	{
-		int lpIn = (int)(B_OVERSAMPLING * offset);
-		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
-		lpIn *= Blepsize;
-		for (int i = 0; i < n; i++) {
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & nmask] += mixvalue * scale;
-			lpIn++;
-		}
-	}
-	inline float getNextBlep(float *buf, int &bpos)
-	{
-		bpos = (bpos + 1) & nmask;
-		float value = buf[bpos];
-		buf[bpos] = 0.0f;
-
-		return value;
 	}
 };

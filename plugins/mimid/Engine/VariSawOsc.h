@@ -25,37 +25,29 @@
 #pragma once
 #include "SynthEngine.h"
 #include "BlepData.h"
+#include "Antialias.h"
+
 class VariSawOsc
 {
 	bool pastBp = true;
 	float prevBp;
-	float buffer1[Samples * 2];
-	const int n, nmask;
-	float const *blepPTR;
-	float const *blampPTR;
-	int bP1;
+	Antialias antialias;
 public:
-	VariSawOsc(): n(Samples * 2), nmask(Samples * 2 - 1)
+	VariSawOsc(): antialias()
 	{
 		pastBp = false;
 		prevBp = 0;
-		bP1 = 0;
-		for (int i = 0; i < n; i++)
-			buffer1[i] = 0;
-		blepPTR = blep;
 	}
 	~VariSawOsc()
 	{
 	}
 	inline void setDecimation()
 	{
-		blepPTR = blepd2;
-		blampPTR = blampd2;
+		antialias.setDecimation();
 	}
 	inline void removeDecimation()
 	{
-		blepPTR = blep;
-		blampPTR = blamp;
+		antialias.removeDecimation();
 	}
 	// breakpoint is 0..1 (spikey sawtooth .. standard sawtooth)
 	// (Sawtooth is actually inverted when spikey)
@@ -69,17 +61,17 @@ public:
 			float trans = x - delta;
 			float mix = x > bp ? 1.0f : x * grad;
 			if (trans > bp)
-				mixInBlampCenter(buffer1, bP1, 1.0f, -grad * Samples * delta);
-			mixInImpulseCenter(buffer1, bP1, 1.0f, mix);
+				antialias.mixInBlampCenter(1.0f, -grad * Samples * delta);
+			antialias.mixInImpulseCenter(1.0f, mix);
 			pastBp = false; // Waveform restarted
 			return;
 		}
 		float summated = delta - (bp - prevBp);
 		if (pastBp && x >= 1.0f) {
 			x -= 1.0f;
-			mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+			antialias.mixInImpulseCenter(x / delta, grad < 1.0f ? grad : 1.0f);
 			if (bp < 1.0f)
-				mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
+				antialias.mixInBlampCenter(x / delta, -grad * Samples * delta);
 			pastBp = false;
 			// We can return early here, becuase there are
 			// limits to the gradient and consequently breakpoint
@@ -92,14 +84,14 @@ public:
 			pastBp = true;
 			if (bp < 1.0f) {
 				float frac = (x - bp) / summated;
-				mixInBlampCenter(buffer1, bP1, frac, grad * Samples * summated);
+				antialias.mixInBlampCenter(frac, grad * Samples * summated);
 			}
 		}
 		if (pastBp && x >= 1.0f) {
 			x -= 1.0f;
-			mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+			antialias.mixInImpulseCenter(x / delta, grad < 1.0f ? grad : 1.0f);
 			if (bp < 1.0f)
-				mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
+				antialias.mixInBlampCenter(x / delta, -grad * Samples * delta);
 			pastBp = false;
 		}
 		prevBp = bp;
@@ -114,15 +106,8 @@ public:
 		// 1 - 0.5 * bp
 		// all in all: gradient <= 1 ? 0.5 * grad : 1 - 0.5 * bp;
 		mix -= grad <= 1.0f ? 0.5f * grad : 1.0f - 0.5f * bp;
-
-		// Instead of subtracting Samples to get to the middle of the
-		// BLEP buffer, and then masking with size-1 to keep the
-		// offset inside the buffer, we can just XOR the offset with
-		// Samples (which corresponds to subtracting (or adding, for
-		// that matter) half the buffer size and discarding the carry),
-		// since the buffer is 2 * Samples long.
-		buffer1[bP1 ^ Samples] += mix;
-		return getNextBlep(buffer1, bP1);
+		antialias.putSample(mix);
+		return antialias.getNextSample();
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac, float bp, float grad)
 	{
@@ -131,9 +116,9 @@ public:
 		if (pastBp && x >= 1.0f) {
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+				antialias.mixInImpulseCenter(x / delta, grad < 1.0f ? grad : 1.0f);
 				if (bp < 1.0f)
-					mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
+					antialias.mixInBlampCenter(x / delta, -grad * Samples * delta);
 				pastBp = false;
 			} else {
 				// if transition did not occur
@@ -146,7 +131,7 @@ public:
 			float frac = (x - bp) / summated;
 			if (!hardSyncReset || (frac > hardSyncFrac)) { // de morgan processed equation
 				if (bp < 1.0f)
-					mixInBlampCenter(buffer1, bP1, frac, grad * Samples * summated);
+					antialias.mixInBlampCenter(frac, grad * Samples * summated);
 			} else {
 				// if transition did not occur
 				pastBp = false;
@@ -155,9 +140,9 @@ public:
 		if (pastBp && x >= 1.0f && hspass) {
 			x -= 1.0f;
 			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
-				mixInImpulseCenter(buffer1, bP1, x / delta, grad < 1.0f ? grad : 1.0f);
+				antialias.mixInImpulseCenter(x / delta, grad < 1.0f ? grad : 1.0f);
 				if (bp < 1.0f)
-					mixInBlampCenter(buffer1, bP1, x / delta, -grad * Samples * delta);
+					antialias.mixInBlampCenter(x / delta, -grad * Samples * delta);
 				pastBp = false;
 			} else {
 				// if transition did not occur
@@ -170,8 +155,8 @@ public:
 			float trans = x - fracMaster;
 			float mix = x > bp ? 1.0f : x * grad;
 			if (trans > bp)
-				mixInBlampCenter(buffer1, bP1, hardSyncFrac, -grad * Samples * delta);
-			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, mix);
+				antialias.mixInBlampCenter(hardSyncFrac, -grad * Samples * delta);
+			antialias.mixInImpulseCenter(hardSyncFrac, mix);
 			pastBp = false;
 			x = fracMaster;
 			// Since the maximum gradient limits the breakpoint to
@@ -181,37 +166,5 @@ public:
 			// insertion) here.
 		}
 		prevBp = bp;
-	}
-	inline void mixInBlampCenter(float *buf, int &bpos, float offset, float scale)
-	{
-		int lpIn = (int)(B_OVERSAMPLING * offset);
-		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
-		lpIn *= Blepsize;
-		for (int i = 0; i < n; i++) {
-			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & nmask] += mixvalue * scale;
-			lpIn++;
-		}
-	}
-	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
-	{
-		int lpIn = (int)(B_OVERSAMPLING * offset);
-		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
-		lpIn *= Blepsize;
-		for (int i = 0 ; i < n; i++) {
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & nmask] += mixvalue * scale;
-			lpIn++;
-		}
-	}
-	inline float getNextBlep(float *buf, int &bpos)
-	{
-		bpos = (bpos + 1) & nmask;
-		float value = buf[bpos];
-		buf[bpos] = 0.0f;
-
-		return value;
 	}
 };
