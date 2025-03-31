@@ -30,11 +30,11 @@
 
 class SubOsc
 {
-	Antialias antialias;
+	Antialias &antialias;
 	int counter;
 	bool state, prevState;
 public:
-	SubOsc(): antialias()
+	SubOsc(Antialias &a): antialias(a)
 	{
 		counter = 0;
 		state = prevState = 0;

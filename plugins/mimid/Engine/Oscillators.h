@@ -65,6 +65,7 @@ private:
 	DelayLine<Samples> syncFracd;
 	DelayLine<Samples> cvd;
 	SRandom wn;
+	Antialias o1aa, o2aa, subaa;
 	SawOsc o1s, o2s;
 	PulseOsc o1p, o2p;
 	TriangleOsc o1t, o2t;
@@ -117,11 +118,13 @@ public:
 	Oscillators() :
 		n(Samples * 2),
 		hsam(Samples),
-		o1s(), o2s(),
-		o1p(), o2p(),
-		o1t(), o2t(),
-		o1z(), o2z(),
-		o1v(), o2v()
+		o1aa(), o2aa(), subaa(),
+		o1s(o1aa), o2s(o2aa),
+		o1p(o1aa), o2p(o2aa),
+		o1t(o1aa), o2t(o2aa),
+		o1z(o1aa), o2z(o2aa),
+		o1v(o1aa), o2v(o2aa),
+		o2sub(subaa)
 	{
 		dirt = 0.1;
 		totalSpread = 0;
@@ -155,31 +158,15 @@ public:
 	}
 	void setDecimation()
 	{
-		o1p.setDecimation();
-		o1t.setDecimation();
-		o1s.setDecimation();
-		o1z.setDecimation();
-		o1v.setDecimation();
-		o2p.setDecimation();
-		o2t.setDecimation();
-		o2s.setDecimation();
-		o2z.setDecimation();
-		o2v.setDecimation();
-		o2sub.setDecimation();
+		o1aa.setDecimation();
+		o2aa.setDecimation();
+		subaa.setDecimation();
 	}
 	void removeDecimation()
 	{
-		o1p.removeDecimation();
-		o1t.removeDecimation();
-		o1s.removeDecimation();
-		o1z.removeDecimation();
-		o1v.removeDecimation();
-		o2p.removeDecimation();
-		o2t.removeDecimation();
-		o2s.removeDecimation();
-		o2z.removeDecimation();
-		o2v.removeDecimation();
-		o2sub.removeDecimation();
+		o1aa.removeDecimation();
+		o2aa.removeDecimation();
+		subaa.removeDecimation();
 	}
 	void setSampleRate(float sr)
 	{

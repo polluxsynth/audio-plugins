@@ -30,22 +30,14 @@ class PulseOsc
 {
 	bool pw1t;
 	float prevPulseWidth;
-	Antialias antialias;
+	Antialias &antialias;
 public:
-	PulseOsc(): antialias()
+	PulseOsc(Antialias &a): antialias(a)
 	{
 		pw1t = false;
 	}
 	~PulseOsc()
 	{
-	}
-	inline void setDecimation()
-	{
-		antialias.setDecimation();
-	}
-	inline void removeDecimation()
-	{
-		antialias.removeDecimation();
 	}
 	inline void processMaster(float x, float delta, float pulseWidth, bool waveformReset)
 	{

@@ -30,22 +30,14 @@
 class TriangleOsc 
 {
 	bool fall;
-	Antialias antialias;
+	Antialias &antialias;
 public:
-	TriangleOsc(): antialias()
+	TriangleOsc(Antialias &a): antialias(a)
 	{
 		fall = false;
 	}
 	~TriangleOsc()
 	{
-	}
-	inline void setDecimation()
-	{
-		antialias.setDecimation();
-	}
-	inline void removeDecimation()
-	{
-		antialias.removeDecimation();
 	}
 	inline void processMaster(float x, float delta, bool waveformReset)
 	{

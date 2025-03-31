@@ -31,23 +31,15 @@ class VariSawOsc
 {
 	bool pastBp = true;
 	float prevBp;
-	Antialias antialias;
+	Antialias &antialias;
 public:
-	VariSawOsc(): antialias()
+	VariSawOsc(Antialias &a): antialias(a)
 	{
 		pastBp = false;
 		prevBp = 0;
 	}
 	~VariSawOsc()
 	{
-	}
-	inline void setDecimation()
-	{
-		antialias.setDecimation();
-	}
-	inline void removeDecimation()
-	{
-		antialias.removeDecimation();
 	}
 	// breakpoint is 0..1 (spikey sawtooth .. standard sawtooth)
 	// (Sawtooth is actually inverted when spikey)

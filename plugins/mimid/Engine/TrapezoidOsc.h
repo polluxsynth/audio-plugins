@@ -31,23 +31,15 @@ class TrapezoidOsc
 {
 	bool falling;
 	float prevSymm;
-	Antialias antialias;
+	Antialias &antialias;
 public:
-	TrapezoidOsc(): antialias()
+	TrapezoidOsc(Antialias &a): antialias(a)
 	{
 		falling = false;
 		prevSymm = 0;
 	}
 	~TrapezoidOsc()
 	{
-	}
-	inline void setDecimation()
-	{
-		antialias.setDecimation();
-	}
-	inline void removeDecimation()
-	{
-		antialias.removeDecimation();
 	}
 	inline void processMaster(float x, float delta, float symm, float riseGrad, float fallGrad, bool waveformReset)
 	{
