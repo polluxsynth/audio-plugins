@@ -63,9 +63,9 @@ public:
 		float frac1 = frac * scale;
 		float f1 = (1.0f - frac) * scale;
 		lpIn *= Blepsize;
-		for (int i = 0; i < n; i++) {
+		for (int i = bpos; i < bpos + n; i++) {
 			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac1;
-			buffer[(bpos + i) & nmask] += mixvalue;
+			buffer[i & nmask] += mixvalue;
 			lpIn++;
 		}
 	}
@@ -76,9 +76,9 @@ public:
 		float frac1 = frac * scale;
 		float f1 = (1.0f - frac) * scale;
 		lpIn *= Blepsize;
-		for (int i = 0; i < n; i++) {
+		for (int i = bpos; i < bpos + n; i++) {
 			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac1;
-			buffer[(bpos + i) & nmask] += mixvalue;
+			buffer[i & nmask] += mixvalue;
 			lpIn++;
 		}
 	}
