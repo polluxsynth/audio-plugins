@@ -60,11 +60,12 @@ public:
 	{
 		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
+		float frac1 = frac * scale;
+		float f1 = (1.0f - frac) * scale;
 		lpIn *= Blepsize;
 		for (int i = 0; i < n; i++) {
-			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac;
-			buffer[(bpos + i) & nmask] += mixvalue * scale;
+			float mixvalue = blampPTR[lpIn] * f1 + blampPTR[lpIn + Blepsize] * frac1;
+			buffer[(bpos + i) & nmask] += mixvalue;
 			lpIn++;
 		}
 	}
@@ -72,11 +73,12 @@ public:
 	{
 		int lpIn = (int)(B_OVERSAMPLING * offset);
 		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
+		float frac1 = frac * scale;
+		float f1 = (1.0f - frac) * scale;
 		lpIn *= Blepsize;
 		for (int i = 0; i < n; i++) {
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buffer[(bpos + i) & nmask] += mixvalue * scale;
+			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac1;
+			buffer[(bpos + i) & nmask] += mixvalue;
 			lpIn++;
 		}
 	}
