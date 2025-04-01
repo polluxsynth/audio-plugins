@@ -205,9 +205,9 @@ public:
 
 		float osc2submix=0.0f;
 
-		// Send hard sync reset as trigger for osc 3 counter
+		// Send hard sync reset as trigger for sub osc counter
 		// Because they're delayed above, we don't need to
-		// delay the output of osc 3 further down
+		// delay the output of sub osc further down.
 		o2sub.processMaster(hsr, hsfrac, osc2SubWaveform);
 
 		if (osc2SubWaveform) {

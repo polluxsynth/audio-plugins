@@ -162,7 +162,7 @@
 	PARAM(OSCSYNC_LEVEL, PG_OSC_COM, SP_NONE, "SyncLevel", "synclevel", 0, 10, 0, setOsc2SyncLevel)
 	PARAM(OSC_KEY_SYNC, PG_OSC_COM, SP_KEYSYNC, "Waveform Reset", "osckeysync", 0, SP_MAX, 0, setOscKeySync)
 
-	// Mixer and osc 3
+	// Mixer and sub osc
 	PARAM(OSC1MIX, PG_MIXER, SP_NONE, "Osc1Mix", "osc1mix", 0, 10, 0, setOsc1Mix)
 	PARAM(OSC2MIX, PG_MIXER, SP_NONE, "Osc2Mix", "osc2mix", 0, 10, 10, setOsc2Mix)
 	PARAM(OSC3MIX, PG_MIXER, SP_NONE, "Osc2Sub Mix", "osc2submix", 0, 10, 0, setOsc2SubMix)
