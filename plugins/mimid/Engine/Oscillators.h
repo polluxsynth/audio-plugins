@@ -198,11 +198,6 @@ public:
 		}
 
 		switch (osc2Wave) {
-		case 1: // Saw
-			o2s.processMaster(x2, fs, keyReset);
-			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
-			osc2mix = o2s.getValue(x2);
-			break;
 		case 2: // Pulse
 			o2p.processMaster(x2, fs, pw2calc, keyReset);
 			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
@@ -224,7 +219,7 @@ public:
 			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
 			}
 			break;
-		case 5:	{ // VariSaw
+		case 5:	if (sgradient2 != 1.0f) { // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			// Above a certain gradient, the waveform amplitude
 			// starts decreasing. We could put a hard limit here,
@@ -247,7 +242,17 @@ public:
 			o2v.processMaster(x2, fs, sbreakpoint, sgrad, keyReset);
 			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
 			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
+			break;
 			}
+			[[fallthrough]];
+		case 1: // Saw
+			// Reset state of variable slope sawtooth oscillator
+			// so we can quickly move over to it if gradient
+			// changes from 1.0 .
+			o2v.resetState();
+			o2s.processMaster(x2, fs, keyReset);
+			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
+			osc2mix = o2s.getValue(x2);
 			break;
 		case 0: // Off
 		default:
@@ -315,11 +320,6 @@ public:
 			x1 -= 1.0f; \
 
 		switch (osc1Wave) {
-		case 1: // Saw
-			o1s.processSlave(x1, fs, hsr, hsfrac);
-			PhaseResetSlave(x1, fs, hsr, hsfrac);
-			osc1mix = o1s.getValue(x1);
-			break;
 		case 2: // Pulse
 			o1p.processSlave(x1, fs, hsr, hsfrac, pw1calc);
 			PhaseResetSlave(x1, fs, hsr, hsfrac);
@@ -340,7 +340,7 @@ public:
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
 			}
 			break;
-		case 5:	{ // VariSaw
+		case 5:	if (sgradient1 != 1.0f) { // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			float grad_derate = sgradient1 < grad_limit ? 1.0f : SawMinDerate;
 			float sgrad = (sgradient1 - grad_limit) * grad_derate + grad_limit;
@@ -349,7 +349,17 @@ public:
 			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
 			PhaseResetSlave(x1, fs, hsr, hsfrac);
 			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
+			break;
 			}
+			[[fallthrough]];
+		case 1: // Saw
+			// Reset state of variable slope sawtooth oscillator
+			// so we can quickly move over to it if gradient
+			// changes from 1.0 .
+			o1v.resetState();
+			o1s.processSlave(x1, fs, hsr, hsfrac);
+			PhaseResetSlave(x1, fs, hsr, hsfrac);
+			osc1mix = o1s.getValue(x1);
 			break;
 		case 0: // Off
 		default:

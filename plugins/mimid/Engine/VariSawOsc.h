@@ -41,6 +41,14 @@ public:
 	~VariSawOsc()
 	{
 	}
+	// When gradient = 1 => breakpoint = 1, we use the sawtooth
+	// oscillator instead. In that case, the state is reset so
+	// we are ready if and when we get called again.
+	inline void resetState(void)
+	{
+		pastBp = false;
+		prevBp = 1;
+	}
 	// breakpoint is 0..1 (spikey sawtooth .. standard sawtooth)
 	// (Sawtooth is actually inverted when spikey)
 	// gradient is normally 1/breakpoint, so
