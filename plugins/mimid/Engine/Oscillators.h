@@ -33,7 +33,7 @@
 #include "DelayLine.h"
 #include "SawOsc.h"
 #include "PulseOsc.h"
-#include "TriangleOsc.h"
+//#include "TriangleOsc.h"
 #include "TrapezoidOsc.h"
 #include "VariSawOsc.h"
 #include "SubOsc.h"
@@ -68,7 +68,7 @@ private:
 	Antialias o1aa, o2aa, subaa;
 	SawOsc o1s, o2s;
 	PulseOsc o1p, o2p;
-	TriangleOsc o1t, o2t;
+	//TriangleOsc o1t, o2t;
 	TrapezoidOsc o1z, o2z;
 	VariSawOsc o1v, o2v;
 	SubOsc o2sub;
@@ -120,7 +120,7 @@ public:
 		o1aa(), o2aa(), subaa(),
 		o1s(o1aa), o2s(o2aa),
 		o1p(o1aa), o2p(o2aa),
-		o1t(o1aa), o2t(o2aa),
+		//o1t(o1aa), o2t(o2aa),
 		o1z(o1aa), o2z(o2aa),
 		o1v(o1aa), o2v(o2aa),
 		o2sub(subaa)
@@ -203,12 +203,7 @@ public:
 			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
 			osc2mix = o2p.getValue(x2, pw2calc);
 			break;
-		case 3: // Triangle
-			o2t.processMaster(x2, fs, keyReset);
-			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
-			osc2mix = o2t.getValue(x2);
-			break;
-		case 4:	{ // Trapezoid
+		case 3:	{ // Triangle / Trapezoid
 			float symmetry = limitf(symmetry2, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 			// With limitation above, don't need 0 check here
 			float riseGradient = 1.0f / symmetry;
@@ -219,7 +214,8 @@ public:
 			osc2mix = o2z.getValue(x2, symmetry, riseGradient, fallGradient);
 			}
 			break;
-		case 5:	if (sgradient2 != 1.0f) { // VariSaw
+		case 1:	// Saw / variable slope saw
+			if (sgradient2 != 1.0f) { // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			// Above a certain gradient, the waveform amplitude
 			// starts decreasing. We could put a hard limit here,
@@ -244,8 +240,7 @@ public:
 			osc2mix = o2v.getValue(x2, sbreakpoint, sgrad);
 			break;
 			}
-			[[fallthrough]];
-		case 1: // Saw
+			// (Simple) Saw
 			// Reset state of variable slope sawtooth oscillator
 			// so we can quickly move over to it if gradient
 			// changes from 1.0 .
@@ -325,12 +320,7 @@ public:
 			PhaseResetSlave(x1, fs, hsr, hsfrac);
 			osc1mix = o1p.getValue(x1, pw1calc);
 			break;
-		case 3: // Triangle
-			o1t.processSlave(x1, fs, hsr, hsfrac);
-			PhaseResetSlave(x1, fs, hsr, hsfrac);
-			osc1mix = o1t.getValue(x1);
-			break;
-		case 4:	{ // Trapezoid
+		case 3:	{ // Triangle / Trapezoid
 			float symmetry = limitf(symmetry1, MinTraSymmetry * fs, 1 - MinTraSymmetry * fs);
 			// With limitation above, don't need 0 check here
 			float riseGradient = 1.0f / symmetry;
@@ -340,7 +330,8 @@ public:
 			osc1mix = o1z.getValue(x1, symmetry, riseGradient, fallGradient);
 			}
 			break;
-		case 5:	if (sgradient1 != 1.0f) { // VariSaw
+		case 1:	// Saw / variable slope saw
+			if (sgradient1 != 1.0f) { // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			float grad_derate = sgradient1 < grad_limit ? 1.0f : SawMinDerate;
 			float sgrad = (sgradient1 - grad_limit) * grad_derate + grad_limit;
@@ -351,8 +342,7 @@ public:
 			osc1mix = o1v.getValue(x1, sbreakpoint, sgrad);
 			break;
 			}
-			[[fallthrough]];
-		case 1: // Saw
+			// (Simple) Saw
 			// Reset state of variable slope sawtooth oscillator
 			// so we can quickly move over to it if gradient
 			// changes from 1.0 .

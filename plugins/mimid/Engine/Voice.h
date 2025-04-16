@@ -337,10 +337,10 @@ public:
 		case 2: // Pulse
 			osc.pw2calc = limitf((osc.osc2pw + osc.pw2) * 0.5f + 0.5f, 0.0f, 1.0f);
 			break;
-		case 4: // Trapezoid
+		case 3: // Triangle / Trapezoid
 			osc.symmetry2 = (osc.osc2pw + osc.pw2) * 0.5f + 0.5f;
 			break;
-		case 5:	// VariSaw
+		case 1:	// Saw / VariSaw
 			osc.sgradient2 = superfast_exp2f_shape(osc.osc2pw + osc.pw2);
 			break;
 		case 0: // Off
@@ -353,10 +353,10 @@ public:
 		case 2: // Pulse
 			osc.pw1calc = limitf((osc.osc1pw + osc.pw1) * 0.5f + 0.5f, 0.0f, 1.0f);
 			break;
-		case 4: // Trapezoid
+		case 3: // Triangle / Trapezoid
 			osc.symmetry1 = (osc.osc1pw + osc.pw1) * 0.5f + 0.5f;
 			break;
-		case 5:	// VariSaw
+		case 1:	// Saw / VariSaw
 			osc.sgradient1 = superfast_exp2f_shape(osc.osc1pw + osc.pw1);
 			break;
 		case 0: // Off
