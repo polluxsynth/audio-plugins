@@ -178,7 +178,7 @@
 		pset:value 24.0
 	] , [
 		lv2:symbol "osc2pw" ;
-		pset:value 7.3499999
+		pset:value 0.0
 	] , [
 		lv2:symbol "osc2submix" ;
 		pset:value 5.3499999
