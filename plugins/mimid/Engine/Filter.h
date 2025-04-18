@@ -3,8 +3,8 @@
   This file is part of the MiMi-d synthesizer,
   originally from Obxd synthesizer.
 
-  Copyright © 2013-2014 Filatov Vadim
-  Copyright 2023 Ricard Wanderlof
+  Copyright Â© 2013-2014 Filatov Vadim
+  Copyright 2023-2025 Ricard Wanderlof
 
   Contact original author via email :
   justdat_@_e1.ru
@@ -30,10 +30,9 @@
 class Filter
 {
 private:
-	float s1,s2,s3,s4;
+	float s1, s2, s3, s4;
 	float R;
 	float R24;
-	float rcorInv;
 
 	//24 db variable cutoff slope
 	float mmt;
@@ -47,14 +46,14 @@ public:
 	Filter()
 	{
 		bandPassSw = true;
-		mm=0;
-		s1=s2=s3=s4=0;
-		SampleRate = 44000;
-		sampleRateInv = 1 / SampleRate;
-		R=1;
-		R24=0;
-		unused1=1;
-		unused2=1;
+		mm = 0;
+		s1 = s2 = s3 = s4 = 0.0f;
+		SampleRate = 44000.0f;
+		sampleRateInv = 1.0f / SampleRate;
+		R = 1.0f;
+		R24 = 0.0f;
+		unused1 = 1;
+		unused2 = 1;
 	}
 	void setResponse(float m)
 	{
@@ -66,13 +65,13 @@ public:
 	inline void setSampleRate(float sr)
 	{
 		SampleRate = sr;
-		sampleRateInv = 1/SampleRate;
+		sampleRateInv = 1.0f / SampleRate;
 	}
 
 	inline float diodePairResistanceApprox(float x)
 	{
-		return (((((0.0103592f)*x + 0.00920833f)*x + 0.185f)*x + 0.05f )*x + 1.0f);
 		//Taylor approx of slightly mismatched diode pair
+		return ((((0.0103592f)*x + 0.00920833f)*x + 0.185f)*x + 0.05f )*x + 1.0f;
 	}
 	//resolve 0-delay feedback
 	inline float NR(float sample, float g)
@@ -80,23 +79,23 @@ public:
 		//calculating feedback non-linear transconducance and compensated for R (-1)
 		//Boosting non-linearity
 		//Replace 1.035f with 1.0f to avoid self oscillation
-		float tCfb = diodePairResistanceApprox(s1*0.0876f) - 1.035f;
+		float tCfb = diodePairResistanceApprox(s1 * 0.0876f) - 1.035f;
 		//float tCfb = 0;
 		//disable non-linearity == digital filter
 
 		//resolve linear feedback
-		float y = ((sample - 2*(s1*(R+tCfb)) - g*s1  - s2)/(1+ g*(2*(R+tCfb)+ g)));
+		float y = (sample - 2.0f*(s1*(R+tCfb)) - g*s1  - s2) / (1.0f + g*(2.0f*(R+tCfb) + g));
 
-		//float y = ((sample - 2*(s1*(R+tCfb)) - g2*s1  - s2)/(1+ g1*(2*(R+tCfb)+ g2)));
+		//float y = (sample - 2.0f*(s1*(R+tCfb)) - g2*s1  - s2) / (1.0f + g1*(2.0f*(R+tCfb) + g2));
 
 		return y;
 	}
 	inline float Apply(float sample,float g, float r)
         {
-		R = 1 - r;
+		R = 1.0f - r;
 		g = tanf(g *sampleRateInv * pi);
-		//float v = ((sample- R * s1*2 - g2*s1 - s2)/(1+ R*g1*2 + g1*g2));
-		float v = NR(sample,g);
+		//float v = (sample - R * s1*2.0f - g2*s1 - s2) / (1.0f + R*g1*2.0f + g1*g2);
+		float v = NR(sample, g);
 
 		float y1 = v*g + s1;
 		s1 = v*g + y1;
@@ -105,48 +104,45 @@ public:
 		s2 = y1*g + y2;
 
 		float mc;
-		if(!bandPassSw)
-			mc = (1-mm)*y2 + (mm)*v;
+		if (!bandPassSw)
+			mc = (1.0f - mm)*y2 + (mm)*v;
 		else
-		{
-			mc =2 * ( mm < 0.5 ?
-				((0.5 - mm) * y2 + (mm) * y1):
-				((1-mm) * y1 + (mm-0.5) * v)
-				);
-		}
+			mc = 2 * (mm < 0.5f ?
+				  ((0.5f - mm) * y2 + mm * y1):
+				  ((1.0f - mm) * y1 + (mm - 0.5f) * v));
 		return mc;
         }
-	inline float NR24(float sample,float ml,float lpc)
+	inline float NR24(float sample, float ml, float lpc)
 	{
-		float S = (lpc*(lpc*(lpc*s1 + s2) + s3) +s4)*ml;
+		float S = (lpc*(lpc*(lpc*s1 + s2) + s3) + s4) * ml;
 		// Alternate position for soft clip to avoid oscillation blowup.
 		// By clipping S, we only clip the feedback loop, i.e. no
 		// distortion when resonance is at 0. The amount of clipping is
 		// so small that it has negligible impact on the signal through
 		// the filter though, and clipping S gives a slight pitch
 		// offset (< 1 cent) when filter is oscillating.
-		// S *= 1 - S * S * 0.017784;
-		float G = lpc*lpc*lpc*lpc;
-		float y = (sample - R24 * S) / (1 + R24*G);
+		// S *= 1 - S * S * 0.017784f;
+		float G = lpc * lpc * lpc * lpc;
+		float y = (sample - R24 * S) / (1.0f + R24 * G);
 		return y;
 	}
 	inline float tan_approx(float x)
 	{
 		// Truncated Taylor series
 		// return x + 1.0/3 * x*x*x; // + 2.0/15 * x*x*x*x*x + 17.0/315 * x*x*x*x*x*x*x;
-		return x * (1 + 1.0/3 * x * x);
+		return x * (1.0f + 1.0f/3.0f * x * x);
 	}
-	inline float Apply4Pole(float sample,float g, float r)
+	inline float Apply4Pole(float sample, float g, float r)
 	{
-		R24 = 4.2 * r;
+		R24 = 4.2f * r;
 		g = (float)tan_approx(g *sampleRateInv * pi);
 
 		// Gain compensation for varying resonance values
-		sample *= 1 + R24 * 0.45;
+		sample *= 1.0f + R24 * 0.45f;
 
-		float ml = 1 / (1 + g);
+		float ml = 1.0f / (1.0f + g);
 		float lpc = ml * g;
-		float y0 = NR24(sample,ml,lpc);
+		float y0 = NR24(sample, ml, lpc);
 
 		// Subtle amplitude limiting to avoid filter blowing up
 		// when resonating, using Taylor approximation truncated
@@ -173,15 +169,15 @@ public:
 		// y0 *= 1 - (1/3)*y0^2 * scale^2
 		// Calculate (1/3) * scale^2 as a single constant scale':
 		// y0 *= 1 - y0^2 * scale'
-		y0 *= 1 - y0 * y0 * 0.001010;
+		y0 *= 1.0f - y0 * y0 * 0.001010f;
 
 		// Four single pole filter stages
-		float y1 = tptlpc(s1,y0,lpc);
-		float y2 = tptlpc(s2,y1,lpc);
-		float y3 = tptlpc(s3,y2,lpc);
-		float y4 = tptlpc(s4,y3,lpc);
+		float y1 = tptlpc(s1, y0, lpc);
+		float y2 = tptlpc(s2, y1, lpc);
+		float y3 = tptlpc(s3, y2, lpc);
+		float y4 = tptlpc(s4, y3, lpc);
 
-		//return y0 -4 * y1 + 6 * y2 -4 * y3 + y4; // HPF output
+		//return y0 - 4.0f*y1 + 6.0f*y2 - 4.0f*y3 + y4; // HPF output
 
 		float mc;
 		// fade between adjacent cutoff slopes
@@ -189,19 +185,19 @@ public:
 		switch(mmch)
 		{
 		case 0:
-			mc = ((1 - mmt) * y4 + (mmt) * y3);
+			mc = ((1.0f - mmt) * y4 + mmt * y3);
 			break;
 		case 1:
-			mc = ((1 - mmt) * y3 + (mmt) * y2);
+			mc = ((1.0f - mmt) * y3 + mmt * y2);
 			break;
 		case 2:
-			mc = ((1 - mmt) * y2 + (mmt) * y1);
+			mc = ((1.0f - mmt) * y2 + mmt * y1);
 			break;
 		case 3:
 			mc = y1;
 			break;
 		default:
-			mc=0;
+			mc = 0;
 			break;
 		}
 		return mc;
