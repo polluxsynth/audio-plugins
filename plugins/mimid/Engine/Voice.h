@@ -33,6 +33,7 @@
 #include "Decimator.h"
 #include "SquareDist.h"
 #include "FastExp.h"
+#include "ParamSmoother.h"
 
 float dummyfloat;
 
@@ -105,6 +106,8 @@ public:
 
 	SRandom ng;
 
+	ParamSmoother afterTouchSmoother;
+
 	bool sustainHold;
 
 	float vamp, vflt;
@@ -176,7 +179,7 @@ public:
 
 	float unused1, unused2; // TODO: remove
 
-	Voice()
+	Voice(): afterTouchSmoother()
 	{
 		maxfiltercutoff = 22000.0f;
 		invertFenv = false;
@@ -228,6 +231,9 @@ public:
 	}
 	inline void processModulation()
 	{
+		// Aftertouch
+		aftert = afterTouchSmoother.smoothStep();
+
 		// LFOs
 		float lfo1In = lfo1.getVal();
 		float lfo2In = lfo2.getVal();
@@ -541,6 +547,7 @@ public:
 		fenv.setSampleRate(modRate);
 		lfo1.setSampleRate(modRate);
 		lfo2.setSampleRate(modRate);
+		afterTouchSmoother.setSampleRate(modRate);
 		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,

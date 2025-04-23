@@ -42,7 +42,6 @@ private:
 	ParamSmoother cutoffSmoother;
 	ParamSmoother pitchWheelSmoother;
 	ParamSmoother modWheelSmoother;
-	ParamSmoother afterTouchSmoother;
 	float sampleRate;
 	float atscale;
 	float velscale;
@@ -53,8 +52,7 @@ public:
 	SynthEngine():
 	cutoffSmoother(),
 	pitchWheelSmoother(),
-	modWheelSmoother(),
-	afterTouchSmoother()
+	modWheelSmoother()
 	{
 		atscale = 1;
 		velscale = 1;
@@ -82,7 +80,6 @@ public:
 		cutoffSmoother.setSampleRate(sr);
 		pitchWheelSmoother.setSampleRate(sr);
 		modWheelSmoother.setSampleRate(sr);
-		afterTouchSmoother.setSampleRate(sr);
 		synth.setSampleRate(sr);
 	}
 	void processSample(float *left,float *right)
@@ -90,7 +87,6 @@ public:
 		processCutoffSmoothed(cutoffSmoother.smoothStep());
 		procPitchWheelSmoothed(pitchWheelSmoother.smoothStep());
 		procModWheelSmoothed(modWheelSmoother.smoothStep());
-		procAfterTouchSmoothed(afterTouchSmoother.smoothStep());
 
 		synth.processSample(left, right);
 	}
@@ -240,7 +236,8 @@ public:
 	void procAfterTouch(float val)
 	{
 		val = powf(val, atscale);
-		afterTouchSmoother.setSteep(val);
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].afterTouchSmoother.setSteep(val);
 	}
 	void procAfterTouchSmoothed(float val)
 	{
