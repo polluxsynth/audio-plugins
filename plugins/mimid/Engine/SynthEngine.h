@@ -239,6 +239,18 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++)
 			synth.voices[i].afterTouchSmoother.setSteep(val);
 	}
+	void procAfterTouch(int note, float val)
+	{
+		val = powf(val, atscale);
+		for (int i = 0; i < synth.MAX_VOICES; i++) {
+			if (note == synth.voices[i].midiIndx)
+				// TODO: Should we only do this for voices
+				// that are actually playing?
+				// (OTOH: If released, there's likely not
+				// going to be any aftertouch is there?).
+				synth.voices[i].afterTouchSmoother.setSteep(val);
+		}
+	}
 	void procAfterTouchSmoothed(float val)
 	{
 		ForEachVoice(aftert = val);

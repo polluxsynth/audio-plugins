@@ -243,6 +243,7 @@ private:
 #define MIDI_CC 176
 #define MIDI_BEND 224
 #define MIDI_AT 208
+#define MIDI_POLY_AT 160
 
 		switch (status & 0xf0)
 		{
@@ -283,6 +284,9 @@ private:
 			break;
 		case MIDI_AT:
 			synth.procAfterTouch(atval * (1/127.0));
+			break;
+		case MIDI_POLY_AT:
+			synth.procAfterTouch(note, ccval * (1/127.0));
 			break;
 		default:
 			break;
