@@ -124,9 +124,13 @@ public:
 			if (economyMode)
 				voice.checkAdssrState();
 			// Always update LFOs to keep them in phase even if
-			// voice is not playing.
+			// voice is not playing, as well as updating
+			// aftertouch in case it continues to change
+			// after voice has stopped playing, to avoid an
+			// unexpected aftertouch value next time it triggers.
 			voice.lfo1.update();
 			voice.lfo2.update();
+			voice.aftert = voice.afterTouchSmoother.smoothStep();
 		}
 		if (voice.shouldProcess || !economyMode) {
 			if (processMod)

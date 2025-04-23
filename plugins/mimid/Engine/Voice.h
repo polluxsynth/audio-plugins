@@ -231,9 +231,6 @@ public:
 	}
 	inline void processModulation()
 	{
-		// Aftertouch
-		aftert = afterTouchSmoother.smoothStep();
-
 		// LFOs
 		float lfo1In = lfo1.getVal();
 		float lfo2In = lfo2.getVal();
