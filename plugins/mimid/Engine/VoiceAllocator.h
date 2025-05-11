@@ -2,7 +2,7 @@
 	==============================================================================
         This file is part of the MiMi-d synthesizer.
 
-        Copyright 2023 Ricard Wanderlof
+        Copyright 2023-2025 Ricard Wanderlof
 
 	This file may be licensed under the terms of of the
 	GNU General Public License Version 2 (the ``GPL'').
