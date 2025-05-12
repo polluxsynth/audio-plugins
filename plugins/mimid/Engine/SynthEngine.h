@@ -376,13 +376,13 @@ public:
 	{
 		ForEachVoice(osc.totalSpread = logsc(param, 0.001f, 0.90f));
 	}
-	void setOsc1PulseWidth(float param)
+	void setOsc1Shape(float param)
 	{
-		ForEachVoice (osc.osc1pw = param * 0.1f);
+		ForEachVoice (osc.osc1sh = param * 0.1f);
 	}
-	void setOsc2PulseWidth(float param)
+	void setOsc2Shape(float param)
 	{
-		ForEachVoice (osc.osc2pw = param * 0.1f);
+		ForEachVoice (osc.osc2sh = param * 0.1f);
 	}
 	void setInvertFenv(float param)
 	{

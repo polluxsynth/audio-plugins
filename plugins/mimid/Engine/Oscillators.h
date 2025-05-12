@@ -85,8 +85,8 @@ public:
 	float totalSpread;
 
 	float osc1Det, osc2Det;
-	float osc1pw, osc2pw;
-	float pw1, pw2;
+	float osc1sh, osc2sh;
+	float sh1, sh2;
 
 	float o1mx, o2mx, o2submx;
 	float nmx;
@@ -134,7 +134,7 @@ public:
 		oct = 0;
 		tune = 0;
 		pto1 = pto2 = 0;
-		pw1 = pw2 = 0;
+		sh1 = sh2 = 0;
 		pw1calc = pw2calc = 0;
 		symmetry1 = symmetry2 = 0;
 		sgradient1 = sgradient2 = 1;
@@ -144,7 +144,7 @@ public:
 		osc1Wave = osc2Wave = 0;
 		osc1Det = osc2Det = 0;
 		notePlaying = 30;
-		osc1pw = osc2pw = 0;
+		osc1sh = osc2sh = 0;
 		o1mx = o2mx = 0;
 		x1 = wn.nextFloat();
 		x2 = wn.nextFloat(); // osc2 and 3 start in phase
