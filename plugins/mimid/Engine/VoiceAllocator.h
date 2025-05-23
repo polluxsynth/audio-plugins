@@ -2,7 +2,7 @@
 	==============================================================================
         This file is part of the MiMi-d synthesizer.
 
-        Copyright 2023 Ricard Wanderlof
+        Copyright 2023-2025 Ricard Wanderlof
 
 	This file may be licensed under the terms of of the
 	GNU General Public License Version 2 (the ``GPL'').
@@ -139,6 +139,9 @@ private:
 	NoteStack<10> restore_stack;
 	int totalvc;
 	float velsave[128]; // one per note number
+	float atsave[128]; // poly aftertouch
+	float chat; // channel aftertouch
+	bool usingPolyAfterTouch;
 
 	// Unison mode
 	int uniNote;
@@ -160,6 +163,7 @@ public:
 		restore = strgNoteOn = strgNoteOff = false;
 		uniPlaying = false;
 		alwaysPorta = false;
+		usingPolyAfterTouch = false;
 		totalvc = 0;
 	}
 	~VoiceAllocator()
@@ -197,6 +201,27 @@ public:
 		}
 		totalvc = voiceCount;
 	}
+	void setAfterTouch(float ATvalue)
+	{
+		(void) ATvalue;
+		usingPolyAfterTouch = false;
+	}
+	void setAfterTouch(int noteNo, float afterTouchValue)
+	{
+		atsave[noteNo] = afterTouchValue;
+		usingPolyAfterTouch = true;
+	}
+	void setVoiceAfterTouch(Voice *voice, int noteNo)
+	{
+		if (usingPolyAfterTouch)
+			// TODO: Bypass smoother here? This isn't a continuous
+			// update, this is a newly allocated voice.
+			voice->afterTouchSmoother.setSteep(atsave[noteNo]);
+		// Else we don't need to set anything as channel aftertouch
+		// is set directly in voices when message arrives.
+		// It's only poly aftertouch that we need restore to the value
+		// last noted for the note in question.
+	}
 	void uniSetNoteOn(int noteNo, float velocity)
 	{
 		if (uniPlaying) {
@@ -225,6 +250,7 @@ public:
 				voice = offpri.pop();
 				onpri.push(voice);
 			}
+			setVoiceAfterTouch(voice, noteNo);
 			voice->NoteOn(noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
 		}
 		uniPlaying = true;
@@ -244,6 +270,7 @@ public:
 						voice = offpri.pop();
 						onpri.push(voice);
 					}
+					setVoiceAfterTouch(voice, noteNo);
 					voice->NoteOn(noteNo, velsave[noteNo], !strgNoteOff, true);
 				}
 				uniNote = noteNo;
@@ -292,6 +319,7 @@ public:
 		}
 		if (voice) {
 			onpri._push(voice);
+			setVoiceAfterTouch(voice, noteNo);
 			voice->NoteOn(noteNo, velocity, !strgNoteOn);
 			// If we switch to unison, we want to know the
 			// last note played.
@@ -322,6 +350,7 @@ public:
 			if (restore && restore_stack.size() > 0) {
 				int restoreNote = restore_stack._pop();
 				onpri._push(voice);
+				setVoiceAfterTouch(voice, restoreNote);
 				voice->NoteOn(restoreNote, velsave[restoreNote], !strgNoteOff);
 			} else {
 				voice->NoteOff();

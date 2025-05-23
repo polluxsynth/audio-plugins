@@ -32,6 +32,8 @@
 #include "Filter.h"
 #include "Decimator.h"
 #include "SquareDist.h"
+#include "FastExp.h"
+#include "ParamSmoother.h"
 
 float dummyfloat;
 
@@ -104,6 +106,8 @@ public:
 
 	SRandom ng;
 
+	ParamSmoother afterTouchSmoother;
+
 	bool sustainHold;
 
 	float vamp, vflt;
@@ -175,7 +179,7 @@ public:
 
 	float unused1, unused2; // TODO: remove
 
-	Voice()
+	Voice(): afterTouchSmoother()
 	{
 		maxfiltercutoff = 22000.0f;
 		invertFenv = false;
@@ -251,8 +255,8 @@ public:
 		envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
 
 		// PW modulation
-		osc.pw1 = 0;
-		osc.pw2 = 0;
+		osc.sh1 = 0;
+		osc.sh2 = 0;
 
 		// Pitch modulation
 		osc.pto1 = 0;
@@ -331,6 +335,37 @@ public:
 				osc2FltModCalc = (maxallowednote - cutoffnote) *
 						  oscmod_maxpeak_inv;
 		}
+		// Calculate osc 2 waveshape parameters
+		switch (osc.osc2Wave) {
+		case 2: // Pulse
+			osc.pw2calc = limitf((osc.osc2sh + osc.sh2) * 0.5f + 0.5f, 0.0f, 1.0f);
+			break;
+		case 3: // Triangle / Trapezoid
+			osc.symmetry2 = (osc.osc2sh + osc.sh2) * 0.5f + 0.5f;
+			break;
+		case 1:	// Saw / VariSaw
+			osc.sgradient2 = superfast_exp2f_shape(osc.osc2sh + osc.sh2);
+			break;
+		case 0: // Off
+		default:
+			break;
+		}
+
+		// Calculate osc 1 waveshape parameters
+		switch (osc.osc1Wave) {
+		case 2: // Pulse
+			osc.pw1calc = limitf((osc.osc1sh + osc.sh1) * 0.5f + 0.5f, 0.0f, 1.0f);
+			break;
+		case 3: // Triangle / Trapezoid
+			osc.symmetry1 = (osc.osc1sh + osc.sh1) * 0.5f + 0.5f;
+			break;
+		case 1:	// Saw / VariSaw
+			osc.sgradient1 = superfast_exp2f_shape(osc.osc1sh + osc.sh1);
+			break;
+		case 0: // Off
+		default:
+			break;
+		}
 	}
 	inline float processAudioSample()
 	{
@@ -406,7 +441,7 @@ public:
 	}
 	void setMod1Route(int param)
 	{
-		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
 			case 0: lfo1route.setRoute(&osc.pto1, NULL, 0.0f);
@@ -417,11 +452,11 @@ public:
 				break;
 			case 3: lfo1route.setRoute(&osc.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo1route.setRoute(&osc.pw1, NULL, 1.0f);
+			case 4: lfo1route.setRoute(&osc.sh1, NULL, 1.0f);
 				break;
-			case 5: lfo1route.setRoute(&osc.pw1, &osc.pw2, 1.0f);
+			case 5: lfo1route.setRoute(&osc.sh1, &osc.sh2, 1.0f);
 				break;
-			case 6: lfo1route.setRoute(&osc.pw2, NULL, 1.0f);
+			case 6: lfo1route.setRoute(&osc.sh2, NULL, 1.0f);
 				break;
 			case 7: lfo1route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
@@ -433,7 +468,7 @@ public:
 	}
 	void setMod2Route(int param)
 	{
-		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
 			case 0: lfo2route.setRoute(&osc.pto1, NULL, 0.0f);
@@ -444,11 +479,11 @@ public:
 				break;
 			case 3: lfo2route.setRoute(&osc.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo2route.setRoute(&osc.pw1, NULL, 1.0f);
+			case 4: lfo2route.setRoute(&osc.sh1, NULL, 1.0f);
 				break;
-			case 5: lfo2route.setRoute(&osc.pw1, &osc.pw2, 1.0f);
+			case 5: lfo2route.setRoute(&osc.sh1, &osc.sh2, 1.0f);
 				break;
-			case 6: lfo2route.setRoute(&osc.pw2, NULL, 1.0f);
+			case 6: lfo2route.setRoute(&osc.sh2, NULL, 1.0f);
 				break;
 			case 7: lfo2route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
@@ -509,6 +544,7 @@ public:
 		fenv.setSampleRate(modRate);
 		lfo1.setSampleRate(modRate);
 		lfo2.setSampleRate(modRate);
+		afterTouchSmoother.setSampleRate(modRate);
 		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,

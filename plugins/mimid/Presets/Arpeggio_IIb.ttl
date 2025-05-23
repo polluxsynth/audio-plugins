@@ -9,26 +9,26 @@
 <>
 	a pset:Preset ;
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
-	rdfs:label "Strings vel" ;
+	rdfs:label "Arpeggio IIb" ;
 	pset:bank <Factory> ;
 	lv2:port [
 		lv2:symbol "aftertouchscale" ;
 		pset:value 1.14999998
 	] , [
 		lv2:symbol "attack" ;
-		pset:value 3.95000005
+		pset:value 0.0
 	] , [
 		lv2:symbol "benddest" ;
-		pset:value 2.0
+		pset:value 1.0
 	] , [
 		lv2:symbol "bendrange" ;
 		pset:value 12.0
 	] , [
 		lv2:symbol "cutoff" ;
-		pset:value 3.74499989
+		pset:value 5.24499989
 	] , [
 		lv2:symbol "decay" ;
-		pset:value 6.96999979
+		pset:value 2.26999998
 	] , [
 		lv2:symbol "economymode" ;
 		pset:value 1.0
@@ -49,28 +49,28 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "filterattack" ;
-		pset:value 0.80000001
+		pset:value 1.14999998
 	] , [
 		lv2:symbol "filterdecay" ;
-		pset:value 5.75
+		pset:value 6.67000008
 	] , [
 		lv2:symbol "filterenvamount" ;
-		pset:value 2.45000005
+		pset:value 5.0999999
 	] , [
 		lv2:symbol "filterrelease" ;
-		pset:value 4.65999985
-	] , [
-		lv2:symbol "filtersustain" ;
-		pset:value 10.0
-	] , [
-		lv2:symbol "filtersustaintime" ;
-		pset:value 10.0
+		pset:value 2.6099999
 	] , [
 		lv2:symbol "filterspread" ;
-		pset:value 1.45000005
+		pset:value 3.04999995
+	] , [
+		lv2:symbol "filtersustain" ;
+		pset:value 1.5
+	] , [
+		lv2:symbol "filtersustaintime" ;
+		pset:value 9.39999962
 	] , [
 		lv2:symbol "hpffreq" ;
-		pset:value 0.0
+		pset:value 2.3499999
 	] , [
 		lv2:symbol "keyasgnmode" ;
 		pset:value 0.0
@@ -91,37 +91,37 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "keytrack" ;
-		pset:value 0.625
+		pset:value 0.755
 	] , [
 		lv2:symbol "levelspread" ;
 		pset:value 1.25
 	] , [
 		lv2:symbol "lfo1amount" ;
-		pset:value 1.20000005
+		pset:value 7.5
 	] , [
 		lv2:symbol "lfo1amtcont" ;
-		pset:value 1.0
+		pset:value 2.0
 	] , [
 		lv2:symbol "lfo1contramt" ;
-		pset:value 0.94999999
+		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1dest" ;
-		pset:value 2.0
+		pset:value 1.0
 	] , [
 		lv2:symbol "lfo1polarity" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1rate" ;
-		pset:value 4.55000019
+		pset:value 2.25
 	] , [
 		lv2:symbol "lfo1sync" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1wave" ;
-		pset:value 3.0
+		pset:value 5.0
 	] , [
 		lv2:symbol "lfo2amount" ;
-		pset:value 2.96000004
+		pset:value 0.31
 	] , [
 		lv2:symbol "lfo2amtcont" ;
 		pset:value 1.0
@@ -133,7 +133,7 @@
 		pset:value 4.0
 	] , [
 		lv2:symbol "lfo2frequency" ;
-		pset:value 2.47000003
+		pset:value 4.71999979
 	] , [
 		lv2:symbol "lfo2polarity" ;
 		pset:value 0.0
@@ -145,13 +145,13 @@
 		pset:value 3.0
 	] , [
 		lv2:symbol "lfospread" ;
-		pset:value 4.0
+		pset:value 0.0
 	] , [
 		lv2:symbol "octave" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc1detune" ;
-		pset:value 0.14
+		pset:value 0.155
 	] , [
 		lv2:symbol "osc1mix" ;
 		pset:value 5.94999981
@@ -163,7 +163,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc1wave" ;
-		pset:value 1.0
+		pset:value 3.0
 	] , [
 		lv2:symbol "osc2detune" ;
 		pset:value 0.0
@@ -175,7 +175,7 @@
 		pset:value 5.69999981
 	] , [
 		lv2:symbol "osc2pitch" ;
-		pset:value 24.0
+		pset:value 48.0
 	] , [
 		lv2:symbol "osc2pw" ;
 		pset:value 0.0
@@ -187,19 +187,19 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "osc2wave" ;
-		pset:value 1.0
+		pset:value 0.0
 	] , [
 		lv2:symbol "osckeysync" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "oscspread" ;
-		pset:value 0.0
+		pset:value 1.63499999
 	] , [
 		lv2:symbol "oversample" ;
 		pset:value 1.0
 	] , [
 		lv2:symbol "panspread" ;
-		pset:value 1.21000004
+		pset:value 0.86000001
 	] , [
 		lv2:symbol "portamento" ;
 		pset:value 0.0
@@ -208,22 +208,22 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "release" ;
-		pset:value 3.36999989
+		pset:value 2.97000003
 	] , [
 		lv2:symbol "resonance" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "response" ;
-		pset:value 2.79999995
+		pset:value 2.9000001
 	] , [
 		lv2:symbol "sustain" ;
-		pset:value 7.44999981
+		pset:value 5.875
 	] , [
 		lv2:symbol "sustaintime" ;
 		pset:value 10.0
 	] , [
 		lv2:symbol "synclevel" ;
-		pset:value 0.0
+		pset:value 4.25
 	] , [
 		lv2:symbol "tune" ;
 		pset:value 0.0
@@ -235,7 +235,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "vampfactor" ;
-		pset:value 2.68000007
+		pset:value 1.73000002
 	] , [
 		lv2:symbol "vcadrive" ;
 		pset:value 0.0
@@ -244,13 +244,13 @@
 		pset:value 5.69999981
 	] , [
 		lv2:symbol "vfltfactor" ;
-		pset:value 2.25
+		pset:value 0.0
 	] , [
 		lv2:symbol "voicecount" ;
 		pset:value 6.0
 	] , [
 		lv2:symbol "volume" ;
-		pset:value 5.1500001
+		pset:value 6.75
 	] , [
 		lv2:symbol "xmod" ;
 		pset:value 0.0

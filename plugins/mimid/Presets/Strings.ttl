@@ -160,7 +160,7 @@
 		pset:value 24.0
 	] , [
 		lv2:symbol "osc1pw" ;
-		pset:value 4.25
+		pset:value 0.0
 	] , [
 		lv2:symbol "osc1wave" ;
 		pset:value 1.0

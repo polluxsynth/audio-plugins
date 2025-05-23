@@ -2,7 +2,7 @@
 	==============================================================================
 	This file is part of the MiMi-d synthesizer.
 
-	Copyright 2024 Ricard Wanderlof
+	Copyright 2024-2025 Ricard Wanderlof
 
 	This file may be licensed under the terms of of the
 	GNU General Public License Version 2 (the ``GPL'').
@@ -144,7 +144,7 @@ protected:
 	}
 	const char *getMaker() const override { return "Pollux"; }
 	const char *getLicense() const override { return "GPL2"; }
-	uint32_t getVersion() const override { return d_version(2,0,6); }
+	uint32_t getVersion() const override { return d_version(2,1,0); }
 	int64_t getUniqueId() const override {
 	    return d_cconst('M','i','M','d');
 	}
@@ -243,6 +243,7 @@ private:
 #define MIDI_CC 176
 #define MIDI_BEND 224
 #define MIDI_AT 208
+#define MIDI_POLY_AT 160
 
 		switch (status & 0xf0)
 		{
@@ -283,6 +284,9 @@ private:
 			break;
 		case MIDI_AT:
 			synth.procAfterTouch(atval * (1/127.0));
+			break;
+		case MIDI_POLY_AT:
+			synth.procAfterTouch(note, ccval * (1/127.0));
 			break;
 		default:
 			break;

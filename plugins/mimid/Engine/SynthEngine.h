@@ -42,7 +42,6 @@ private:
 	ParamSmoother cutoffSmoother;
 	ParamSmoother pitchWheelSmoother;
 	ParamSmoother modWheelSmoother;
-	ParamSmoother afterTouchSmoother;
 	float sampleRate;
 	float atscale;
 	float velscale;
@@ -53,8 +52,7 @@ public:
 	SynthEngine():
 	cutoffSmoother(),
 	pitchWheelSmoother(),
-	modWheelSmoother(),
-	afterTouchSmoother()
+	modWheelSmoother()
 	{
 		atscale = 1;
 		velscale = 1;
@@ -82,7 +80,6 @@ public:
 		cutoffSmoother.setSampleRate(sr);
 		pitchWheelSmoother.setSampleRate(sr);
 		modWheelSmoother.setSampleRate(sr);
-		afterTouchSmoother.setSampleRate(sr);
 		synth.setSampleRate(sr);
 	}
 	void processSample(float *left,float *right)
@@ -90,7 +87,6 @@ public:
 		processCutoffSmoothed(cutoffSmoother.smoothStep());
 		procPitchWheelSmoothed(pitchWheelSmoother.smoothStep());
 		procModWheelSmoothed(modWheelSmoother.smoothStep());
-		procAfterTouchSmoothed(afterTouchSmoother.smoothStep());
 
 		synth.processSample(left, right);
 	}
@@ -240,7 +236,22 @@ public:
 	void procAfterTouch(float val)
 	{
 		val = powf(val, atscale);
-		afterTouchSmoother.setSteep(val);
+		synth.voiceAlloc.setAfterTouch(val);
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].afterTouchSmoother.setSteep(val);
+	}
+	void procAfterTouch(int note, float val)
+	{
+		val = powf(val, atscale);
+		synth.voiceAlloc.setAfterTouch(note, val);
+		for (int i = 0; i < synth.MAX_VOICES; i++) {
+			if (note == synth.voices[i].midiIndx)
+				// TODO: Should we only do this for voices
+				// that are actually playing?
+				// (OTOH: If released, there's likely not
+				// going to be any aftertouch is there?).
+				synth.voices[i].afterTouchSmoother.setSteep(val);
+		}
 	}
 	void procAfterTouchSmoothed(float val)
 	{
@@ -376,13 +387,13 @@ public:
 	{
 		ForEachVoice(osc.totalSpread = logsc(param, 0.001f, 0.90f));
 	}
-	void setOsc1PulseWidth(float param)
+	void setOsc1Shape(float param)
 	{
-		ForEachVoice (osc.osc1pw = param * 0.1f);
+		ForEachVoice (osc.osc1sh = param * 0.1f);
 	}
-	void setOsc2PulseWidth(float param)
+	void setOsc2Shape(float param)
 	{
-		ForEachVoice (osc.osc2pw = param * 0.1f);
+		ForEachVoice (osc.osc2sh = param * 0.1f);
 	}
 	void setInvertFenv(float param)
 	{
@@ -449,22 +460,17 @@ public:
 	void setOsc1Wave(float param)
 	{
 		int intparam = roundToInt(param);
-		for (int i = 0; i < synth.MAX_VOICES; i++) {
-			synth.voices[i].osc.osc1Saw = intparam == 1;
-			synth.voices[i].osc.osc1Pul = intparam == 2;
-			synth.voices[i].osc.osc1Tri = intparam == 3;
-		}
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].osc.osc1Wave = intparam;
 	}
 
 	void setOsc2Wave(float param)
 	{
 		int intparam = roundToInt(param);
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
-			synth.voices[i].osc.osc2Saw = intparam == 1;
-			synth.voices[i].osc.osc2Pul = intparam == 2;
-			synth.voices[i].osc.osc2Tri = intparam == 3;
+			synth.voices[i].osc.osc2Wave = intparam;
 			synth.voices[i].osc.osc2modout =
-			synth.voices[i].oscmodEnable = intparam != 0;
+				synth.voices[i].oscmodEnable = intparam != 0;
 		}
 	}
 	void setOsc2SubWave(float param)

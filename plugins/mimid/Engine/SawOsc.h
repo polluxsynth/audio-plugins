@@ -3,7 +3,7 @@
 	This file is part of the MiMi-d synthesizer.
 
 	Copyright © 2013-2014 Filatov Vadim
-	Copyright 2023-2024 Ricard Wanderlof
+	Copyright 2023-2025 Ricard Wanderlof
 	
 	Contact author via email :
 	justdat_@_e1.ru
@@ -25,97 +25,50 @@
 #pragma once
 #include "SynthEngine.h"
 #include "BlepData.h"
+#include "Antialias.h"
+
 class SawOsc
 {
-	float buffer1[Samples * 2];
-	const int n, nmask;
-	float const *blepPTR;
-	int bP1;
+	Antialias &antialias;
 public:
-	SawOsc(): n(Samples * 2), nmask(Samples * 2 - 1)
+	SawOsc(Antialias &a): antialias(a)
 	{
-		bP1 = 0;
-		for (int i = 0; i < n; i++)
-			buffer1[i]=0;
-		blepPTR = blep;
 	}
 	~SawOsc()
 	{
 	}
-	inline void setDecimation()
-	{
-		blepPTR = blepd2;
-	}
-	inline void removeDecimation()
-	{
-		blepPTR = blep;
-	}
 	inline void processMaster(float x, float delta, bool waveformReset)
 	{
-		if (waveformReset)
-		{
+		if (waveformReset) {
 			float trans = x - delta;
-			mixInImpulseCenter(buffer1, bP1, 1, trans);
+			antialias.mixInImpulseCenter(1.0f, trans);
 			return;
 		}
-		if (x >= 1.0f)
-		{
+		if (x >= 1.0f) {
 			x -= 1.0f;
-			mixInImpulseCenter(buffer1, bP1, x / delta, 1);
+			antialias.mixInImpulseCenter(x / delta, 1.0f);
 		}
 	}
 	inline float getValue(float x)
 	{
-		// Instead of subtracting Samples to get to the middle of the
-		// BLEP buffer, and then masking with size-1 to keep the
-		// offset inside the buffer, we can just XOR the offset with
-		// Samples (which corresponds to subtracting (or adding, for
-		// that matter) half the buffer size and discarding the carry),
-		// since the buffer is 2 * Samples long.
-		buffer1[bP1 ^ Samples] += x - 0.5;
-		return getNextBlep(buffer1, bP1);
+		antialias.putSample(x - 0.5f);
+		return antialias.getNextSample(); // (also bumps buffer pointer)
 	}
 	inline void processSlave(float x, float delta, bool hardSyncReset, float hardSyncFrac)
 	{
-		if (x >= 1.0f)
-		{
+		if (x >= 1.0f) {
 			x -= 1.0f;
-			if (!hardSyncReset || (x / delta > hardSyncFrac)) //de morgan processed equation
-			{
-				mixInImpulseCenter(buffer1, bP1, x / delta, 1);
-			}
-			else
-			{
-				//if transition do not ocurred
-				x += 1;
+			if (!hardSyncReset || (x / delta > hardSyncFrac)) { // de morgan processed equation
+				antialias.mixInImpulseCenter(x / delta, 1.0f);
+			} else {
+				// if transition do not ocurred
+				x += 1.0f;
 			}
 		}
-		if (hardSyncReset)
-		{
+		if (hardSyncReset) {
 			float fracMaster = delta * hardSyncFrac;
 			float trans = x - fracMaster;
-			mixInImpulseCenter(buffer1, bP1, hardSyncFrac, trans);
+			antialias.mixInImpulseCenter(hardSyncFrac, trans);
 		}
-	}
-	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
-	{
-		int lpIn =(int)(B_OVERSAMPLING * offset);
-		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
-		lpIn *= Blepsize;
-		for (int i = 0 ; i < n; i++)
-		{
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & nmask] += mixvalue * scale;
-			lpIn++;
-		}
-	}
-	inline float getNextBlep(float *buf, int &bpos)
-	{
-		bpos = (bpos + 1) & nmask;
-		float value = buf[bpos];
-		buf[bpos] = 0.0f;
-
-		return value;
 	}
 };

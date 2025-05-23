@@ -31,6 +31,8 @@ ifneq ($(WASM),true)
 BASE_FLAGS += -pthread
 LINK_FLAGS += -pthread
 endif
+# Uncomment following line to allow objdump -S to print source
+#BASE_FLAGS += -g
 
 # --------------------------------------------------------------
 # Enable all possible plugin types

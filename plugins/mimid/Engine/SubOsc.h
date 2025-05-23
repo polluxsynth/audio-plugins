@@ -26,21 +26,16 @@
 #pragma once
 #include "SynthEngine.h"
 #include "BlepData.h"
+#include "Antialias.h"
+
 class SubOsc
 {
-	float buffer1[Samples * 2];
-	const int n;
-	float const *blepPTR;
-	int bP1;
+	Antialias &antialias;
 	int counter;
 	bool state, prevState;
 public:
-	SubOsc(): n(Samples * 2)
+	SubOsc(Antialias &a): antialias(a)
 	{
-		bP1=0;
-		for(int i = 0; i < n; i++)
-			buffer1[i] = 0;
-		blepPTR = blep;
 		counter = 0;
 		state = prevState = 0;
 	}
@@ -49,11 +44,11 @@ public:
 	}
 	inline void setDecimation()
 	{
-		blepPTR = blepd2;
+		antialias.setDecimation();
 	}
 	inline void removeDecimation()
 	{
-		blepPTR = blep;
+		antialias.removeDecimation();
 	}
 	inline void processMaster(bool hsr, float hsfrac, int waveformMask)
 	{
@@ -67,7 +62,7 @@ public:
 			return;
 		prevState = state;
 
-		mixInImpulseCenter(buffer1, bP1, hsfrac, state ? -1 : 1);
+		antialias.mixInImpulseCenter(hsfrac, state ? -1 : 1);
 	}
 	inline float getValue(int waveformMask)
 	{
@@ -77,34 +72,7 @@ public:
 			if (waveformMask == 3)
 				oscmix += 0.25; // DC offset compensation
 		}
-		// Instead of subtracting Samples to get to the middle of the
-		// BLEP buffer, and then masking with size-1 to keep the
-		// offset inside the buffer, we can just XOR the offset with
-		// Samples (which corresponds to subtracting (or adding, for
-		// that matter) half the buffer size and discarding the carry),
-		// since the buffer is 2 * Samples long.
-		buffer1[bP1 ^ Samples] += oscmix;
-		return getNextBlep(buffer1, bP1);
-	}
-	inline void mixInImpulseCenter(float *buf, int &bpos, float offset, float scale)
-	{
-		int lpIn = (int)(B_OVERSAMPLING * offset);
-		float frac = offset * B_OVERSAMPLING - lpIn;
-		float f1 = 1.0f - frac;
-		lpIn *= Blepsize;
-		for(int i = 0; i < n; i++)
-		{
-			float mixvalue = blepPTR[lpIn] * f1 + blepPTR[lpIn + Blepsize] * frac;
-			buf[(bpos + i) & (n - 1)] += mixvalue * scale;
-			lpIn++;
-		}
-	}
-	inline float getNextBlep(float *buf, int &bpos)
-	{
-		bpos = (bpos + 1) & (n - 1);
-		float value = buf[bpos];
-		buf[bpos] = 0.0f;
-
-		return value;
+		antialias.putSample(oscmix);
+		return antialias.getNextSample();
 	}
 };
