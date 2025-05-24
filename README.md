@@ -27,6 +27,13 @@ well as any supplied factory presets in a parallel directory.
 Enabling MiMi-d on the Zynthian platform
 ----------------------------------------
 
+MiMi-d has been included in the Zynthian platform for a while now,
+enabled by default, so it's just a question of dialing up **MiMi-d**
+among the list of synthesizer plugins when adding a new chain.
+
+If you're using an older Zynthian version, or MiMi-d for some
+reason isn't enabled, do the following:
+
 On Zynthian, after building, go to the web configuration, select
 the **Software** menu, then **LV2-plugins**, and then click on the wide
 **Search for new plugins and presets** button. 
@@ -38,4 +45,5 @@ It seems that sometimes a reboot of the Zynthian is needed as well.
 
 The same procedure is used when updating with a new MiMi-d release, except
 that the plugin will already have been enabled in the webconf plugin
-list.
+list, so it's just a question of rebuilding MiMi-d, installing it,
+and rebooting Zynthian.
