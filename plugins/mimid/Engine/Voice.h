@@ -96,6 +96,8 @@ public:
 	AdssrEnvelope fenv;
 	Lfo lfo1;
 	Lfo lfo2;
+	OscillatorParams oscparams;
+	OscillatorModulation oscmodulation;
 	Oscillators osc;
 	Filter flt;
 	SquareDist sqdist;
@@ -179,7 +181,7 @@ public:
 
 	float unused1, unused2; // TODO: remove
 
-	Voice(): afterTouchSmoother()
+	Voice(): osc(oscparams, oscmodulation), afterTouchSmoother()
 	{
 		maxfiltercutoff = 22000.0f;
 		invertFenv = false;
@@ -254,12 +256,12 @@ public:
 		envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
 
 		// PW modulation
-		osc.sh1 = 0;
-		osc.sh2 = 0;
+		osc.oscmodulation.sh1 = 0;
+		osc.oscmodulation.sh2 = 0;
 
 		// Pitch modulation
-		osc.pto1 = 0;
-		osc.pto2 = 0;
+		osc.oscmodulation.pto1 = 0;
+		osc.oscmodulation.pto2 = 0;
 
 		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
 		// Pitch calc base frequency is 440 Hz, but the default
@@ -335,15 +337,15 @@ public:
 						  oscmod_maxpeak_inv;
 		}
 		// Calculate osc 2 waveshape parameters
-		switch (osc.osc2Wave) {
+		switch (osc.oscparams.osc2Wave) {
 		case 2: // Pulse
-			osc.pw2calc = limitf((osc.osc2sh + osc.sh2) * 0.5f + 0.5f, 0.0f, 1.0f);
+			osc.pw2calc = limitf((osc.oscparams.osc2sh + osc.oscmodulation.sh2) * 0.5f + 0.5f, 0.0f, 1.0f);
 			break;
 		case 3: // Triangle / Trapezoid
-			osc.symmetry2 = (osc.osc2sh + osc.sh2) * 0.5f + 0.5f;
+			osc.symmetry2 = (osc.oscparams.osc2sh + osc.oscmodulation.sh2) * 0.5f + 0.5f;
 			break;
 		case 1:	// Saw / VariSaw
-			osc.sgradient2 = superfast_exp2f_shape(osc.osc2sh + osc.sh2);
+			osc.sgradient2 = superfast_exp2f_shape(osc.oscparams.osc2sh + osc.oscmodulation.sh2);
 			break;
 		case 0: // Off
 		default:
@@ -351,15 +353,15 @@ public:
 		}
 
 		// Calculate osc 1 waveshape parameters
-		switch (osc.osc1Wave) {
+		switch (osc.oscparams.osc1Wave) {
 		case 2: // Pulse
-			osc.pw1calc = limitf((osc.osc1sh + osc.sh1) * 0.5f + 0.5f, 0.0f, 1.0f);
+			osc.pw1calc = limitf((osc.oscparams.osc1sh + osc.oscmodulation.sh1) * 0.5f + 0.5f, 0.0f, 1.0f);
 			break;
 		case 3: // Triangle / Trapezoid
-			osc.symmetry1 = (osc.osc1sh + osc.sh1) * 0.5f + 0.5f;
+			osc.symmetry1 = (osc.oscparams.osc1sh + osc.oscmodulation.sh1) * 0.5f + 0.5f;
 			break;
 		case 1:	// Saw / VariSaw
-			osc.sgradient1 = superfast_exp2f_shape(osc.osc1sh + osc.sh1);
+			osc.sgradient1 = superfast_exp2f_shape(osc.oscparams.osc1sh + osc.oscmodulation.sh1);
 			break;
 		case 0: // Off
 		default:
@@ -443,19 +445,19 @@ public:
 		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
-			case 0: lfo1route.setRoute(&osc.pto1, NULL, 0.0f);
+			case 0: lfo1route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
 				break;
-			case 1: lfo1route.setRoute(&osc.pto1, NULL, 12.0f);
+			case 1: lfo1route.setRoute(&osc.oscmodulation.pto1, NULL, 12.0f);
 				break;
-			case 2: lfo1route.setRoute(&osc.pto1, &osc.pto2, 12.0f);
+			case 2: lfo1route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 12.0f);
 				break;
-			case 3: lfo1route.setRoute(&osc.pto2, NULL, 12.0f);
+			case 3: lfo1route.setRoute(&osc.oscmodulation.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo1route.setRoute(&osc.sh1, NULL, 1.0f);
+			case 4: lfo1route.setRoute(&osc.oscmodulation.sh1, NULL, 1.0f);
 				break;
-			case 5: lfo1route.setRoute(&osc.sh1, &osc.sh2, 1.0f);
+			case 5: lfo1route.setRoute(&osc.oscmodulation.sh1, &osc.oscmodulation.sh2, 1.0f);
 				break;
-			case 6: lfo1route.setRoute(&osc.sh2, NULL, 1.0f);
+			case 6: lfo1route.setRoute(&osc.oscmodulation.sh2, NULL, 1.0f);
 				break;
 			case 7: lfo1route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
@@ -470,19 +472,19 @@ public:
 		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
-			case 0: lfo2route.setRoute(&osc.pto1, NULL, 0.0f);
+			case 0: lfo2route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
 				break;
-			case 1: lfo2route.setRoute(&osc.pto1, NULL, 12.0f);
+			case 1: lfo2route.setRoute(&osc.oscmodulation.pto1, NULL, 12.0f);
 				break;
-			case 2: lfo2route.setRoute(&osc.pto1, &osc.pto2, 12.0f);
+			case 2: lfo2route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 12.0f);
 				break;
-			case 3: lfo2route.setRoute(&osc.pto2, NULL, 12.0f);
+			case 3: lfo2route.setRoute(&osc.oscmodulation.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo2route.setRoute(&osc.sh1, NULL, 1.0f);
+			case 4: lfo2route.setRoute(&osc.oscmodulation.sh1, NULL, 1.0f);
 				break;
-			case 5: lfo2route.setRoute(&osc.sh1, &osc.sh2, 1.0f);
+			case 5: lfo2route.setRoute(&osc.oscmodulation.sh1, &osc.oscmodulation.sh2, 1.0f);
 				break;
-			case 6: lfo2route.setRoute(&osc.sh2, NULL, 1.0f);
+			case 6: lfo2route.setRoute(&osc.oscmodulation.sh2, NULL, 1.0f);
 				break;
 			case 7: lfo2route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
@@ -497,12 +499,12 @@ public:
 		// OFF - OSC1 - OSC1+2
 		// 0     1      2
 		switch (param) {
-			case 0: route.setRoute(&osc.pto1, NULL, 0.0f);
+			case 0: route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
 
 				break;
-			case 1: route.setRoute(&osc.pto1, NULL, 1.0f);
+			case 1: route.setRoute(&osc.oscmodulation.pto1, NULL, 1.0f);
 				break;
-			case 2: route.setRoute(&osc.pto1, &osc.pto2, 1.0f);
+			case 2: route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 1.0f);
 				break;
 		}
 	}
