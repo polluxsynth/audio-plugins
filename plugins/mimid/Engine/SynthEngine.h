@@ -389,11 +389,11 @@ public:
 	}
 	void setOsc1Shape(float param)
 	{
-		ForEachVoice (osc.osc1sh = param * 0.1f);
+		ForEachVoice (osc.oscparams.osc1sh = param * 0.1f);
 	}
 	void setOsc2Shape(float param)
 	{
-		ForEachVoice (osc.osc2sh = param * 0.1f);
+		ForEachVoice (osc.oscparams.osc2sh = param * 0.1f);
 	}
 	void setInvertFenv(float param)
 	{
@@ -420,11 +420,11 @@ public:
 	}
 	void setOsc1Pitch(float param)
 	{
-		ForEachVoice(osc.osc1p = roundToInt(param));
+		ForEachVoice(osc.oscparams.osc1p = roundToInt(param));
 	}
 	void setOsc2Pitch(float param)
 	{
-		ForEachVoice(osc.osc2p = roundToInt(param));
+		ForEachVoice(osc.oscparams.osc2p = roundToInt(param));
 	}
 	void setOsc1Mix(float param)
 	{
@@ -450,25 +450,25 @@ public:
 	{
 		// linsc is geared for 0..10. so we multiply param by 10
 		// as the displayed parameter value is 0..1.
-		ForEachVoice(osc.osc1Det = linsc(param * 10, 0, 1.0f));
+		ForEachVoice(osc.oscparams.osc1Det = linsc(param * 10, 0, 1.0f));
 	}
 	void setOsc2Det(float param)
 	{
-		ForEachVoice(osc.osc2Det = linsc(param * 10, 0, 1.0f));
+		ForEachVoice(osc.oscparams.osc2Det = linsc(param * 10, 0, 1.0f));
 	}
 
 	void setOsc1Wave(float param)
 	{
 		int intparam = roundToInt(param);
 		for (int i = 0; i < synth.MAX_VOICES; i++)
-			synth.voices[i].osc.osc1Wave = intparam;
+			synth.voices[i].osc.oscparams.osc1Wave = intparam;
 	}
 
 	void setOsc2Wave(float param)
 	{
 		int intparam = roundToInt(param);
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
-			synth.voices[i].osc.osc2Wave = intparam;
+			synth.voices[i].osc.oscparams.osc2Wave = intparam;
 			synth.voices[i].osc.osc2modout =
 				synth.voices[i].oscmodEnable = intparam != 0;
 		}
@@ -477,7 +477,7 @@ public:
 	{
 		int intparam = roundToInt(param);
 		// off - -1 square - -2 square - -2 pulse - noise
-		ForEachVoice(osc.osc2SubWaveform = intparam);
+		ForEachVoice(osc.oscparams.osc2SubWaveform = intparam);
 	}
 	void setOsc2SubMix(float param)
 	{
