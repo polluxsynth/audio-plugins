@@ -1,0 +1,29 @@
+
+KB --> Porta >----+------------------------> Key  Pole             MiMi-d voice architecture
+                  v                         Track Count
+               osc 1+2                        v    v
+             +----------+         +---+    +----------+    +-----+    +---------+    +-----+    +-----+
+Pitch,Det -> |  OSC 1   |-- Lvl ->|   |--->|  FILTER  |--->| HPF |--->| O'DRIVE |--->| VCA |--->| PAN |-- Vol -->
+             +----------+         | M |    +----------+    +-----+    +---------+    +-----+    +-----+
+              ^  ^  ^  ^          |   |     ^  ^  ^  ^        ^            ^           ^  ^
+              | Xm Wav Sh         |   |     | O2f |  |      Freq         Drive         | Lin/Exp
+            Sync |                | I |    Fc  | Res |                                 |
+              |  +--------+------ |   | -------+    Amt <- Vel Amt <- Vel              |<- Vel Amt <- Vel
+             +----------+ |       |   |              |                                 |
+Pitch,Det -> |  OSC 2   |-+ Lvl-> | X |         +---------+                       +---------+
+             +----------+         |   |    Pol->| F.ADSSR |<-Exp/Lin              | L.ADSSR |<-Exp/Lin
+                 |  ^  ^          |   |         +---------+                       +---------+
+                 | Wav Sh         | E |          ^ ^ ^ ^ ^                         ^ ^ ^ ^ ^
+                 |                |   |          A D S S R                         A D S S R
+                 v                |   |
+             +----------+         | R |     +----------+               Osc/2/1+2/    +----------+               Osc1/2/1+2/
+             | SUB OSC  |-- Lvl ->|   |     |   MOD1   |-> Amt -> Dest:Sh1/2/1+2/    |   MOD2   |-> Amt -> Dest:Sh1/2/1+2/
+             +----------+         +---+     +----------+    ^          Fc/Res/O2f    +----------+    ^          Fc/Res/O2f
+                    ^                        ^  ^  ^  ^   Ctrl                        ^  ^  ^  ^   Ctrl
+                   Wav                       | Wav | Pol   Amt                        | Wav | Pol   Amt
+                                           Rate   Sync      ^                        Rate  Sync      ^
+       Osc Wav: Off/Saw/Pul/Tri                   Mode      |                              Mode      |
+       Sub Osc Wav: Off/-1 Squ/-2 Squ/-2 Pul          Modw/Aft/Vel                             Modw/Aft/Vel
+       Lfo Wav: Off/Saw/Fall/Tri/Rise/Pul/Squ/RPul/S-H
+       Lfo Sync Mode: Off/Clock/Key/Oneshot
+       Bend Dest: Off/Osc1/Osc1+2

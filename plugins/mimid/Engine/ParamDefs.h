@@ -79,7 +79,7 @@
 	PARAMPOINTS(SP_LFOWAVE, " Off ", " Saw ", " Fall ", " Tri ", " Rise ", " RSaw ", "Pul ", " Squ ", " RPul ", " S/H ")
 	PARAMPOINTS(SP_LFOSYNC, " Off ", "Clock", " Key ", "OneShot")
 	PARAMPOINTS(SP_LFOCONTR, " None ", " Modw ", "Aftert", " Vel ")
-	PARAMPOINTS(SP_LFODEST, "Off", "Osc1", "Osc1+2", "Osc2", "SH1", "SH1+2", "SH2", "Cutoff", "Res", "Osc2Filt")
+	PARAMPOINTS(SP_LFODEST, "Off", "Osc1", "Osc1+2", "Osc2", "Sh1", "Sh1+2", "Sh2", "Cutoff", "Res", "Osc2Filt")
 	PARAMPOINTS(SP_POLARITY, " Norm ", " Inv ", " Uni ", "InvUni")
 	PARAMPOINTS(SP_OSCWAVE, " Off ", " Saw ", " Pul ", " Tri ")
 	PARAMPOINTS(SP_KEYSYNC, "FreeRun", "KeySync")

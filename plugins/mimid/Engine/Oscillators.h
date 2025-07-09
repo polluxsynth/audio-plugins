@@ -56,9 +56,6 @@ private:
 	float osc1Factor;
 	float osc2Factor;
 
-	//blep const
-	const int n;
-	const int hsam;
 	//delay line implements fixed sample delay
 	DelayLine<Samples> osc2d;
 	DelayLineInt<Samples> syncd;
@@ -115,8 +112,6 @@ public:
 	float unused1, unused2; //TODO remove
 
 	Oscillators() :
-		n(Samples * 2),
-		hsam(Samples),
 		o1aa(), o2aa(), subaa(),
 		o1s(o1aa), o2s(o2aa),
 		o1p(o1aa), o2p(o2aa),
