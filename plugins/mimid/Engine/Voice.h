@@ -440,59 +440,40 @@ public:
 		lfo1.setSpread(expf(Lfo1Spread*d * 2 * logf(1.5)));
 		lfo2.setSpread(expf(Lfo2Spread*d * 2 * logf(1.5)));
 	}
-	void setMod1Route(int param)
+	void setModRoute(int param, ModRoute &route)
 	{
 		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
 		// 0    1     2       3     4    5      6    7     8    9
 		switch (param) {
-			case 0: lfo1route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
+			case 0: route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
 				break;
-			case 1: lfo1route.setRoute(&osc.oscmodulation.pto1, NULL, 12.0f);
+			case 1: route.setRoute(&osc.oscmodulation.pto1, NULL, 12.0f);
 				break;
-			case 2: lfo1route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 12.0f);
+			case 2: route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 12.0f);
 				break;
-			case 3: lfo1route.setRoute(&osc.oscmodulation.pto2, NULL, 12.0f);
+			case 3: route.setRoute(&osc.oscmodulation.pto2, NULL, 12.0f);
 				break;
-			case 4: lfo1route.setRoute(&osc.oscmodulation.sh1, NULL, 1.0f);
+			case 4: route.setRoute(&osc.oscmodulation.sh1, NULL, 1.0f);
 				break;
-			case 5: lfo1route.setRoute(&osc.oscmodulation.sh1, &osc.oscmodulation.sh2, 1.0f);
+			case 5: route.setRoute(&osc.oscmodulation.sh1, &osc.oscmodulation.sh2, 1.0f);
 				break;
-			case 6: lfo1route.setRoute(&osc.oscmodulation.sh2, NULL, 1.0f);
+			case 6: route.setRoute(&osc.oscmodulation.sh2, NULL, 1.0f);
 				break;
-			case 7: lfo1route.setRoute(&cutoffnote, NULL, 60.0f);
+			case 7: route.setRoute(&cutoffnote, NULL, 60.0f);
 				break;
-			case 8: lfo1route.setRoute(&rescalc, NULL, 1.0f);
+			case 8: route.setRoute(&rescalc, NULL, 1.0f);
 				break;
-			case 9: lfo1route.setRoute(&osc2FltModCalc, NULL, 100.0f);
+			case 9: route.setRoute(&osc2FltModCalc, NULL, 100.0f);
 				break;
 		}
 	}
+	void setMod1Route(int param)
+	{
+		setModRoute(param, lfo1route);
+	}
 	void setMod2Route(int param)
 	{
-		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
-		// 0    1     2       3     4    5      6    7     8    9
-		switch (param) {
-			case 0: lfo2route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
-				break;
-			case 1: lfo2route.setRoute(&osc.oscmodulation.pto1, NULL, 12.0f);
-				break;
-			case 2: lfo2route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 12.0f);
-				break;
-			case 3: lfo2route.setRoute(&osc.oscmodulation.pto2, NULL, 12.0f);
-				break;
-			case 4: lfo2route.setRoute(&osc.oscmodulation.sh1, NULL, 1.0f);
-				break;
-			case 5: lfo2route.setRoute(&osc.oscmodulation.sh1, &osc.oscmodulation.sh2, 1.0f);
-				break;
-			case 6: lfo2route.setRoute(&osc.oscmodulation.sh2, NULL, 1.0f);
-				break;
-			case 7: lfo2route.setRoute(&cutoffnote, NULL, 60.0f);
-				break;
-			case 8: lfo2route.setRoute(&rescalc, NULL, 1.0f);
-				break;
-			case 9: lfo2route.setRoute(&osc2FltModCalc, NULL, 100.0f);
-				break;
-		}
+		setModRoute(param, lfo2route);
 	}
 	void setPwRoute(ModRoute &route, int param)
 	{
