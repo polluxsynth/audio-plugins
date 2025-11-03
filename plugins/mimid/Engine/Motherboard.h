@@ -79,6 +79,7 @@ public:
 		{
 			voices[i].lfo1.phaseSync(voices[0].lfo1);
 			voices[i].lfo2.phaseSync(voices[0].lfo2);
+			voices[i].lfo3.phaseSync(voices[0].lfo3);
 		}
 		voiceAlloc.reinit(count, voiceList);
 		totalvc = count;
@@ -130,6 +131,7 @@ public:
 			// unexpected aftertouch value next time it triggers.
 			voice.lfo1.update();
 			voice.lfo2.update();
+			voice.lfo3.update();
 			voice.aftert = voice.afterTouchSmoother.smoothStep();
 		}
 		if (voice.shouldProcess || !economyMode) {
