@@ -96,6 +96,7 @@ public:
 	AdssrEnvelope fenv;
 	Lfo lfo1;
 	Lfo lfo2;
+	Lfo lfo3;
 	OscillatorParams oscparams;
 	OscillatorModulation oscmodulation;
 	Oscillators osc;
@@ -104,6 +105,7 @@ public:
 
 	ModRoute lfo1route;
 	ModRoute lfo2route;
+	ModRoute lfo3route;
 	ModRoute pwroute;
 
 	SRandom ng;
@@ -127,6 +129,7 @@ public:
 
 	float Lfo1Spread;
 	float Lfo2Spread;
+	float Lfo3Spread;
 
 	float FltSpread; // Random amount calculated at start
 	float FltSpreadAmt; // Calculated value depending on parameter
@@ -156,9 +159,9 @@ public:
 
 	float pitchWheel, pitchWheelAmt;
 
-	float lfo1amt, lfo2amt;
-	float lfo1contramt, lfo2contramt;
-	float *lfo1controller, *lfo2controller;
+	float lfo1amt, lfo2amt, lfo3amt;
+	float lfo1contramt, lfo2contramt, lfo3contramt;
+	float *lfo1controller, *lfo2controller, *lfo3controller;
 
 	// Modwheel and aftertouch values
 	float modw, aftert;
@@ -216,6 +219,7 @@ public:
 		FenvSpread = SRandom::globalRandom().nextFloat()-0.5;
 		Lfo1Spread = SRandom::globalRandom().nextFloat()-0.5;
 		Lfo2Spread = SRandom::globalRandom().nextFloat()-0.5;
+		Lfo3Spread = SRandom::globalRandom().nextFloat()-0.5;
 		FltSpread = SRandom::globalRandom().nextFloat()-0.5;
 		PortaSpread = SRandom::globalRandom().nextFloat()-0.5;
 		oscmodEnable = false;
@@ -225,7 +229,7 @@ public:
 		cutoffnote = 0;
 		rescalc = 0;
 		osc2FltModCalc = 0;
-		lfo1controller = lfo2controller = &zero;
+		lfo1controller = lfo2controller = lfo3controller = &zero;
 	}
 	~Voice()
 	{
@@ -235,6 +239,7 @@ public:
 		// LFOs
 		float lfo1In = lfo1.getVal();
 		float lfo2In = lfo2.getVal();
+		float lfo3In = lfo3.getVal();
 
 		// Multiplying modamt with (1-lfoamt) scales
 		// the modulation so that the total value never goes above 1.0
@@ -244,6 +249,8 @@ public:
 			*lfo1controller * lfo1contramt * (1 - lfo1amt);
 		float lfo2totalamt = lfo2amt +
 			*lfo2controller * lfo2contramt * (1 - lfo2amt);
+		float lfo3totalamt = lfo3amt +
+			*lfo3controller * lfo3contramt * (1 - lfo3amt);
 
 		// Both envelopes and filter cv need a delay equal to osc internal delay
 		// Bipolar filter envelope
@@ -290,6 +297,7 @@ public:
 		// for the mod routings to take effect.
 		lfo1route.modulate(lfo1In * lfo1totalamt);
 		lfo2route.modulate(lfo2In * lfo2totalamt);
+		lfo3route.modulate(lfo3In * lfo3totalamt);
 		pwroute.modulate(pitchWheel * pitchWheelAmt);
 
 		// Filter audio is delayed because it runs on the oscillator
@@ -439,6 +447,7 @@ public:
 	{
 		lfo1.setSpread(expf(Lfo1Spread*d * 2 * logf(1.5)));
 		lfo2.setSpread(expf(Lfo2Spread*d * 2 * logf(1.5)));
+		lfo3.setSpread(expf(Lfo3Spread*d * 2 * logf(1.5)));
 	}
 	void setModRoute(int param, ModRoute &route)
 	{
@@ -474,6 +483,10 @@ public:
 	void setMod2Route(int param)
 	{
 		setModRoute(param, lfo2route);
+	}
+	void setMod3Route(int param)
+	{
+		setModRoute(param, lfo3route);
 	}
 	void setPwRoute(ModRoute &route, int param)
 	{
@@ -526,6 +539,7 @@ public:
 		fenv.setSampleRate(modRate);
 		lfo1.setSampleRate(modRate);
 		lfo2.setSampleRate(modRate);
+		lfo3.setSampleRate(modRate);
 		afterTouchSmoother.setSampleRate(modRate);
 		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 		// Limit filter freq to nyquist frequency minus a small
@@ -590,6 +604,7 @@ public:
 			fenv.triggerAttack();
 			lfo1.keyResetPhase();
 			lfo2.keyResetPhase();
+			lfo3.keyResetPhase();
 		}
 		if (oscKeySync)
 			osc.keyReset = true;

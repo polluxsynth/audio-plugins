@@ -65,6 +65,7 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].lfo1.setBpm(bpm);
 			synth.voices[i].lfo2.setBpm(bpm);
+			synth.voices[i].lfo3.setBpm(bpm);
 		}
 	}
 	void setPlayHead(float retrPos)
@@ -72,6 +73,7 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].lfo1.hostSyncRetrigger(retrPos);
 			synth.voices[i].lfo2.hostSyncRetrigger(retrPos);
+			synth.voices[i].lfo3.hostSyncRetrigger(retrPos);
 		}
 	}
 	void setSampleRate(float sr)
@@ -382,6 +384,59 @@ public:
 		param *= 0.1f; // 0..10 -> 0..1
 		param *= param; // square to get better low end resolution
 		ForEachVoice(lfo2amt = param);
+	}
+	void setLfo3Frequency(float param)
+	{
+		for (int i = 0; i < synth.MAX_VOICES; i++) {
+			synth.voices[i].lfo3.setRawFrequency(param);
+			synth.voices[i].lfo3.setFrequency(logsc(param, 0, 100, 240));
+		}
+	}
+	void setLfo3Shape(float param)
+	{
+		// TODO: put scaling in setWaveForm ?
+		ForEachVoice(lfo3.setShape(param * 0.1f));
+	}
+	void setLfo3Amt(float param)
+	{
+		param *= 0.1f; // 0..10 -> 0..1
+		param *= param; // square to get better low end resolution
+		ForEachVoice(lfo3amt = param);
+	}
+	void setLfo3Dest(float param)
+	{
+		int intparam = roundToInt(param);
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		ForEachVoice(setMod3Route(intparam));
+	}
+	void setLfo3Controller(float val)
+	{
+		int intval = roundToInt(val);
+		// off - modwheel - aftertouch - vel
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].setModController(&synth.voices[i].lfo3controller, intval);
+	}
+	void setLfo3ControllerAmt(float val)
+	{
+		ForEachVoice(lfo3contramt = val * 0.1f);
+	}
+	void setLfo3Sync(float val)
+	{
+		// Off - Tempo - Key - Oneshot
+		int intval = roundToInt(val);
+		for (int i = 0; i < Motherboard::MAX_VOICES; i++) {
+			synth.voices[i].lfo3.setClockSync(intval == 1);
+			synth.voices[i].lfo3.setKeySync(intval >= 2 && intval <= 3);
+			synth.voices[i].lfo3.setOneShot(intval == 3);
+		}
+	}
+	void setLfo3Polarity(float val)
+	{
+		// Normal - Invert - Unipolar - Unipolar+Invert
+		int intval = roundToInt(val) & 3;
+
+		ForEachVoice(lfo3.setPolarity(intval));
 	}
 	void setOscSpread(float param)
 	{
