@@ -125,9 +125,9 @@
 	PARAM(BENDDEST, PG_BEND, SP_BENDDEST, "Dest", "benddest", SP_MIN, SP_MAX, 0, setPitchWheelDest)
 
 	// Controllers (as mod sources)
-	PARAM(MODWAMT, PG_CONTR, SP_NONE, "ModWheel Amount", "modwamt", 0, 10, 0, setModWheelAmount)
+	PARAM(MODWAMT, PG_CONTR, SP_NONE, "ModWheel Amount", "modwamt", -10, 10, 0, setModWheelAmount)
 	PARAM(MODWDEST, PG_CONTR, SP_LFODEST, "ModWheel Dest", "modwdest", 0, SP_MAX, 0, setModWheelDest)
-	PARAM(ATAMT, PG_CONTR, SP_NONE, "AfterTouch Amount", "atamt", 0, 10, 0, setAfterTouchAmount)
+	PARAM(ATAMT, PG_CONTR, SP_NONE, "AfterTouch Amount", "atamt", -10, 10, 0, setAfterTouchAmount)
 	PARAM(ATDEST, PG_CONTR, SP_LFODEST, "AfterTouch Dest", "atdest", 0, SP_MAX, 0, setAfterTouchDest)
 
 	// LFO1 #1 (main: freq, wave, basic amount)
