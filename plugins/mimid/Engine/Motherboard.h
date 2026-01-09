@@ -58,6 +58,7 @@ public:
 		totalvc = MAX_VOICES;
 		for (int i = 0; i < MAX_VOICES;++i) {
 			voices[i].voiceNumber = i;
+			voices[i].usable = true;
 			voiceList[i] = &voices[i];
 			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
@@ -149,7 +150,8 @@ public:
 		if (++modCount >= modRatio) modCount = 0;
 		bool processMod = (modCount == 0);
 
-		for (int i = 0; i < totalvc; i++) {
+		for (int i = 0; i < MAX_VOICES; i++) {
+			if (!voices[i].usable) continue;
 			float x1 = processSynthVoice(voices[i], processMod);
 			if (oversample) {
 				float x2 = processSynthVoice(voices[i], false);

@@ -148,8 +148,9 @@ public:
 
 	int midiIndx;
 
-	bool Active;
-	bool shouldProcess;
+	bool Active; // = Gate, set on at Note On, off at Note Off
+	bool shouldProcess; // Lenv is not off, i.e. DSP should be run
+	bool usable; // Voice may be allocated
 
 	bool oscKeySync;
 	bool envRst;
@@ -194,6 +195,7 @@ public:
 		ng = SRandom(SRandom::globalRandom().nextInt32());
 		sustainHold = false;
 		shouldProcess = false;
+		usable = false;
 		vamp = vflt = 0;
 		velscale = 1;
 		velocityValue = 0;

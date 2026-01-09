@@ -181,23 +181,37 @@ public:
 	// Voice list must be the same as passed to init method
 	void reinit(int voiceCount, Voice *voices[])
 	{
-		// If we are increasing the voice count, push our newly
-		// found (and non playing) voices onto offpri.
-		for (int i = totalvc; i < voiceCount; i++) {
-			offpri.push(voices[i]);
+		int voiceDelta = voiceCount - totalvc;
+		int voiceNo = 0;
+
+		// If we are increasing the voice count, push
+		// non-usable (and non playing) voices onto offpri.
+		while (voiceDelta > 0) {
+			while (voices[voiceNo]->usable)
+				voiceNo++;
+			offpri._insert(voices[voiceNo]);
+			voices[voiceNo]->usable = true;
+			voiceNo++;
+			voiceDelta--;
 		}
 		// If we are decreasing the voice count, extract
 		// superfluous voices from onpri if they are playing,
 		// else extract them from offpri.
-		for (int i = voiceCount; i < totalvc; i++) {
-			Voice *voice = onpri.extract(voices[i]);
-			if (voice)
+		while (voiceDelta < 0) {
+			Voice *voice;
+
+			if (offpri.size() > 0) {
+				voice = offpri._extract();
+			} else {
+				voice = onpri._extract();
 				voice->NoteOff();
-			else
-				offpri.extract(voices[i]);
-			// Unconditionally reset envelopes to also terminate
-			// voices that are in their release phase.
-			voices[i]->ResetEnvelopes();
+			}
+			voice->usable = false;
+			voiceDelta++;
+			// Unconditionally reset envelopes to also
+			// terminate voices that are in their release
+			// phase.
+			voice->ResetEnvelopes();
 		}
 		totalvc = voiceCount;
 	}
