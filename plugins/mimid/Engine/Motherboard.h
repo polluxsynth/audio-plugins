@@ -119,8 +119,7 @@ public:
 	inline float processSynthVoice(Voice& voice, bool processMod)
 	{
 		if (processMod) {
-			if (economyMode)
-				voice.checkAdssrState();
+			voice.checkAdssrState();
 			// Always update LFOs to keep them in phase even if
 			// voice is not playing, as well as updating
 			// aftertouch in case it continues to change
