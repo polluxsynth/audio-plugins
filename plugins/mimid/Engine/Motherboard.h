@@ -43,7 +43,6 @@ public:
 	const static int modRatio = 1;
 private:
 	Voice *voiceList[MAX_VOICES];
-	int totalvc;
 	Decimator17 leftDecim, rightDecim;
 
 public:
@@ -62,7 +61,6 @@ public:
 		oversample = false;
 		modCount = 0;
 		volume = 0;
-		totalvc = MAX_VOICES;
 		for (int i = 0; i < MAX_VOICES;++i) {
 			voices[i].voiceNumber = i;
 			voices[i].usable = true;
@@ -93,7 +91,6 @@ public:
 			}
 		}
 		voiceAlloc.reinit(count, voiceList, syncNewVoice, voiceList[first]);
-		totalvc = count;
 	}
 	void setSampleRate()
 	{
