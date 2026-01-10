@@ -43,6 +43,7 @@ public:
 	const static int modRatio = 1;
 private:
 	Voice *voiceList[MAX_VOICES];
+	int firstVoice;
 	Decimator17 leftDecim, rightDecim;
 
 public:
@@ -57,17 +58,22 @@ public:
 	bool economyMode;
 	Motherboard(): leftDecim(), rightDecim()
 	{
+		int nextVoice = -1;
+
 		economyMode = true;
 		oversample = false;
 		modCount = 0;
 		volume = 0;
-		for (int i = 0; i < MAX_VOICES;++i) {
+		for (int i = MAX_VOICES - 1; i >= 0; --i) {
 			voices[i].voiceNumber = i;
 			voices[i].usable = true;
+			voices[i].next = nextVoice;
+			nextVoice = i;
 			voiceList[i] = &voices[i];
 			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
 		}
+		firstVoice = nextVoice;
 		voiceAlloc.init(MAX_VOICES, voiceList);
 	}
 	~Motherboard()
@@ -77,20 +83,22 @@ public:
 	void setVoiceCount(int count)
 	{
 		// If the number of voices is increased, any free running
-		// LFOs need to be synced with the rest. Since the first
-		// voice is always available we simply use that.
-		// Since we start att totalvc, the loop is never executed
-		// for voice #0. Furthermore, it is not run at all if
-		// the voice count is not increased over the current value.
-		int first = 0;
+		// LFOs need to be synced with the rest, so we send along
+		// a function to do just that, and a pointer to the first
+		// voice that is playing to be used as a master.
 
-		for (int i = 0; i < MAX_VOICES; i++) {
-			if (voices[i].usable) { /* Found a usable voice. */
-				first = i;
-				break;
+		voiceAlloc.reinit(count, voiceList, syncNewVoice, voiceList[firstVoice]);
+
+		int next = -1;
+
+		/* Set up linked list of usable voices.*/
+		for (int i = MAX_VOICES - 1; i >= 0; i--) {
+			if (voices[i].usable) {
+				voices[i].next = next;
+				next = i;
 			}
 		}
-		voiceAlloc.reinit(count, voiceList, syncNewVoice, voiceList[first]);
+		firstVoice = next;
 	}
 	void setSampleRate()
 	{
@@ -152,13 +160,13 @@ public:
 	{
 		float vl = 0, vr = 0;
 		float vlo = 0, vro = 0;
+		int i = firstVoice;
 
 		// Run modulation at fraction of sample rate, up to 1:1
 		if (++modCount >= modRatio) modCount = 0;
 		bool processMod = (modCount == 0);
 
-		for (int i = 0; i < MAX_VOICES; i++) {
-			if (!voices[i].usable) continue;
+		while (i >= 0) {
 			float x1 = processSynthVoice(voices[i], processMod);
 			if (oversample) {
 				float x2 = processSynthVoice(voices[i], false);
@@ -167,6 +175,8 @@ public:
 			}
 			vl += x1 * (1 - pannings[i]);
 			vr += x1 * pannings[i];
+
+			i = voices[i].next;
 		}
 		if (oversample) {
 			vl = leftDecim.Calc(vl, vlo);

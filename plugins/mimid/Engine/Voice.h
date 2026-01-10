@@ -151,6 +151,7 @@ public:
 	bool Active; // = Gate, set on at Note On, off at Note Off
 	bool shouldProcess; // Lenv is not off, i.e. DSP should be run
 	bool usable; // Voice may be allocated
+	int next; // Next usable voice. -1 means this voice is last in list
 
 	bool oscKeySync;
 	bool envRst;
@@ -196,6 +197,7 @@ public:
 		sustainHold = false;
 		shouldProcess = false;
 		usable = false;
+		next = -1;
 		vamp = vflt = 0;
 		velscale = 1;
 		velocityValue = 0;
