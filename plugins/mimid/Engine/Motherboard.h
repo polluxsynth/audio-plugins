@@ -29,6 +29,13 @@
 #include "SynthEngine.h"
 #include "Lfo.h"
 
+void syncNewVoice(Voice *masterVoice, Voice *slaveVoice)
+{
+	slaveVoice->lfo1.phaseSync(masterVoice->lfo1);
+	slaveVoice->lfo2.phaseSync(masterVoice->lfo2);
+	slaveVoice->lfo3.phaseSync(masterVoice->lfo3);
+}
+
 class Motherboard
 {
 public:
@@ -68,6 +75,7 @@ public:
 	~Motherboard()
 	{
 	}
+
 	void setVoiceCount(int count)
 	{
 		// If the number of voices is increased, any free running
@@ -76,13 +84,15 @@ public:
 		// Since we start att totalvc, the loop is never executed
 		// for voice #0. Furthermore, it is not run at all if
 		// the voice count is not increased over the current value.
-		for (int i = totalvc; i < count; i++)
-		{
-			voices[i].lfo1.phaseSync(voices[0].lfo1);
-			voices[i].lfo2.phaseSync(voices[0].lfo2);
-			voices[i].lfo3.phaseSync(voices[0].lfo3);
+		int first = 0;
+
+		for (int i = 0; i < MAX_VOICES; i++) {
+			if (voices[i].usable) { /* Found a usable voice. */
+				first = i;
+				break;
+			}
 		}
-		voiceAlloc.reinit(count, voiceList);
+		voiceAlloc.reinit(count, voiceList, syncNewVoice, voiceList[first]);
 		totalvc = count;
 	}
 	void setSampleRate()

@@ -24,6 +24,8 @@
 #include "PriorityQueue.h"
 #include "Voice.h"
 
+typedef void (*syncfunc)(Voice *masterVoice, Voice *slaveVoice);
+
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
@@ -169,7 +171,8 @@ public:
 	}
 	// Reinitialize allocator when voice count changed runtime
 	// Voice list must be the same as passed to init method
-	void reinit(int voiceCount, Voice *voices[])
+	void reinit(int voiceCount, Voice *voices[],
+		    syncfunc sync, Voice *masterVoice)
 	{
 		int voiceDelta = voiceCount - totalvc;
 		int voiceNo = 0;
@@ -181,6 +184,7 @@ public:
 				voiceNo++;
 			offpri._insert(voices[voiceNo]);
 			voices[voiceNo]->usable = true;
+			sync(masterVoice, voices[voiceNo]);
 			voiceNo++;
 			voiceDelta--;
 		}
