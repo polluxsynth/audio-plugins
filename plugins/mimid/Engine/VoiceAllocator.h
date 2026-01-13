@@ -129,7 +129,8 @@ private:
 	VoiceList<S> offpri;
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
-	int totalvc;
+	int totalvc; // Initial voice count at init time
+	int voicecount; // Current total voice count
 	float velsave[128]; // one per note number
 	float atsave[128]; // poly aftertouch
 	float chat; // channel aftertouch
@@ -156,7 +157,7 @@ public:
 		uniPlaying = false;
 		alwaysPorta = false;
 		usingPolyAfterTouch = false;
-		totalvc = 0;
+		totalvc = voicecount = 0;
 	}
 	~VoiceAllocator()
 	{
@@ -164,7 +165,7 @@ public:
 	// Initialize allocator from list of pointers to voices
 	void init(int voiceCount, Voice *voices[])
 	{
-		totalvc = voiceCount;
+		totalvc = voicecount = voiceCount;
 		onpri.clear();
 		offpri.init(totalvc, voices);
 		restore_stack.clear();
@@ -174,18 +175,17 @@ public:
 	void reinit(int voiceCount, Voice *voices[],
 		    syncfunc sync, Voice *masterVoice)
 	{
-		int voiceDelta = voiceCount - totalvc;
-		int voiceNo = 0;
-
+		int voiceDelta = voiceCount - voicecount;
+		int voiceNo = totalvc - 1;
 		// If we are increasing the voice count, push
 		// non-usable (and non playing) voices onto offpri.
 		while (voiceDelta > 0) {
 			while (voices[voiceNo]->usable)
-				voiceNo++;
+				voiceNo--;
 			offpri._insert(voices[voiceNo]);
 			voices[voiceNo]->usable = true;
 			sync(masterVoice, voices[voiceNo]);
-			voiceNo++;
+			voiceNo--;
 			voiceDelta--;
 		}
 		// If we are decreasing the voice count, extract
@@ -206,7 +206,7 @@ public:
 			// phase.
 			voice->ResetEnvelopes();
 		}
-		totalvc = voiceCount;
+		voicecount = voiceCount;
 	}
 	void setAfterTouch(float ATvalue)
 	{
@@ -244,7 +244,7 @@ private:
 			}
 		}
 
-		for (int i = 0; i < totalvc; i++) {
+		for (int i = 0; i < voicecount; i++) {
 			// We manipulate onpri/offpri here to get a seamless
 			// transition between unison on and off, and to avoid
 			// having to manage the voice * list outside of the
@@ -272,7 +272,7 @@ private:
 			// play it.
 			if (restore && restore_stack.size() > 0) {
 				noteNo = restore_stack._pop();
-				for (int i = 0; i < totalvc; i++) {
+				for (int i = 0; i < voicecount; i++) {
 					Voice *voice = onpri.peek(i);
 					if (!voice) {
 						voice = offpri.pop();
@@ -283,7 +283,7 @@ private:
 				}
 				uniNote = noteNo;
 			} else {
-				for (int i = 0; i < totalvc; i++) {
+				for (int i = 0; i < voicecount; i++) {
 					Voice *voice = onpri.pop();
 					if (!voice)
 						break;
