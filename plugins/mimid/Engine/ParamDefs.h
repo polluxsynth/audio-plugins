@@ -76,6 +76,7 @@
 	PARAMPOINTS(SP_ASGNROB, " Off ", "Rob O", "Rob NL")
 	PARAMPOINTS(SP_ASGNRES, " Off ", " Res ")
 	PARAMPOINTS(SP_ASGNMTRG, " All ", "Note On", " None ")
+	PARAMPOINTS(SP_ASGNDUAL, "Single", " Dual ")
 	PARAMPOINTS(SP_ENVRST, "FreeRun", "KeyReset")
 	PARAMPOINTS(SP_EXPLIN, "Exp", "Lin")
 	PARAMPOINTS(SP_LFOWAVE, " Off ", " Saw ", " Fall ", " Tri ", " Rise ", " RSaw ", "Pul ", " Squ ", " RPul ", " S/H ")
@@ -118,6 +119,10 @@
 	PARAM(ASGN_ROB, PG_KEYASGN, SP_ASGNROB, "Voice Rob", "keyassignrob", 0, SP_MAX, 2, setKeyAsgnRob)
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", 0, SP_MAX, 0, setKeyAsgnRes)
+
+	// Key assignment #3
+	// Single/dual
+	PARAM(ASGN_DUAL, PG_KEYASGN, SP_ASGNDUAL, "Poly Unison", "keyasgndual", 0, SP_MAX, 0, setKeyAsgnDual)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)

@@ -149,6 +149,7 @@ public:
 	bool strgNoteOff;
 	bool restore;
 	bool alwaysPorta;
+	bool dual;
 
 	VoiceAllocator()
 	{

@@ -175,6 +175,11 @@ public:
 		synth.voiceAlloc.uni = intval >= 1;
 		synth.voiceAlloc.alwaysPorta = intval < 2;
 	}
+	void setKeyAsgnDual(float param)
+	{
+		int intval = roundToInt(param);
+		synth.voiceAlloc.dual = intval;
+	}
 	void procNoteOn(int noteNo,float velocity)
 	{
 		synth.voiceAlloc.setNoteOn(noteNo,velocity);
