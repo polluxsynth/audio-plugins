@@ -71,7 +71,7 @@
 	PARAMPOINTS(SP_NONE, 0, "") /* No scale points - for continuous params */
 	PARAMPOINTS(SP_ONOFF, 0, "Off", "On")
 	PARAMPOINTS(SP_BENDDEST, 0, " Off ", " Osc1 ", "Osc1+2")
-	PARAMPOINTS(SP_ASGNMODE, 0, "Poly", "Mono", "AutoP")
+	PARAMPOINTS(SP_ASGNMODE, 0, "Poly", "Mono", "AutoP", "PolyD")
 	PARAMPOINTS(SP_CYCRSZ, 0, " Cyc ", " RSZ ")
 	PARAMPOINTS(SP_ASGNMEM, 0, " Off ", " Mem ")
 	PARAMPOINTS(SP_ASGNROB, 0, " Off ", "Rob O", "Rob NL")
@@ -102,7 +102,7 @@
 	PARAM(OCTAVE, PG_MAIN, SP_INTS, "Octave", "octave", -2, 2, 0, setOctave)
 
 	// Key assignment #1 (general)
-	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 32, 6, setVoiceCount)
+	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 32, 12, setVoiceCount)
 	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", SP_MIN, SP_MAX, 0, setKeyAsgnMode)
 	// Envelope reset
 	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", SP_MIN, SP_MAX, 0, setEnvRst)

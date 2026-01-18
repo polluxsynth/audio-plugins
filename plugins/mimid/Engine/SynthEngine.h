@@ -170,10 +170,11 @@ public:
 	}
 	void setKeyAsgnMode(float param)
 	{
-		// Poly - Mono - Mono+Auto [Portamento]
+		// Poly - Mono - Mono+Auto [Portamento] - Dual
 		int intval = roundToInt(param);
-		synth.voiceAlloc.uni = intval >= 1;
-		synth.voiceAlloc.alwaysPorta = intval < 2;
+		synth.voiceAlloc.uni = intval == 1 || intval == 2;
+		synth.voiceAlloc.alwaysPorta = intval != 2;
+		synth.voiceAlloc.dual = intval == 3;
 	}
 	void procNoteOn(int noteNo,float velocity)
 	{
