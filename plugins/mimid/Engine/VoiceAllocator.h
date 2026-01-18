@@ -231,6 +231,7 @@ public:
 		// It's only poly aftertouch that we need restore to the value
 		// last noted for the note in question.
 	}
+private:
 	void uniSetNoteOn(int noteNo, float velocity)
 	{
 		if (uniPlaying) {
@@ -295,6 +296,7 @@ public:
 			}
 		}
 	}
+public:
 	void setNoteOn(int noteNo,float velocity)
 	{
 		velsave[noteNo] = velocity; // needed for restore mode
