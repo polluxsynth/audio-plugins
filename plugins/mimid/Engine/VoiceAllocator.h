@@ -294,15 +294,13 @@ private:
 			}
 		}
 	}
-public:
-	void setNoteOn(int noteNo,float velocity)
+	/* Grab a voice according to priority rules (offpri if available,
+	 * honoring mem and rsz, else onpri if rob enabled or force is set).
+	 */
+	Voice *grabVoice(int noteNo)
 	{
-		velsave[noteNo] = velocity; // needed for restore mode
-		if (uni) {
-			uniSetNoteOn(noteNo, velocity);
-			return;
-		}
 		Voice *voice = NULL;
+
 		if (offpri.size() > 0) { // exist voices in offpri
 			if (mem)
 				voice = offpri.extract_noteno(noteNo);
@@ -326,6 +324,17 @@ public:
 				restore_stack.push(voice->midiIndx);
 			}
 		}
+		return voice;
+	}
+public:
+	void setNoteOn(int noteNo,float velocity)
+	{
+		velsave[noteNo] = velocity; // needed for restore mode
+		if (uni) {
+			uniSetNoteOn(noteNo, velocity);
+			return;
+		}
+		Voice *voice = grabVoice(noteNo);
 		if (voice) {
 			onpri._push(voice);
 			setVoiceAfterTouch(voice, noteNo);
