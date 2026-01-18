@@ -70,7 +70,7 @@
 	PARAMPOINTS(SP_NONE, 0, "") /* No scale points - for continuous params */
 	PARAMPOINTS(SP_ONOFF, 0, "Off", "On")
 	PARAMPOINTS(SP_BENDDEST, 0, " Off ", " Osc1 ", "Osc1+2")
-	PARAMPOINTS(SP_ASGNMODE, 0, "Poly", "Mono", "AutoP")
+	PARAMPOINTS(SP_ASGNMODE, 0, "Poly", "Mono", "AutoP", "PolyD")
 	PARAMPOINTS(SP_CYCRSZ, 0, " Cyc ", " RSZ ")
 	PARAMPOINTS(SP_ASGNMEM, 0, " Off ", " Mem ")
 	PARAMPOINTS(SP_ASGNROB, 0, " Off ", "Rob O", "Rob NL")
