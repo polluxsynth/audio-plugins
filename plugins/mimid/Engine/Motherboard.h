@@ -57,6 +57,7 @@ public:
 		totalvc = MAX_VOICES;
 		for (int i = 0; i < MAX_VOICES;++i) {
 			voices[i].voiceNumber = i;
+			voices[i].buddy = NULL;
 			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
 		}
