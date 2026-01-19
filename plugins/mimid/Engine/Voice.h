@@ -635,6 +635,15 @@ public:
 		}
 		Active = false;
 	}
+	void NoteOffImmediately()
+	{
+		ResetEnvelopes();
+		// Ramp down whatever is in the loudness env
+		// delay line to zero to minimize clicking
+		// when envelopes are reset.
+		lenvd.decayLine();
+		Active = false;
+	}
 	void sustOn()
 	{
 		sustainHold = true;
