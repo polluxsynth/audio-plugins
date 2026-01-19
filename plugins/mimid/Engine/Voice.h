@@ -152,6 +152,7 @@ public:
 	bool shouldProcess; // Lenv is not off, i.e. DSP should be run
 	bool usable; // Voice may be allocated
 	int next; // Next usable voice. -1 means this voice is last in list
+	Voice *buddy;
 
 	bool oscKeySync;
 	bool envRst;
@@ -198,6 +199,7 @@ public:
 		shouldProcess = false;
 		usable = false;
 		next = -1;
+		buddy = NULL;
 		vamp = vflt = 0;
 		velscale = 1;
 		velocityValue = 0;

@@ -68,6 +68,7 @@ public:
 			voices[i].voiceNumber = i;
 			voices[i].usable = true;
 			voices[i].next = nextVoice;
+			voices[i].buddy = NULL;
 			nextVoice = i;
 			voiceList[i] = &voices[i];
 			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
