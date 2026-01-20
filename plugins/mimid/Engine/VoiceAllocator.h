@@ -61,7 +61,8 @@ public:
 	int find(Voice *voice)
 	{
 		for (int pos = 0; pos < this->tos; pos++) {
-			if (voice == this->array[pos])
+			if (voice == this->array[pos] ||
+			    voice == this->array[pos]->buddy)
 				return pos;
 		}
 		return -1; // voice not found
@@ -201,13 +202,30 @@ public:
 		// else extract them from offpri.
 		for (int i = voiceCount; i < totalvc; i++) {
 			Voice *voice = onpri.extract(&voices[i]);
-			if (voice)
-				voice->NoteOff();
-			else
-				offpri.extract(&voices[i]);
-			// Unconditionally reset envelopes to also terminate
-			// voices that are in their release phase.
-			voices[i].ResetEnvelopes();
+			if (!voice)
+				voice = offpri.extract(&voices[i]);
+			if (voice) {
+				voice->NoteOffImmediately();
+				Voice *buddy = voice->buddy;
+				if (buddy) {
+					// Debuddify
+					buddy->buddy = NULL;
+					voice->buddy = NULL;
+					// We turn the voice off immediately so
+					// we don't get half of a buddy pair
+					// sounding.
+					buddy->NoteOffImmediately();
+					// extract() pulls out the complete
+					// buddy pair. If the voice is not
+					// one to be cut off, put it (back)
+					// in offpri.
+					if (buddy->voiceNumber < voiceCount)
+						offpri._push(buddy);
+				}
+				// Same here
+				if (voice->voiceNumber < voiceCount)
+					offpri._push(voice);
+			}
 		}
 		totalvc = voiceCount;
 	}
@@ -247,7 +265,8 @@ private:
 			}
 		}
 
-		for (int i = 0; i < totalvc; i++) {
+		int i = 0;
+		while (i < totalvc) {
 			// We manipulate onpri/offpri here to get a seamless
 			// transition between unison on and off, and to avoid
 			// having to manage the voice list outside of the
@@ -261,8 +280,19 @@ private:
 				voice = offpri.pop();
 				onpri.push(voice);
 			}
-			setVoiceAfterTouch(voice, noteNo);
-			voice->NoteOn(noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
+			noteOn(voice, noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
+			i++;
+			if (voice->buddy) {
+				// Debuddify and allocate
+				Voice *buddy = voice->buddy;
+				buddy->buddy = NULL;
+				voice->buddy = NULL;
+				// We shouldn't be able to go over the voice
+				// count, so gate on unconditionally.
+				onpri.push(buddy);
+				noteOn(buddy, noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
+				i++;
+			}
 		}
 		uniPlaying = true;
 		uniNote = noteNo;
@@ -281,8 +311,7 @@ private:
 						voice = offpri.pop();
 						onpri.push(voice);
 					}
-					setVoiceAfterTouch(voice, noteNo);
-					voice->NoteOn(noteNo, velsave[noteNo], !strgNoteOff, true);
+					noteOn(voice, noteNo, velsave[noteNo], !strgNoteOff, true);
 				}
 				uniNote = noteNo;
 			} else {
@@ -299,6 +328,10 @@ private:
 	}
 	/* Grab a voice according to priority rules (offpri if available,
 	 * honoring mem and rsz, else onpri if rob enabled or force is set).
+	 * Note that in extreme cases, such as when attempting to grab
+	 * a voice buddy when the voice count is 1, there might not be
+	 * any voice available neither in offpri nor onpri, so we need to
+	 * consider that.
 	 */
 	Voice *grabVoice(int noteNo)
 	{
@@ -316,21 +349,28 @@ private:
 		} else {
 			if (rob_oldest) {
 				voice = onpri._extract(); // rob oldest
-				// Since we've robbed a voice, push the note
-				// it was playing onto the restore stack
-				restore_stack.push(voice->midiIndx);
+				// If we've robbed a voice, push the note
+				// it was playing onto the restore stack.
+				if (voice)
+					restore_stack.push(voice->midiIndx);
 			}
 			else if (rob_next_to_lowest) {
 				voice = onpri.extract_next_to_lowest_note();
-				// Since we've robbed a voice, push the note
-				// it was playing onto the restore stack
-				restore_stack.push(voice->midiIndx);
+				// If we've robbed a voice, push the note
+				// it was playing onto the restore stack.
+				if (voice)
+					restore_stack.push(voice->midiIndx);
 			}
 		}
 		return voice;
 	}
+	void noteOn(Voice *voice, int noteNo, float velocity, bool multitrig, bool porta = true)
+	{
+		setVoiceAfterTouch(voice, noteNo);
+		voice->NoteOn(noteNo, velocity, multitrig, porta);
+	}
 public:
-	void setNoteOn(int noteNo,float velocity)
+	void setNoteOn(int noteNo, float velocity)
 	{
 		velsave[noteNo] = velocity; // needed for restore mode
 		if (uni) {
@@ -339,9 +379,47 @@ public:
 		}
 		Voice *voice = grabVoice(noteNo);
 		if (voice) {
+			Voice *buddy = NULL;
+			if (dual) {
+				buddy = voice->buddy;
+				if (!buddy) {
+					// We don't have a buddy yet. Hopefully,
+					// we'll be able to grab a single voice.
+					buddy = grabVoice(noteNo);
+					// If the buddy itself has a buddy,
+					// debuddify, shut it off, and push it
+					// (as a single voice) onto offpri.
+					// This normally happens only in cases
+					// when the assign mode is changed
+					// back and forth while playing notes
+					// at the same time.
+					if (buddy && buddy->buddy) {
+						Voice *defunctBuddy = buddy->buddy;
+						buddy->buddy = NULL;
+						defunctBuddy->NoteOffImmediately();
+						offpri._push(defunctBuddy);
+					}
+					if (buddy) {
+						// Buddification
+						voice->buddy = buddy;
+						buddy->buddy = voice;
+					}
+				}
+			} else if (voice->buddy) { // single mode
+				// Debuddify, and forcibly gate buddy off
+				// (or else we might hear the buddy release)
+				Voice *defunctBuddy = voice->buddy;
+				defunctBuddy->buddy = NULL;
+				voice->buddy = NULL;
+				defunctBuddy->NoteOffImmediately();
+				offpri._push(defunctBuddy);
+			}
+			// Now finally, gate on the voice(s)
 			onpri._push(voice);
-			setVoiceAfterTouch(voice, noteNo);
-			voice->NoteOn(noteNo, velocity, !strgNoteOn);
+			noteOn(voice, noteNo, velocity, !strgNoteOn);
+			if (buddy) {
+				noteOn(buddy, noteNo, velocity, !strgNoteOn);
+			}
 			// If we switch to unison, we want to know the
 			// last note played.
 			uniNote = noteNo;
@@ -371,12 +449,27 @@ public:
 			if (restore && restore_stack.size() > 0) {
 				int restoreNote = restore_stack._pop();
 				onpri._push(voice);
-				setVoiceAfterTouch(voice, restoreNote);
-				voice->NoteOn(restoreNote, velsave[restoreNote], !strgNoteOff);
-			} else {
+				noteOn(voice, restoreNote, velsave[restoreNote], !strgNoteOff);
+				// If the voice has a buddy, we gate it on too,
+				// but we don't buddify any single voices, as
+				// that might lead to an unrelated voice getting
+				// robbed when we release a note.
+				Voice *buddy = voice->buddy;
+				if (buddy) {
+					noteOn(buddy, restoreNote, velsave[restoreNote], !strgNoteOff);
+				}
+			} else { // Not restore mode, just gate off the voice
 				voice->NoteOff();
 				offpri._push(voice);
+				Voice *buddy = voice->buddy;
+				if (buddy) {
+					// Don't potentially debuddify here,
+					// do it in note on when we actually
+					// need the voices again
+					buddy->NoteOff();
+				}
 			}
+			// Next voice playing same note
 			voice = onpri.extract_noteno(noteNo);
 		}
 		// If no voice playing, remember that for potential change
