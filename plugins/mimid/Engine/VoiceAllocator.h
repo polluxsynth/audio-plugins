@@ -51,16 +51,6 @@ public:
 		}
 		return -1; // voice not found
 	}
-	// Technically we could just return a bool or int since when
-	// the extract is successful we just return the input parameter.
-	// Howver, all other extract functions return the actual item,
-	// so let's be consistent and do the same. The overhead should be
-	// minimal.
-	Voice *extract(Voice *voice) {
-		int pos = find(voice);
-		if (pos < 0) return NULL;
-		return this->_extract(pos);
-	}
 	int find_lowest_voice()
 	{
 		int lowestVoice = S;
