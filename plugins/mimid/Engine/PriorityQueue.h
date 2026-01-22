@@ -181,19 +181,21 @@ public:
 		return _extract(0);
 	}
 #if 0
-	bool extract(int pos, T &item)
+	// Remove specified item from queue, with bounds check.
+	// If out of bounds, return (T) 0
+	T extract(int pos)
 	{
-		if (pos < 0 || pos >= tos) return false;
+		if (pos < 0 || pos >= tos) return 0;
 
-		item = array[pos];
-		_remove(pos);
-		return true;
-	}
-	bool extract(T &item)
-	{
-		return extract(0, item);
+		return _extract(pos);
 	}
 #endif
+	T extract()
+	{
+		if (tos <= 0) return 0;  // queue empty
+
+		return _extract(0);
+	}
 #if 0
 	typedef int (*Finder)(T *, int);
 	int find(Finder F)
