@@ -190,12 +190,11 @@ public:
 		while (voiceDelta < 0) {
 			Voice *voice;
 
-			if (offpri.size() > 0) {
+			if (offpri.size() > 0)
 				voice = offpri._extract();
-			} else {
+			else
 				voice = onpri._extract();
-				voice->NoteOff();
-			}
+			voice->NoteOffImmediately();
 			voice->usable = false;
 			voiceDelta++;
 			// Unconditionally reset envelopes to also
