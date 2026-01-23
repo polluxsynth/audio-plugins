@@ -47,6 +47,7 @@
 	PARAMGROUP(PG_MAIN, "Main", "g101_main")
 	PARAMGROUP(PG_KEYASGN, "Key Assign", "g102_keyassign")
 	PARAMGROUP(PG_BEND, "Bend", "g303_bend")
+	PARAMGROUP(PG_CONTR, "Controllers", "g304_controllers")
 	PARAMGROUP(PG_LFO1, "Modulation 1", "g301_mod_lfo1")
 	PARAMGROUP(PG_LFO2, "Modulation 2", "g302_mod_lfo2")
 	PARAMGROUP(PG_OSC1, "Oscillator 1", "g401_osc1")
@@ -59,7 +60,7 @@
 	PARAMGROUP(PG_FENV, "Filter Env", "g601_filter_env")
 	PARAMGROUP(PG_LENV, "Loudness Env", "g602_loudn_env")
 	PARAMGROUP(PG_REL, "Env Release", "g603_release")
-	PARAMGROUP(PG_CONTR, "Controller Sens.", "g202_controllers")
+	PARAMGROUP(PG_CSENS, "Controller Sens.", "g202_controller_sens")
 	PARAMGROUP(PG_SPREAD, "Spread", "g701_spread")
 	PARAMGROUP(PG_DSP, "DSP Control", "g703_dsp")
 	PARAMGROUP(PG_MISC, "Debugging", "g704_misc")
@@ -121,6 +122,12 @@
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
 	PARAM(BENDDEST, PG_BEND, SP_BENDDEST, "Dest", "benddest", 0, SP_MAX, 0, setPitchWheelDest)
+
+	// Controllers (as mod sources)
+	PARAM(MODWAMT, PG_CONTR, SP_NONE, "ModWheel Amount", "modwamt", 0, 10, 0, setModWheelAmount)
+	PARAM(MODWDEST, PG_CONTR, SP_LFODEST, "ModWheel Dest", "modwdest", 0, SP_MAX, 0, setModWheelDest)
+	PARAM(ATAMT, PG_CONTR, SP_NONE, "AfterTouch Amount", "atamt", 0, 10, 0, setAfterTouchAmount)
+	PARAM(ATDEST, PG_CONTR, SP_LFODEST, "AfterTouch Dest", "atdest", 0, SP_MAX, 0, setAfterTouchDest)
 
 	// LFO1 #1 (main: freq, wave, basic amount)
 	PARAM(LFO1FREQ, PG_LFO1, SP_NONE, "Rate", "lfo1rate", 0, 10, 0, setLfo1Frequency)
@@ -201,10 +208,10 @@
 	PARAM(ENV_MODE, PG_VCA, SP_ENVMODE, "Env/VCA Mode", "envmode", 0, SP_MAX, 0, setEnvMode)
 
 	// Controller sensitivity and control (velocity and aftertouch)
-	PARAM(VEL_SCALE, PG_CONTR, SP_NONE, "Velocity Scale", "velocityscale", 0, 10, 5, setVelocityScale)
-	PARAM(AT_SCALE, PG_CONTR, SP_NONE, "AfterTouch Scale", "aftertouchscale", 0, 10, 5, setAfterTouchScale)
-	PARAM(VFLTENV, PG_CONTR, SP_NONE, "FilterEnv Velocity", "vfltfactor", 0, 10, 0, setFltVelocityAmount)
-	PARAM(VAMPENV, PG_CONTR, SP_NONE, "Amp Velocity", "vampfactor", 0, 10, 0, setAmpVelocityAmount)
+	PARAM(VEL_SCALE, PG_CSENS, SP_NONE, "Velocity Scale", "velocityscale", 0, 10, 5, setVelocityScale)
+	PARAM(AT_SCALE, PG_CSENS, SP_NONE, "AfterTouch Scale", "aftertouchscale", 0, 10, 5, setAfterTouchScale)
+	PARAM(VFLTENV, PG_CSENS, SP_NONE, "FilterEnv Velocity", "vfltfactor", 0, 10, 0, setFltVelocityAmount)
+	PARAM(VAMPENV, PG_CSENS, SP_NONE, "Amp Velocity", "vampfactor", 0, 10, 0, setAmpVelocityAmount)
 
 	// Spread control
 	// #1 (freqs and levels)
