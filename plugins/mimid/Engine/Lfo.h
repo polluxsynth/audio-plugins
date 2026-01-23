@@ -95,7 +95,6 @@ private:
 	};
 
 public:
-	int waveForm;
 	Lfo(enum WaveType default_wavetype = OFF)
 	{
 		phaseInc = 0;
@@ -108,7 +107,6 @@ public:
 		lpstate = 0;
 		phase = 0;
 		spread = 1;
-		waveForm = 0;
 		polarity_factor = 2.0;
 		polarity_offset = -1.0;
 		sh = 0;
