@@ -290,6 +290,30 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++)
 			synth.voices[i].setPwRoute(synth.voices[i].pwroute, intparam);
 	}
+	void setModWheelAmount(float param)
+	{
+		param *= 0.1f; // 0..10 -> 0..1
+		ForEachVoice(modWheelAmt = param);
+	}
+	void setModWheelDest(float param)
+	{
+		int intparam = roundToInt(param);
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		ForEachVoice(setModWheelRoute(intparam));
+	}
+	void setAfterTouchAmount(float param)
+	{
+		param *= 0.1f; // 0..10 -> 0..1
+		ForEachVoice(afterTouchAmt = param);
+	}
+	void setAfterTouchDest(float param)
+	{
+		int intparam = roundToInt(param);
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		ForEachVoice(setAfterTouchRoute(intparam));
+	}
 	void setPanSpread(float param)
 	{
 		synth.setPanSpreadAmt(param * 0.1f);
