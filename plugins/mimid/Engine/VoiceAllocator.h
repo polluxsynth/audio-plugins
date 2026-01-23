@@ -29,19 +29,34 @@ typedef void (*syncfunc)(Voice *masterVoice, Voice *slaveVoice);
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
-	int find_noteno(int noteNo)
+	int find_noteno(int noteNo, bool single = false)
 	{
 		// Scan from latest pushed note towards oldest,
 		// so that if there are multiple notes with the same note
 		// number we pick the latest one played.
-		for (int i = this->tos - 1; i >= 0; i--)
+		for (int i = this->tos - 1; i >= 0; i--) {
+			if (single && this->array[i]->buddy) continue;
 			if (this->array[i]->midiIndx == noteNo)
 				return i;
+		}
 		return -1;
 	}
-	Voice *extract_noteno(int noteNo)
+	Voice *extract_noteno(int noteNo, bool single = false)
 	{
-		int pos = find_noteno(noteNo);
+		int pos = find_noteno(noteNo, single);
+		if (pos < 0) return NULL;
+		return this->_extract(pos);
+	}
+	int find(bool single = false)
+	{
+		for (int pos = 0; pos < this->tos; pos++) {
+			if (!single || !this->array[pos]->buddy)
+				return pos;
+		}
+		return -1; // no voice found
+	}
+	Voice *extract(bool single = false)
+	{	int pos = find(single);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
@@ -53,30 +68,32 @@ public:
 		}
 		return -1; // voice not found
 	}
-	int find_lowest_voice()
+	int find_lowest_voice(bool single = false)
 	{
 		int lowestVoice = S;
 		int lowest_pos = -1;
 		for (int i = 0; i < this->tos; i++)
 			if (this->array[i]->voiceNumber < lowestVoice) {
+				if (single && this->array[i]->buddy) continue;
 				lowestVoice = this->array[i]->voiceNumber;
 				lowest_pos = i;
 			}
 		return lowest_pos;
 	}
-	Voice *extract_lowest_voice()
+	Voice *extract_lowest_voice(bool single = false)
 	{
-		int pos = find_lowest_voice();
+		int pos = find_lowest_voice(single);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
-	int find_next_to_lowest_note()
+	int find_next_to_lowest_note(bool single = false)
 	{
 		int lowestNote = 128;
 		int lowestPos = -1;
 		int nextLowestNote = 128;
 		int nextLowestPos = -1;
 		for (int i = 0; i < this->tos; i++) {
+			if (single && this->array[i]->buddy) continue;
 			int this_note = this->array[i]->midiIndx;
 			if (this_note < lowestNote) {
 				nextLowestNote = lowestNote;
@@ -94,13 +111,12 @@ public:
 			return lowestPos;
 		return nextLowestPos;
 	}
-	Voice *extract_next_to_lowest_note()
+	Voice *extract_next_to_lowest_note(bool single = false)
 	{
-		int pos = find_next_to_lowest_note();
+		int pos = find_next_to_lowest_note(single);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
-
 };
 
 template <int S> class NoteStack : public PriorityQueue<int, S>
