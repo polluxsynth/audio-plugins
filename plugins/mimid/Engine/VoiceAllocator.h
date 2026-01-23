@@ -346,30 +346,31 @@ private:
 	 * a voice buddy when the voice count is 1, there might not be
 	 * any voice available neither in offpri nor onpri, so we need to
 	 * consider that.
+	 * If single is set, only look for single (non-buddified) voices
 	 */
-	Voice *grabVoice(int noteNo)
+	Voice *grabVoice(int noteNo, bool single = false)
 	{
 		Voice *voice = NULL;
 
 		if (offpri.size() > 0) { // exist voices in offpri
 			if (mem)
-				voice = offpri.extract_noteno(noteNo);
+				voice = offpri.extract_noteno(noteNo, single);
 			if (!voice) {
 				if (rsz)
-					voice = offpri.extract_lowest_voice();
+					voice = offpri.extract_lowest_voice(single);
 				else
-					voice = offpri._extract(); // take first = oldest
+					voice = offpri.extract(single); // take first = oldest
 			}
 		} else {
 			if (rob_oldest) {
-				voice = onpri._extract(); // rob oldest
+				voice = onpri.extract(single); // rob oldest
 				// If we've robbed a voice, push the note
 				// it was playing onto the restore stack.
 				if (voice)
 					restore_stack.push(voice->midiIndx);
 			}
 			else if (rob_next_to_lowest) {
-				voice = onpri.extract_next_to_lowest_note();
+				voice = onpri.extract_next_to_lowest_note(single);
 				// If we've robbed a voice, push the note
 				// it was playing onto the restore stack.
 				if (voice)
@@ -399,20 +400,10 @@ public:
 				if (!buddy) {
 					// We don't have a buddy yet. Hopefully,
 					// we'll be able to grab a single voice.
-					buddy = grabVoice(noteNo);
-					// If the buddy itself has a buddy,
-					// debuddify, shut it off, and push it
-					// (as a single voice) onto offpri.
-					// This normally happens only in cases
-					// when the assign mode is changed
-					// back and forth while playing notes
-					// at the same time.
-					if (buddy && buddy->buddy) {
-						Voice *defunctBuddy = buddy->buddy;
-						buddy->buddy = NULL;
-						defunctBuddy->NoteOffImmediately();
-						offpri._push(defunctBuddy);
-					}
+					buddy = grabVoice(noteNo, true);
+					// Only look for single voices. If there
+					// aren't any, just run with it, and
+					// let us go unbuddified.
 					voice->buddy = buddy; // May be NULL
 				}
 			} else if (voice->buddy) { // single mode
