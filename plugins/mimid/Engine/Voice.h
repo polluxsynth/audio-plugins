@@ -107,6 +107,8 @@ public:
 	ModRoute lfo2route;
 	ModRoute lfo3route;
 	ModRoute pwroute;
+	ModRoute modroute;
+	ModRoute atroute;
 
 	SRandom ng;
 
@@ -165,6 +167,7 @@ public:
 
 	// Modwheel and aftertouch values
 	float modw, aftert;
+	float modWheelAmt, afterTouchAmt;
 
 	bool invertFenv;
 
@@ -299,6 +302,8 @@ public:
 		lfo2route.modulate(lfo2In * lfo2totalamt);
 		lfo3route.modulate(lfo3In * lfo3totalamt);
 		pwroute.modulate(pitchWheel * pitchWheelAmt);
+		modroute.modulate(modw * modWheelAmt);
+		atroute.modulate(aftert * afterTouchAmt);
 
 		// Filter audio is delayed because it runs on the oscillator
 		// output, so delay control signals to filter as well.
@@ -487,6 +492,14 @@ public:
 	void setMod3Route(int param)
 	{
 		setModRoute(param, lfo3route);
+	}
+	void setModWheelRoute(int param)
+	{
+		setModRoute(param, modroute);
+	}
+	void setAfterTouchRoute(int param)
+	{
+		setModRoute(param, atroute);
 	}
 	void setPwRoute(ModRoute &route, int param)
 	{
