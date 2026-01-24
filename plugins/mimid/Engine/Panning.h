@@ -26,26 +26,37 @@
 #pragma once
 #include <climits>
 
-struct Panning
+class Panning
 {
 public:
-	float panSpread; // Random per-voice value -0.5..+0.5
+#define PAN_CENTER 0
+#define PAN_LEFT -1
+#define PAN_RIGHT 1
+	int position; // -1 = L, 0 = C, +1 = R
+	float panSpread; // Random per-voice value 0..1
 	float lPanning;	// runtime pan value left ch
 	float rPanning;	// runtime pan value right ch
 
-	void setPanning(float panSpreadAmt)
+	// panSpreadAmt is amount random spread
+	// unisonPanAmt is amount of spread in dual mode
+	void setPanning(float panSpreadAmt, float unisonPanAmt)
 	{
 		// pannings are 0..1, with 0.5 being center, whereas
-		// panSpread is [-0.5..+0.5] and val is 0..1
-		lPanning = panSpread * panSpreadAmt + 0.5f;
+		// panSpread is 0..1 and val is 0..1
+		if (position == PAN_CENTER)
+			lPanning = (panSpread - 0.5f) * panSpreadAmt + 0.5f;
+		else
+			lPanning = position * (panSpread * panSpreadAmt - 1.0f) * unisonPanAmt * 0.5f + 0.5f;
 		rPanning = 1.0f - lPanning;
 	}
 };
 
-template <int S> struct Pannings
+template <int S> class Pannings
 {
+public:
 	Panning pannings[S];
 	float panSpreadAmt;
+	float unisonPanAmt;
 
 	Panning& operator[](int voiceNumber)
 	{
@@ -53,7 +64,7 @@ template <int S> struct Pannings
 	}
 	void updatePanning(int voiceNumber)
 	{
-		pannings[voiceNumber].setPanning(panSpreadAmt);
+		pannings[voiceNumber].setPanning(panSpreadAmt, unisonPanAmt);
 	}
 	void updatePannings()
 	{

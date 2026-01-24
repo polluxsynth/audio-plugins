@@ -71,7 +71,8 @@ public:
 			voices[i].buddy = NULL;
 			nextVoice = i;
 			voiceList[i] = &voices[i];
-			pannings[i].panSpread = SRandom::globalRandom().nextFloat()-0.5f;
+			pannings[i].position = 0; // center
+			pannings[i].panSpread = SRandom::globalRandom().nextFloat();
 			pannings[i].lPanning = 0.5f;
 			pannings[i].rPanning = 0.5f;
 		}
@@ -133,6 +134,11 @@ public:
 	void setPanSpreadAmt(float val)
 	{
 		pannings.panSpreadAmt = val; // 0..1
+		pannings.updatePannings();
+	}
+	void setUnisonPanAmt(float val)
+	{
+		pannings.unisonPanAmt = val; // 0..1
 		pannings.updatePannings();
 	}
 	inline float processSynthVoice(Voice& voice, bool processMod)
