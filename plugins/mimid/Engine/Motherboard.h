@@ -27,6 +27,7 @@
 #include <climits>
 #include "VoiceAllocator.h"
 #include "SynthEngine.h"
+#include "Panning.h"
 #include "Lfo.h"
 
 void syncNewVoice(Voice *masterVoice, Voice *slaveVoice)
@@ -48,8 +49,7 @@ private:
 
 public:
 	float volume;
-	float panSpread[MAX_VOICES];
-	float pannings[MAX_VOICES];
+	Pannings<MAX_VOICES> pannings;
 	Voice voices[MAX_VOICES];
 	VoiceAllocator<MAX_VOICES> voiceAlloc;
 	float sampleRate;
@@ -71,8 +71,9 @@ public:
 			voices[i].buddy = NULL;
 			nextVoice = i;
 			voiceList[i] = &voices[i];
-			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
-			pannings[i] = 0.5;
+			pannings[i].panSpread = SRandom::globalRandom().nextFloat()-0.5f;
+			pannings[i].lPanning = 0.5f;
+			pannings[i].rPanning = 0.5f;
 		}
 		firstVoice = nextVoice;
 		voiceAlloc.init(MAX_VOICES, voiceList);
@@ -131,10 +132,8 @@ public:
 	}
 	void setPanSpreadAmt(float val)
 	{
-		for (int i = 0; i < MAX_VOICES; i++)
-			// pannings are 0..1, with 0.5 being center, whereas
-			// panSpread is [-0.5..+0.5] and val is 0..1
-			pannings[i] = panSpread[i] * val + 0.5;
+		pannings.panSpreadAmt = val; // 0..1
+		pannings.updatePannings();
 	}
 	inline float processSynthVoice(Voice& voice, bool processMod)
 	{
@@ -171,11 +170,11 @@ public:
 			float x1 = processSynthVoice(voices[i], processMod);
 			if (oversample) {
 				float x2 = processSynthVoice(voices[i], false);
-				vlo += x2 * (1 - pannings[i]);
-				vro += x2 * pannings[i];
+				vlo += x2 * pannings[i].lPanning;
+				vro += x2 * pannings[i].rPanning;
 			}
-			vl += x1 * (1 - pannings[i]);
-			vr += x1 * pannings[i];
+			vl += x1 * pannings[i].lPanning;
+			vr += x1 * pannings[i].rPanning;
 
 			i = voices[i].next;
 		}
