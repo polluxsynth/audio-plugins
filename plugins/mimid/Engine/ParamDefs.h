@@ -119,6 +119,9 @@
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", SP_MIN, SP_MAX, 0, setKeyAsgnRes)
 
+	// Key assignment #3 (unison settings)
+	PARAM(UNISON_PAN, PG_KEYASGN, SP_NONE, "Dual Pan", "unisonpan", 0, 10, 10, setUnisonPanAmt)
+
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
 	PARAM(BENDDEST, PG_BEND, SP_BENDDEST, "Dest", "benddest", SP_MIN, SP_MAX, 0, setPitchWheelDest)
