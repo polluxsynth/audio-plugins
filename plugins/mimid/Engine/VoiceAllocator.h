@@ -21,6 +21,7 @@
 #pragma once
 
 #include <climits>
+#include "Panning.h"
 #include "PriorityQueue.h"
 #include "Voice.h"
 
@@ -170,6 +171,7 @@ private:
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
 	Voice (&voices)[S];
+	Pannings<S> &pannings;
 	int totalvc;
 	float velsave[128]; // one per note number
 	float atsave[128]; // poly aftertouch
@@ -190,10 +192,9 @@ public:
 	bool alwaysPorta;
 	bool dual;
 
-	VoiceAllocator(Voice (&initVoices)[S]): offpri(initVoices),
-						onpri(),
-						restore_stack(),
-						voices(initVoices)
+	VoiceAllocator(Voice (&initVoices)[S], Pannings<S> &initPannings):
+		offpri(initVoices), onpri(), restore_stack(),
+		voices(initVoices), pannings(initPannings)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
