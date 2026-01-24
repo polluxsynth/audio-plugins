@@ -180,6 +180,10 @@ public:
 		int intval = roundToInt(param);
 		synth.voiceAlloc.dual = intval;
 	}
+	void setUnisonPanAmt(float param)
+	{
+		synth.setUnisonPanAmt(param * 0.1f);
+	}
 	void procNoteOn(int noteNo,float velocity)
 	{
 		synth.voiceAlloc.setNoteOn(noteNo,velocity);
