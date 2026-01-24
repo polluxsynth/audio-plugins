@@ -162,6 +162,7 @@ private:
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
 	Voice (&voices)[S];
+	Pannings<S> &pannings;
 	int totalvc; // Initial voice count at init time
 	int voicecount; // Current total voice count
 	float velsave[128]; // one per note number
@@ -184,10 +185,9 @@ public:
 	bool alwaysPorta;
 	bool dual;
 
-	VoiceAllocator(Voice (&initVoices)[S]): offpri(initVoices),
-						onpri(),
-						restore_stack(),
-						voices(initVoices)
+	VoiceAllocator(Voice (&initVoices)[S], Pannings<S> &initPannings):
+		offpri(initVoices), onpri(), restore_stack(),
+		voices(initVoices), pannings(initPannings)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;

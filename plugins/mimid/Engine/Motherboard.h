@@ -55,7 +55,7 @@ public:
 	bool oversample;
 	int modCount;
 	bool economyMode;
-	Motherboard(): leftDecim(), rightDecim(), voiceAlloc(voices)
+	Motherboard(): leftDecim(), rightDecim(), pannings(), voiceAlloc(voices, pannings)
 	{
 		int nextVoice = -1;
 
