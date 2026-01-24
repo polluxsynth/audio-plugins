@@ -283,11 +283,11 @@ private:
 			// Use peek instead of extract to avoid unnecessarily
 			// shifting the data around in onpri.
 			Voice *voice = onpri.peek(i); // We know it exists
-			noteOn(voice, noteNo, vel, multitrig, porta);
+			noteOn(voice, noteNo, PAN_CENTER, vel, multitrig, porta);
 			Voice *buddy = voice->buddy;
 			if (buddy) {
 				onpri.push(buddy);
-				noteOn(buddy, noteNo, vel, multitrig, porta);
+				noteOn(buddy, noteNo, PAN_CENTER, vel, multitrig, porta);
 				// Debuddify
 				buddy->buddy = NULL;
 				voice->buddy = NULL;
@@ -296,11 +296,11 @@ private:
 		Voice *voice = offpri.pop();
 		while (voice) {
 			onpri.push(voice);
-			noteOn(voice, noteNo, vel, multitrig, porta);
+			noteOn(voice, noteNo, PAN_CENTER, vel, multitrig, porta);
 			Voice *buddy = voice->buddy;
 			if (buddy) {
 				onpri.push(buddy);
-				noteOn(buddy, noteNo, vel, multitrig, porta);
+				noteOn(buddy, noteNo, PAN_CENTER, vel, multitrig, porta);
 				// Debuddyify
 				buddy->buddy = NULL;
 				voice->buddy = NULL;
@@ -412,9 +412,10 @@ private:
 		}
 		return voice;
 	}
-	void noteOn(Voice *voice, int noteNo, float velocity, bool multitrig, bool porta = true)
+	void noteOn(Voice *voice, int noteNo, int position, float velocity, bool multitrig, bool porta = true)
 	{
 		setVoiceAfterTouch(voice, noteNo);
+		pannings.setPosition(voice->voiceNumber, position);
 		voice->NoteOn(noteNo, velocity, multitrig, porta);
 	}
 public:
@@ -453,9 +454,9 @@ public:
 			}
 			// Now finally, gate on the voice(s)
 			onpri._push(voice);
-			noteOn(voice, noteNo, velocity, !strgNoteOn);
+			noteOn(voice, noteNo, buddy ? PAN_LEFT : PAN_CENTER, velocity, !strgNoteOn);
 			if (buddy) {
-				noteOn(buddy, noteNo, velocity, !strgNoteOn);
+				noteOn(buddy, noteNo, PAN_RIGHT, velocity, !strgNoteOn);
 			}
 			// If we switch to unison, we want to know the
 			// last note played.
@@ -484,16 +485,16 @@ public:
 			// stacked up, pop the latest one played, and
 			// trigger the voice with that note
 			if (restore && restore_stack.size() > 0) {
+				Voice *buddy = voice->buddy;
 				int restoreNote = restore_stack._pop();
 				onpri._push(voice);
-				noteOn(voice, restoreNote, velsave[restoreNote], !strgNoteOff);
+				noteOn(voice, restoreNote, buddy ? PAN_LEFT : PAN_CENTER, velsave[restoreNote], !strgNoteOff);
 				// If the voice has a buddy, we gate it on too,
 				// but we don't buddify any single voices, as
 				// that might lead to an unrelated voice getting
 				// robbed when we release a note.
-				Voice *buddy = voice->buddy;
 				if (buddy) {
-					noteOn(buddy, restoreNote, velsave[restoreNote], !strgNoteOff);
+					noteOn(buddy, restoreNote, PAN_RIGHT, velsave[restoreNote], !strgNoteOff);
 				}
 				uniNote = restoreNote;
 			} else { // Not restore mode, just gate off the voice

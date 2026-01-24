@@ -93,4 +93,9 @@ public:
 		for (int i = 0; i < S; i++)
 			updatePanning(i);
 	}
+	void setPosition(int voiceNumber, int pos)
+	{
+		pannings[voiceNumber].position = pos;
+		updatePanning(voiceNumber);
+	}
 };
