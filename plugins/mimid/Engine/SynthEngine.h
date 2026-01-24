@@ -176,6 +176,10 @@ public:
 		synth.voiceAlloc.alwaysPorta = intval != 2;
 		synth.voiceAlloc.dual = intval == 3;
 	}
+	void setUnisonPanAmt(float param)
+	{
+		synth.setUnisonPanAmt(param * 0.1f);
+	}
 	void procNoteOn(int noteNo,float velocity)
 	{
 		synth.voiceAlloc.setNoteOn(noteNo,velocity);
