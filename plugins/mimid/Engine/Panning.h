@@ -43,11 +43,18 @@ public:
 	{
 		// pannings are 0..1, with 0.5 being center, whereas
 		// panSpread is 0..1 and val is 0..1
-		if (position == PAN_CENTER)
+		if (position == PAN_CENTER) {
 			lPanning = (panSpread - 0.5f) * panSpreadAmt + 0.5f;
-		else
-			lPanning = position * (panSpread * panSpreadAmt - 1.0f) * unisonSpreadAmt * 0.5f + 0.5f;
-		rPanning = 1.0f - lPanning;
+			rPanning = 1.0f - lPanning;
+		} else {
+			// Since two voices will be playing, we could
+			// principally reduce both L and R panning values
+			// by ~6 dB = 0.5x . However, since the voices are
+			// not identical, go for RMS addition, so
+			// -3 dB = 0.71x
+			lPanning = position * (panSpread * panSpreadAmt - 1.0f) * unisonSpreadAmt * 0.5f * 0.71f + 0.5f * 0.71f;
+			rPanning = 0.71f - lPanning;
+		}
 	}
 };
 
