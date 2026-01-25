@@ -27,6 +27,15 @@
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
+	VoiceList(Voice (&voices)[S])
+	{
+		for (int i = 0; i < S; i++)
+			this->array[i] = &voices[i];
+		this->tos = S;
+	}
+	VoiceList()
+	{
+	}
 	void init(int nvoices, Voice (&voices)[S])
 	{
 		for (int i = 0; i < nvoices; i++)
@@ -163,7 +172,10 @@ public:
 	bool restore;
 	bool alwaysPorta;
 
-	VoiceAllocator(Voice (&initVoices)[S]): voices(initVoices)
+	VoiceAllocator(Voice (&initVoices)[S]): offpri(initVoices),
+						onpri(),
+						restore_stack(),
+						voices(initVoices)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
@@ -171,9 +183,6 @@ public:
 		alwaysPorta = false;
 		usingPolyAfterTouch = false;
 		totalvc = S;
-		onpri.clear();
-		offpri.init(S, initVoices);
-		restore_stack.clear();
 	}
 	~VoiceAllocator()
 	{
