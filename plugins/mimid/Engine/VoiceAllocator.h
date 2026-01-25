@@ -27,6 +27,12 @@
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
+	void init(int nvoices, Voice (&voices)[S])
+	{
+		for (int i = 0; i < nvoices; i++)
+			this->array[i] = &voices[i];
+		this->tos = nvoices;
+	}
 	int find_noteno(int noteNo)
 	{
 		// Scan from latest pushed note towards oldest,
@@ -137,6 +143,7 @@ private:
 	VoiceList<S> offpri;
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
+	Voice (&voices)[S];
 	int totalvc;
 	float velsave[128]; // one per note number
 	float atsave[128]; // poly aftertouch
@@ -156,47 +163,41 @@ public:
 	bool restore;
 	bool alwaysPorta;
 
-	VoiceAllocator()
+	VoiceAllocator(Voice (&initVoices)[S]): voices(initVoices)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
 		uniPlaying = false;
 		alwaysPorta = false;
 		usingPolyAfterTouch = false;
-		totalvc = 0;
+		totalvc = S;
+		onpri.clear();
+		offpri.init(S, initVoices);
+		restore_stack.clear();
 	}
 	~VoiceAllocator()
 	{
 	}
-	// Initialize allocator from list of pointers to voices
-	void init(int voiceCount, Voice *voices[])
-	{
-		totalvc = voiceCount;
-		onpri.clear();
-		offpri.init(totalvc, voices);
-		restore_stack.clear();
-	}
 	// Reinitialize allocator when voice count changed runtime
-	// Voice list must be the same as passed to init method
-	void reinit(int voiceCount, Voice *voices[])
+	void reinit(int voiceCount)
 	{
 		// If we are increasing the voice count, push our newly
 		// found (and non playing) voices onto offpri.
 		for (int i = totalvc; i < voiceCount; i++) {
-			offpri.push(voices[i]);
+			offpri.push(&voices[i]);
 		}
 		// If we are decreasing the voice count, extract
 		// superfluous voices from onpri if they are playing,
 		// else extract them from offpri.
 		for (int i = voiceCount; i < totalvc; i++) {
-			Voice *voice = onpri.extract(voices[i]);
+			Voice *voice = onpri.extract(&voices[i]);
 			if (voice)
 				voice->NoteOff();
 			else
-				offpri.extract(voices[i]);
+				offpri.extract(&voices[i]);
 			// Unconditionally reset envelopes to also terminate
 			// voices that are in their release phase.
-			voices[i]->ResetEnvelopes();
+			voices[i].ResetEnvelopes();
 		}
 		totalvc = voiceCount;
 	}
@@ -238,7 +239,7 @@ public:
 		for (int i = 0; i < totalvc; i++) {
 			// We manipulate onpri/offpri here to get a seamless
 			// transition between unison on and off, and to avoid
-			// having to manage the voice * list outside of the
+			// having to manage the voice list outside of the
 			// priority queues.
 			// Since we're going to access all voices, we don't
 			// care about the priority order, so we optimize

@@ -35,7 +35,6 @@ public:
 	const static int MAX_VOICES = 32;
 	const static int modRatio = 1;
 private:
-	Voice *voiceList[MAX_VOICES];
 	int totalvc;
 	Decimator17 leftDecim, rightDecim;
 
@@ -49,7 +48,7 @@ public:
 	bool oversample;
 	int modCount;
 	bool economyMode;
-	Motherboard(): leftDecim(), rightDecim()
+	Motherboard(): leftDecim(), rightDecim(), voiceAlloc(voices)
 	{
 		economyMode = true;
 		oversample = false;
@@ -58,11 +57,9 @@ public:
 		totalvc = MAX_VOICES;
 		for (int i = 0; i < MAX_VOICES;++i) {
 			voices[i].voiceNumber = i;
-			voiceList[i] = &voices[i];
 			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
 			pannings[i] = 0.5;
 		}
-		voiceAlloc.init(MAX_VOICES, voiceList);
 	}
 	~Motherboard()
 	{
@@ -81,7 +78,7 @@ public:
 			voices[i].lfo2.phaseSync(voices[0].lfo2);
 			voices[i].lfo3.phaseSync(voices[0].lfo3);
 		}
-		voiceAlloc.reinit(count, voiceList);
+		voiceAlloc.reinit(count);
 		totalvc = count;
 	}
 	void setSampleRate()
