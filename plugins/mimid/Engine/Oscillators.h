@@ -97,6 +97,8 @@ private:
 
 	float osc1Factor;
 	float osc2Factor;
+	float osc1Random;
+	float osc2Random;
 
 	//delay line implements fixed sample delay
 	DelayLine<Samples> osc2d;
@@ -119,9 +121,6 @@ public:
 	float dirt;
 
 	float notePlaying;
-
-
-	float totalSpread;
 
 	OscillatorParams &oscparams;
 	OscillatorModulation &oscmodulation;
@@ -158,10 +157,10 @@ public:
 		oscmodulation(oscmod)
 	{
 		dirt = 0.1;
-		totalSpread = 0;
 		wn = SRandom(SRandom::globalRandom().nextInt32());
-		osc1Factor = wn.nextFloat() - 0.5f;
-		osc2Factor = wn.nextFloat() - 0.5f;
+		osc1Random = wn.nextFloat() - 0.5f;
+		osc2Random = wn.nextFloat() - 0.5f;
+		osc1Factor = osc2Factor = 0;
 		nmx = 0;
 		oct = 0;
 		tune = 0;
@@ -198,11 +197,18 @@ public:
 		sampleRateInv = 1.0f / SampleRate;
 		SawMaxGrad = 1.0f / (SawMinSlopeus * sr);
 	}
+	void setOscSpread(float param)
+	{
+		float totalSpread = logsc(param, 0.001f, 0.90f);
+
+		osc1Factor = osc1Random * totalSpread;
+		osc2Factor = osc2Random * totalSpread;
+	}
 	inline void ProcessSample(float &audioOutput, float &modOutput)
 	{
 		// osc 2 = master oscillator
 		float noiseGen = wn.nextFloat() - 0.5f;
-		float pitch2 = getPitch(dirt * noiseGen + notePlaying + oscparams.osc2Det + oscparams.osc2p + oscmodulation.pto2 + tune + oct + totalSpread * osc2Factor);
+		float pitch2 = getPitch(dirt * noiseGen + notePlaying + oscparams.osc2Det + oscparams.osc2p + oscmodulation.pto2 + tune + oct + osc2Factor);
 		// hard sync is subject to sync level parameter
 		// osc key sync results in unconditional hard sync
 		int hsr = 0; // 1 => hard sync, -1 => unconditional hard sync
@@ -314,7 +320,7 @@ public:
 		// Hard sync gate signal delayed too
 		// Offset on osc2mix * xmod is to get zero pitch shift at
 		// max xmod
-		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + oscparams.osc1Det + oscparams.osc1p + oscmodulation.pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + tune + oct +totalSpread*osc1Factor));
+		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + oscparams.osc1Det + oscparams.osc1p + oscmodulation.pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + tune + oct + osc1Factor));
 
 		fs = minf(pitch1 * sampleRateInv, 0.45f);
 
