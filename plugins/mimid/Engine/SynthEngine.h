@@ -473,7 +473,9 @@ public:
 	}
 	void setOscSpread(float param)
 	{
-		ForEachVoice(osc.totalSpread = logsc(param, 0.001f, 0.90f));
+		float totalSpread = logsc(param, 0.001f, 0.90f);
+
+		ForEachVoice(osc.setOscSpread(totalSpread));
 	}
 	void setOsc1Shape(float param)
 	{
