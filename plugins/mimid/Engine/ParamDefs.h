@@ -121,6 +121,7 @@
 
 	// Key assignment #3 (unison settings)
 	PARAM(UNISON_PAN, PG_KEYASGN, SP_NONE, "Dual Pan", "unisonpan", 0, 10, 10, setUnisonPanAmt)
+	PARAM(UNISON_DETUNE, PG_KEYASGN, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
