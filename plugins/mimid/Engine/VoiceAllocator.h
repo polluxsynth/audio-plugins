@@ -21,6 +21,7 @@
 #pragma once
 
 #include <climits>
+#include "Panning.h"
 #include "PriorityQueue.h"
 #include "Voice.h"
 
@@ -160,6 +161,7 @@ private:
 	VoiceList<S> offpri;
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
+	Voice (&voices)[S];
 	int totalvc; // Initial voice count at init time
 	int voicecount; // Current total voice count
 	float velsave[128]; // one per note number
@@ -184,7 +186,8 @@ public:
 
 	VoiceAllocator(Voice (&initVoices)[S]): offpri(initVoices),
 						onpri(),
-						restore_stack()
+						restore_stack(),
+						voices(initVoices)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
@@ -198,7 +201,7 @@ public:
 	}
 	// Reinitialize allocator when voice count changed runtime
 	// Voice list must be the same as passed to init method
-	void reinit(int voiceCount, Voice (&voices)[S], syncfunc sync, Voice &masterVoice)
+	void reinit(int voiceCount, syncfunc sync, Voice &masterVoice)
 	{
 		int voiceDelta = voiceCount - voicecount;
 		int voiceNo = totalvc - 1;

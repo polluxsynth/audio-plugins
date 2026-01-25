@@ -87,7 +87,7 @@ public:
 		// a function to do just that, and a pointer to the first
 		// voice that is playing to be used as a master.
 
-		voiceAlloc.reinit(count, voices, syncNewVoice, voices[firstVoice]);
+		voiceAlloc.reinit(count, syncNewVoice, voices[firstVoice]);
 
 		int next = -1;
 
