@@ -45,6 +45,8 @@ private:
 	float sampleRate;
 	float atscale;
 	float velscale;
+	float totalTune; // Corresponding to tune parameter
+	float octaveTune; // Octave setting converted to tune (semitones)
 	// TODO Remove unused1,2:
 	float unused1, unused2;
 
@@ -56,6 +58,7 @@ public:
 	{
 		atscale = 1;
 		velscale = 1;
+		totalTune = octaveTune = 0;
 	}
 	~SynthEngine()
 	{
@@ -327,17 +330,23 @@ public:
 	{
 		synth.setPanSpreadAmt(param * 0.1f);
 	}
+	void setTuneAndOctave()
+	{
+		float tune = totalTune + octaveTune;
+
+		ForEachVoice(osc.oct_tune = tune);
+		ForEachVoice(filtertune = tune);
+	}
 	void setTune(float param)
 	{
-		ForEachVoice(osc.tune = param);
-		ForEachVoice(filtertune = param);
+		totalTune = param;
+		setTuneAndOctave();
 	}
 	void setOctave(float param)
 	{
 		// Add 2 before rounding to avoid problems around zero
-		int octave = (roundToInt(param + 2.0f) - 2) * 12;
-		ForEachVoice(osc.oct = octave);
-		ForEachVoice(filteroct = octave);
+		octaveTune = (roundToInt(param + 2.0f) - 2) * 12;
+		setTuneAndOctave();
 	}
 	void setFilterKeyFollow(float param)
 	{

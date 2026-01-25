@@ -121,7 +121,6 @@ public:
 
 	float envVal;
 	float cutoff;
-	float filteroct;
 	float filtertune;
 	float fenvamt;
 	float res;
@@ -217,7 +216,6 @@ public:
 		oschpfst = hpfst = prtst = 0;
 		fltKF = false;
 		cutoff = 0;
-		filteroct = 0;
 		filtertune = 0;
 		fenvamt = 0;
 		res = 0;
@@ -294,7 +292,7 @@ public:
 			cutoff +
 			FltSpreadAmt +
                         fenvamt * envm +
-			-54 + (fltKF * (ptNote + filteroct + filtertune + 54));
+			-54 + (fltKF * (ptNote + filtertune + 54));
 
 		rescalc = res;
 
