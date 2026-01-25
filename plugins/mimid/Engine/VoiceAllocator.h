@@ -29,6 +29,15 @@ typedef void (*syncfunc)(Voice &masterVoice, Voice &slaveVoice);
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
+	VoiceList(Voice (&voices)[S])
+	{
+		for (int i = 0; i < S; i++)
+			this->array[i] = &voices[i];
+		this->tos = S;
+	}
+	VoiceList()
+	{
+	}
 	void init(int nvoices, Voice (&voices)[S])
 	{
 		for (int i = 0; i < nvoices; i++)
@@ -173,7 +182,9 @@ public:
 	bool alwaysPorta;
 	bool dual;
 
-	VoiceAllocator(Voice (&initVoices)[S])
+	VoiceAllocator(Voice (&initVoices)[S]): offpri(initVoices),
+						onpri(),
+						restore_stack()
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
@@ -181,9 +192,6 @@ public:
 		alwaysPorta = false;
 		usingPolyAfterTouch = false;
 		totalvc = voicecount = S;
-		onpri.clear();
-		offpri.init(S, initVoices);
-		restore_stack.clear();
 	}
 	~VoiceAllocator()
 	{
