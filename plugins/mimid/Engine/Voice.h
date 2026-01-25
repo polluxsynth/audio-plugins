@@ -78,6 +78,10 @@ private:
 	float maxfiltercutoff;
 	float velocityValue;
 
+	float oct_tune; // tune + octave
+	float unisonDetune; // from parameter
+	float detunePosition; // -1 .. 0 .. +1
+
 	// State variables for various single pole filters
 	float oschpfst; // 12 Hz oscillator HPF
 	float prtst; // portamento
@@ -198,6 +202,7 @@ public:
 		vamp = vflt = 0;
 		velscale = 1;
 		velocityValue = 0;
+		oct_tune = unisonDetune = 0;
 		oscKeySync = false;
 		envRst = false;
 		hpffreq = 4;
@@ -215,6 +220,7 @@ public:
 		filtertune = 0;
 		fenvamt = 0;
 		res = 0;
+		detunePosition = 0;
 		Active = false;
 		midiIndx = 30;
 		levelSpread = SRandom::globalRandom().nextFloat()-0.5;
@@ -426,6 +432,29 @@ public:
 		}
 		x1 *= envVal;
 		return x1;
+	}
+private:
+	void updateTune()
+	{
+		float tune = oct_tune + unisonDetune * detunePosition;
+		filtertune = tune;
+		osc.oct_tune = tune;
+	}
+public:
+	void setTune(float tune)
+	{
+		oct_tune = tune;
+		updateTune();
+	}
+	void setUnisonDetune(float value)
+	{
+		unisonDetune = value;
+		updateTune();
+	}
+	void setDetunePosition(float position)
+	{
+		detunePosition = position;
+		updateTune();
 	}
 	void setHPFfreq(float val)
 	{
