@@ -394,6 +394,7 @@ private:
 	{
 		setVoiceAfterTouch(voice, noteNo);
 		pannings.setPosition(voice->voiceNumber, position);
+		voice->setDetunePosition(position);
 		voice->NoteOn(noteNo, velocity, multitrig, porta);
 	}
 public:
