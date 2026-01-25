@@ -115,8 +115,7 @@ private:
 	SubOsc o2sub;
 public:
 
-	float tune; //+-1
-	int oct;
+	float oct_tune; // (master) tune + octaves
 
 	float dirt;
 
@@ -162,8 +161,7 @@ public:
 		osc2Random = wn.nextFloat() - 0.5f;
 		osc1Factor = osc2Factor = 0;
 		nmx = 0;
-		oct = 0;
-		tune = 0;
+		oct_tune = 0;
 		pw1calc = pw2calc = 0;
 		symmetry1 = symmetry2 = 0;
 		sgradient1 = sgradient2 = 1;
@@ -208,7 +206,7 @@ public:
 	{
 		// osc 2 = master oscillator
 		float noiseGen = wn.nextFloat() - 0.5f;
-		float pitch2 = getPitch(dirt * noiseGen + notePlaying + oscparams.osc2Det + oscparams.osc2p + oscmodulation.pto2 + tune + oct + osc2Factor);
+		float pitch2 = getPitch(dirt * noiseGen + notePlaying + oscparams.osc2Det + oscparams.osc2p + oscmodulation.pto2 + oct_tune + osc2Factor);
 		// hard sync is subject to sync level parameter
 		// osc key sync results in unconditional hard sync
 		int hsr = 0; // 1 => hard sync, -1 => unconditional hard sync
@@ -320,7 +318,7 @@ public:
 		// Hard sync gate signal delayed too
 		// Offset on osc2mix * xmod is to get zero pitch shift at
 		// max xmod
-		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + oscparams.osc1Det + oscparams.osc1p + oscmodulation.pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + tune + oct + osc1Factor));
+		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + oscparams.osc1Det + oscparams.osc1p + oscmodulation.pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + oct_tune + osc1Factor));
 
 		fs = minf(pitch1 * sampleRateInv, 0.45f);
 
