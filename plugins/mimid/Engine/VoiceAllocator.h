@@ -24,11 +24,17 @@
 #include "PriorityQueue.h"
 #include "Voice.h"
 
-typedef void (*syncfunc)(Voice *masterVoice, Voice *slaveVoice);
+typedef void (*syncfunc)(Voice &masterVoice, Voice &slaveVoice);
 
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
+	void init(int nvoices, Voice (&voices)[S])
+	{
+		for (int i = 0; i < nvoices; i++)
+			this->array[i] = &voices[i];
+		this->tos = nvoices;
+	}
 	int find_noteno(int noteNo, bool single = false)
 	{
 		// Scan from latest pushed note towards oldest,
@@ -167,30 +173,24 @@ public:
 	bool alwaysPorta;
 	bool dual;
 
-	VoiceAllocator()
+	VoiceAllocator(Voice (&initVoices)[S])
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
 		uniPlaying = false;
 		alwaysPorta = false;
 		usingPolyAfterTouch = false;
-		totalvc = voicecount = 0;
+		totalvc = voicecount = S;
+		onpri.clear();
+		offpri.init(S, initVoices);
+		restore_stack.clear();
 	}
 	~VoiceAllocator()
 	{
 	}
-	// Initialize allocator from list of pointers to voices
-	void init(int voiceCount, Voice *voices[])
-	{
-		totalvc = voicecount = voiceCount;
-		onpri.clear();
-		offpri.init(totalvc, voices);
-		restore_stack.clear();
-	}
 	// Reinitialize allocator when voice count changed runtime
 	// Voice list must be the same as passed to init method
-	void reinit(int voiceCount, Voice *voices[],
-		    syncfunc sync, Voice *masterVoice)
+	void reinit(int voiceCount, Voice (&voices)[S], syncfunc sync, Voice &masterVoice)
 	{
 		int voiceDelta = voiceCount - voicecount;
 		int voiceNo = totalvc - 1;
@@ -199,10 +199,10 @@ public:
 		// Non-usable voices will never be buddies so no need
 		// to have any special handling for debuddification here.
 		while (voiceDelta > 0) {
-			while (voices[voiceNo]->usable)
+			while (voices[voiceNo].usable)
 				voiceNo--;
-			offpri._insert(voices[voiceNo]);
-			voices[voiceNo]->usable = true;
+			offpri._insert(&voices[voiceNo]);
+			voices[voiceNo].usable = true;
 			sync(masterVoice, voices[voiceNo]);
 			voiceNo--;
 			voiceDelta--;

@@ -30,11 +30,11 @@
 #include "Panning.h"
 #include "Lfo.h"
 
-void syncNewVoice(Voice *masterVoice, Voice *slaveVoice)
+void syncNewVoice(Voice &masterVoice, Voice &slaveVoice)
 {
-	slaveVoice->lfo1.phaseSync(masterVoice->lfo1);
-	slaveVoice->lfo2.phaseSync(masterVoice->lfo2);
-	slaveVoice->lfo3.phaseSync(masterVoice->lfo3);
+	slaveVoice.lfo1.phaseSync(masterVoice.lfo1);
+	slaveVoice.lfo2.phaseSync(masterVoice.lfo2);
+	slaveVoice.lfo3.phaseSync(masterVoice.lfo3);
 }
 
 class Motherboard
@@ -43,7 +43,6 @@ public:
 	const static int MAX_VOICES = 32;
 	const static int modRatio = 1;
 private:
-	Voice *voiceList[MAX_VOICES];
 	int firstVoice;
 	Decimator17 leftDecim, rightDecim;
 
@@ -56,7 +55,7 @@ public:
 	bool oversample;
 	int modCount;
 	bool economyMode;
-	Motherboard(): leftDecim(), rightDecim()
+	Motherboard(): leftDecim(), rightDecim(), voiceAlloc(voices)
 	{
 		int nextVoice = -1;
 
@@ -70,14 +69,12 @@ public:
 			voices[i].next = nextVoice;
 			voices[i].buddy = NULL;
 			nextVoice = i;
-			voiceList[i] = &voices[i];
 			pannings[i].position = 0; // center
 			pannings[i].panSpread = SRandom::globalRandom().nextFloat();
 			pannings[i].lPanning = 0.5f;
 			pannings[i].rPanning = 0.5f;
 		}
 		firstVoice = nextVoice;
-		voiceAlloc.init(MAX_VOICES, voiceList);
 	}
 	~Motherboard()
 	{
@@ -90,7 +87,7 @@ public:
 		// a function to do just that, and a pointer to the first
 		// voice that is playing to be used as a master.
 
-		voiceAlloc.reinit(count, voiceList, syncNewVoice, voiceList[firstVoice]);
+		voiceAlloc.reinit(count, voices, syncNewVoice, voices[firstVoice]);
 
 		int next = -1;
 
