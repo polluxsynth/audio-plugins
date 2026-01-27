@@ -57,6 +57,9 @@ add_designation_params_if() {
   add_designation_param filtersustaintime fade $sedfile
   add_designation_param filterrelease release $sedfile
 
+  add_designation_param cutoff cutoffFrequency $sedfile
+  add_designation_param resonance resonance $sedfile
+
   sed -i -f $sedfile $1
   rm -f $sedfile
 }
