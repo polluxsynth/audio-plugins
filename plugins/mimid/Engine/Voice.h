@@ -218,7 +218,6 @@ public:
 		PortaSpread = SRandom::globalRandom().nextFloat()-0.5;
 		oscmodEnable = false;
 		expvca = false;
-		lfo1.waveForm = lfo2.waveForm = 1; // Triangle
 		voiceNumber = 0; // Until someone else says something else
 		unused1 = unused2 = 0; // TODO: Remove
 		cutoffnote = 0;
