@@ -47,11 +47,20 @@ public:
 			lPanning = (panSpread - 0.5f) * panSpreadAmt + 0.5f;
 			rPanning = 1.0f - lPanning;
 		} else {
+			// Preserve panSpreadAmt when unisonPanAmt == 0
+			// When unisonPanAmt = 1, panSpreadAmt can adjust
+			// panning spread from complete left (when 0) and
+			// left .. center (when 1). Then, scale linearly
+			// for both panSpreadAmt and unisonPanAmt when
+			// they have intermediate values.
+			float panspread_scaling = 1.0f - 0.5f * unisonPanAmt;
+			float panamt_scaling = 1.0f - (1.0 - panSpreadAmt) * unisonPanAmt;
+			float panamt_scaling_tot = unisonPanAmt * (1.0f - panSpreadAmt) + panSpreadAmt;
 			// Since two voices will be playing, we could
 			// principally reduce both L and R panning values
 			// by ~6 dB = 0.5x . However, since the voices are
 			// not identical, go for RMS addition, so -3 dB = 0.71x
-			lPanning = position * (panSpread * panSpreadAmt - 1.0f) * unisonPanAmt * 0.5f * 0.71f + 0.5f * 0.71f;
+			lPanning = (position * (panSpread * panspread_scaling * panamt_scaling - 0.5f) * panamt_scaling_tot + 0.5f) * 0.71f;
 			rPanning = 0.71f - lPanning;
 		}
 	}
