@@ -104,10 +104,9 @@
 	// Key assignment #1 (general)
 	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 32, 12, setVoiceCount)
 	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", SP_MIN, SP_MAX, 0, setKeyAsgnMode)
-	// Envelope reset
-	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", SP_MIN, SP_MAX, 0, setEnvRst)
-        // Single trig: behavior during rob and restore
-	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", SP_MIN, SP_MAX, 0, setKeyAsgnStrg)
+	// Unison
+	PARAM(UNISON_PAN, PG_KEYASGN, SP_NONE, "Dual Width", "unisonwidth", 0, 10, 10, setUnisonPanAmt)
+	PARAM(UNISON_DETUNE, PG_KEYASGN, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
 
 	// Key assignment #2 (modes)
         // ReSet to Zero (lowest) voice (default cyclic)
@@ -120,9 +119,11 @@
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", SP_MIN, SP_MAX, 0, setKeyAsgnRes)
 
-	// Key assignment #3 (unison settings)
-	PARAM(UNISON_PAN, PG_KEYASGN, SP_NONE, "Dual Width", "unisonwidth", 0, 10, 10, setUnisonPanAmt)
-	PARAM(UNISON_DETUNE, PG_KEYASGN, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
+	// Key assignment #3 (Envelope reset and single trig)
+	// Envelope reset
+	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
+        // Single trig: behavior during rob and restore
+	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
