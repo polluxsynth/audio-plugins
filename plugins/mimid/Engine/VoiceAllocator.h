@@ -25,18 +25,24 @@
 #include "PriorityQueue.h"
 #include "Voice.h"
 
-enum FindMode { ANY, SINGLE };
+// Mode parameter for find/extract
+enum FindMode { ANY, 		// Find any voice
+		AVOIDVOC,	// Avoid specific voice
+		AVOIDVOC_SINGLE	// Avoid speicfic voice + single voices
+};
 
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
+private:
+	Voice *&avoidVoice; // reference to voice pointer
 public:
-	VoiceList(Voice (&voices)[S])
+	VoiceList(Voice (&voices)[S], Voice *&avoidVoice): avoidVoice(avoidVoice)
 	{
 		for (int i = 0; i < S; i++)
 			this->array[i] = &voices[i];
 		this->tos = S;
 	}
-	VoiceList()
+	VoiceList(Voice *&avoidVoice): avoidVoice(avoidVoice)
 	{
 	}
 	void init(int nvoices, Voice (&voices)[S])
@@ -44,6 +50,7 @@ public:
 		for (int i = 0; i < nvoices; i++)
 			this->array[i] = &voices[i];
 		this->tos = nvoices;
+		avoidVoice = NULL;
 	}
 	int find_noteno(int noteNo, FindMode mode = ANY)
 	{
@@ -51,7 +58,8 @@ public:
 		// so that if there are multiple notes with the same note
 		// number we pick the latest one played.
 		for (int i = this->tos - 1; i >= 0; i--) {
-			if (mode == SINGLE && this->array[i]->buddy) continue;
+			if (mode == AVOIDVOC_SINGLE && this->array[i]->buddy) continue;
+			if (mode != ANY && avoidVoice == this->array[i]) continue;
 			if (this->array[i]->midiIndx == noteNo)
 				return i;
 		}
@@ -66,7 +74,8 @@ public:
 	int find(FindMode mode = ANY)
 	{
 		for (int pos = 0; pos < this->tos; pos++) {
-			if (mode != SINGLE || !this->array[pos]->buddy)
+			if (mode != ANY && avoidVoice == this->array[pos]) continue;
+			if (mode != AVOIDVOC_SINGLE || !this->array[pos]->buddy)
 				return pos;
 		}
 		return -1; // no voice found
@@ -101,7 +110,8 @@ public:
 		int lowest_pos = -1;
 		for (int i = 0; i < this->tos; i++)
 			if (this->array[i]->voiceNumber < lowestVoice) {
-				if (mode == SINGLE && this->array[i]->buddy) continue;
+				if (mode == AVOIDVOC_SINGLE && this->array[i]->buddy) continue;
+				if (mode != ANY && avoidVoice == this->array[i]) continue;
 				lowestVoice = this->array[i]->voiceNumber;
 				lowest_pos = i;
 			}
@@ -120,7 +130,8 @@ public:
 		int nextLowestNote = 128;
 		int nextLowestPos = -1;
 		for (int i = 0; i < this->tos; i++) {
-			if (mode == SINGLE && this->array[i]->buddy) continue;
+			if (mode == AVOIDVOC_SINGLE && this->array[i]->buddy) continue;
+			if (mode != ANY && avoidVoice == this->array[i]) continue;
 			int this_note = this->array[i]->midiIndx;
 			if (this_note < lowestNote) {
 				nextLowestNote = lowestNote;
@@ -169,6 +180,7 @@ public:
 template <int S> class VoiceAllocator
 {
 private:
+	Voice *avoidVoice;
 	VoiceList<S> offpri;
 	VoiceList<S> onpri;
 	NoteStack<10> restore_stack;
@@ -195,7 +207,8 @@ public:
 	bool dual;
 
 	VoiceAllocator(Voice (&initVoices)[S], Pannings<S> &initPannings):
-		offpri(initVoices), onpri(), restore_stack(),
+		avoidVoice(NULL), offpri(initVoices, avoidVoice),
+		onpri(avoidVoice), restore_stack(),
 		voices(initVoices), pannings(initPannings)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
@@ -351,7 +364,8 @@ private:
 	 * a voice buddy when the voice count is 1, there might not be
 	 * any voice available neither in offpri nor onpri, so we need to
 	 * consider that.
-	 * If mode is SINGLE, only look for single (non-buddified) voices.
+	 * If mode is AVOIDVOC_SINGLE, only look for single (non-buddified)
+	 * voices.
 	 */
 	Voice *grabVoice(int noteNo, FindMode mode = ANY)
 	{
@@ -369,7 +383,8 @@ private:
 		}
 		// We might not have found a voice, if there were voices
 		// in offpri, but we were only looking for single voices
-		// and there were none.
+		// and there were none, or the only voice to be found
+		// was the avoidvoice.
 		if (!voice) {
 			if (rob_oldest) {
 				voice = onpri.extract(mode); // rob oldest
@@ -413,7 +428,7 @@ public:
 					// we'll be able to grab a single voice.
 					// If there aren't any, just run with
 					// it, and it remain unbuddified.
-					buddy = grabVoice(noteNo, SINGLE);
+					buddy = grabVoice(noteNo, AVOIDVOC_SINGLE);
 					if (buddy) {
 						// Buddification
 						voice->buddy = buddy;
