@@ -25,6 +25,8 @@
 #include "PriorityQueue.h"
 #include "Voice.h"
 
+enum FindMode { ANY, SINGLE };
+
 template <int S> class VoiceList : public PriorityQueue<Voice *, S>
 {
 public:
@@ -43,34 +45,34 @@ public:
 			this->array[i] = &voices[i];
 		this->tos = nvoices;
 	}
-	int find_noteno(int noteNo, bool single = false)
+	int find_noteno(int noteNo, FindMode mode = ANY)
 	{
 		// Scan from latest pushed note towards oldest,
 		// so that if there are multiple notes with the same note
 		// number we pick the latest one played.
 		for (int i = this->tos - 1; i >= 0; i--) {
-			if (single && this->array[i]->buddy) continue;
+			if (mode == SINGLE && this->array[i]->buddy) continue;
 			if (this->array[i]->midiIndx == noteNo)
 				return i;
 		}
 		return -1;
 	}
-	Voice *extract_noteno(int noteNo, bool single = false)
+	Voice *extract_noteno(int noteNo, FindMode mode = ANY)
 	{
-		int pos = find_noteno(noteNo, single);
+		int pos = find_noteno(noteNo, mode);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
-	int find(bool single = false)
+	int find(FindMode mode = ANY)
 	{
 		for (int pos = 0; pos < this->tos; pos++) {
-			if (!single || !this->array[pos]->buddy)
+			if (mode != SINGLE || !this->array[pos]->buddy)
 				return pos;
 		}
 		return -1; // no voice found
 	}
-	Voice *extract(bool single = false)
-	{	int pos = find(single);
+	Voice *extract(FindMode mode = ANY)
+	{	int pos = find(mode);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
@@ -93,32 +95,32 @@ public:
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
-	int find_lowest_voice(bool single = false)
+	int find_lowest_voice(FindMode mode = ANY)
 	{
 		int lowestVoice = S;
 		int lowest_pos = -1;
 		for (int i = 0; i < this->tos; i++)
 			if (this->array[i]->voiceNumber < lowestVoice) {
-				if (single && this->array[i]->buddy) continue;
+				if (mode == SINGLE && this->array[i]->buddy) continue;
 				lowestVoice = this->array[i]->voiceNumber;
 				lowest_pos = i;
 			}
 		return lowest_pos;
 	}
-	Voice *extract_lowest_voice(bool single = false)
+	Voice *extract_lowest_voice(FindMode mode = ANY)
 	{
-		int pos = find_lowest_voice(single);
+		int pos = find_lowest_voice(mode);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
-	int find_next_to_lowest_note(bool single = false)
+	int find_next_to_lowest_note(FindMode mode = ANY)
 	{
 		int lowestNote = 128;
 		int lowestPos = -1;
 		int nextLowestNote = 128;
 		int nextLowestPos = -1;
 		for (int i = 0; i < this->tos; i++) {
-			if (single && this->array[i]->buddy) continue;
+			if (mode == SINGLE && this->array[i]->buddy) continue;
 			int this_note = this->array[i]->midiIndx;
 			if (this_note < lowestNote) {
 				nextLowestNote = lowestNote;
@@ -136,9 +138,9 @@ public:
 			return lowestPos;
 		return nextLowestPos;
 	}
-	Voice *extract_next_to_lowest_note(bool single = false)
+	Voice *extract_next_to_lowest_note(FindMode mode = ANY)
 	{
-		int pos = find_next_to_lowest_note(single);
+		int pos = find_next_to_lowest_note(mode);
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
@@ -349,20 +351,20 @@ private:
 	 * a voice buddy when the voice count is 1, there might not be
 	 * any voice available neither in offpri nor onpri, so we need to
 	 * consider that.
-	 * If single is set, only look for single (non-buddified) voices
+	 * If mode is SINGLE, only look for single (non-buddified) voices.
 	 */
-	Voice *grabVoice(int noteNo, bool single = false)
+	Voice *grabVoice(int noteNo, FindMode mode = ANY)
 	{
 		Voice *voice = NULL;
 
 		if (offpri.size() > 0) { // exist voices in offpri
 			if (mem)
-				voice = offpri.extract_noteno(noteNo, single);
+				voice = offpri.extract_noteno(noteNo, mode);
 			if (!voice) {
 				if (rsz)
-					voice = offpri.extract_lowest_voice(single);
+					voice = offpri.extract_lowest_voice(mode);
 				else
-					voice = offpri.extract(single); // take first = oldest
+					voice = offpri.extract(mode); // take first = oldest
 			}
 		}
 		// We might not have found a voice, if there were voices
@@ -370,14 +372,14 @@ private:
 		// and there were none.
 		if (!voice) {
 			if (rob_oldest) {
-				voice = onpri.extract(single); // rob oldest
+				voice = onpri.extract(mode); // rob oldest
 				// If we've robbed a voice, push the note
 				// it was playing onto the restore stack.
 				if (voice)
 					restore_stack.push(voice->midiIndx);
 			}
 			else if (rob_next_to_lowest) {
-				voice = onpri.extract_next_to_lowest_note(single);
+				voice = onpri.extract_next_to_lowest_note(mode);
 				// If we've robbed a voice, push the note
 				// it was playing onto the restore stack.
 				if (voice)
@@ -411,7 +413,7 @@ public:
 					// we'll be able to grab a single voice.
 					// If there aren't any, just run with
 					// it, and it remain unbuddified.
-					buddy = grabVoice(noteNo, true);
+					buddy = grabVoice(noteNo, SINGLE);
 					if (buddy) {
 						// Buddification
 						voice->buddy = buddy;
