@@ -101,8 +101,8 @@ inline static float getNote(float freq)
 inline static float tptlpupw(float & state , float inp , float cutoff , float srInv)
 {
 	cutoff = (cutoff * srInv)*pi;
-	double v = (inp - state) * cutoff / (1 + cutoff);
-	double res = v + state;
+	float v = (inp - state) * cutoff / (1 + cutoff);
+	float res = v + state;
 	state = res + v;
 	return res;
 }
@@ -111,8 +111,8 @@ inline static float tptlpupw(float & state , float inp , float cutoff , float sr
 inline static float tptlp(float& state,float inp,float cutoff,float srInv)
 {
 	cutoff = tan(cutoff * (srInv)* pi) ;
-	double v = (inp - state) * cutoff / (1 + cutoff);
-	double res = v + state;
+	float v = (inp - state) * cutoff / (1 + cutoff);
+	float res = v + state;
 	state = res + v;
 	return res;
 };
@@ -120,8 +120,8 @@ inline static float tptlp(float& state,float inp,float cutoff,float srInv)
 // TPT LPF w/ already pre-warped cutoff
 inline static float tptpc(float& state,float inp,float cutoff)
 {
-	double v = (inp - state) * cutoff / (1 + cutoff);
-	double res = v + state;
+	float v = (inp - state) * cutoff / (1 + cutoff);
+	float res = v + state;
 	state = res + v;
 	return res;
 }
@@ -129,8 +129,8 @@ inline static float tptpc(float& state,float inp,float cutoff)
 // TPT LPF, supplying lpc = cutoff / (1 + cutoff)
 inline static float tptlpc(float &state, float inp, float lpc)
 {
-	double v = (inp - state) * lpc;
-	double res = v + state;
+	float v = (inp - state) * lpc;
+	float res = v + state;
 	state = res + v;
 	return res;
 }
