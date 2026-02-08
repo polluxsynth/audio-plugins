@@ -85,6 +85,15 @@ public:
 		if (pos < 0) return NULL;
 		return this->_extract(pos);
 	}
+	int find_newest(FindMode mode = ANY)
+	{
+		for (int pos = this->tos - 1; pos >= 0; pos--) {
+			if (mode != ANY && avoidVoice == this->array[pos]) continue;
+			if (mode != AVOIDVOC_SINGLE || !this->array[pos]->buddy)
+				return pos;
+		}
+		return -1; // no voice found
+	}
 	int find(Voice *voice)
 	{
 		for (int pos = 0; pos < this->tos; pos++) {
@@ -260,6 +269,26 @@ public:
 			}
 		}
 		totalvc = voiceCount;
+		// If we are in dual mode, and the total number of voices is
+		// odd, find a single voice (may be any one, or the only
+		// one, depending on what the allocation looks like),
+		// and mark it as the one to avoid when grabbing voices.
+		avoidVoice = NULL;
+		if (totalvc & 1) {
+			// We search among the newest played ones,
+			// as they are the most unlikely ones for grabbing.
+			int pos = onpri.find_newest(AVOIDVOC_SINGLE);
+			if (pos >= 0)
+				avoidVoice = onpri[pos];
+			else {
+				pos = offpri.find_newest(AVOIDVOC_SINGLE);
+				// There should always be at least one
+				// single voice under these circumstance,
+				// but still sanity check the result.
+				if (pos >= 0)
+					avoidVoice = offpri[pos];
+			}
+		}
 	}
 	void setAfterTouch(float ATvalue)
 	{
@@ -418,7 +447,7 @@ public:
 			uniSetNoteOn(noteNo, velocity);
 			return;
 		}
-		Voice *voice = grabVoice(noteNo);
+		Voice *voice = grabVoice(noteNo, dual ? AVOIDVOC : ANY);
 		if (voice) {
 			Voice *buddy = NULL;
 			if (dual) {
