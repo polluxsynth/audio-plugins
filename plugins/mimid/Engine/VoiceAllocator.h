@@ -140,7 +140,6 @@ private:
 	int totalvc;
 	float velsave[128]; // one per note number
 	float atsave[128]; // poly aftertouch
-	float chat; // channel aftertouch
 	bool usingPolyAfterTouch;
 
 	// Unison mode
