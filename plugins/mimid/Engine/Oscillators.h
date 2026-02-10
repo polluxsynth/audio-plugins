@@ -45,9 +45,9 @@ private:
 	float sampleRateInv;
 	// MinTraSymmetry: unit: sample interval
 	static constexpr float MinTraSymmetry = 0.15f; /* Empirically determined */
-	// SawMinSlopeus: unit: s
-	static constexpr float SawMinSlopeus = 58.0e-6f; /* Empirically determined */
-	// Derating factor when saw slope is < SawMinSlopeus
+	// SawMinSlope_s: unit: s
+	static constexpr float SawMinSlope_s = 58.0e-6f; /* Empirically determined */
+	// Derating factor when saw slope is < SawMinSlope_s
 	static constexpr float SawMinDerate = 0.1f;
 	float SawMaxGrad;
 
@@ -166,7 +166,7 @@ public:
 	{
 		SampleRate = sr;
 		sampleRateInv = 1.0f / SampleRate;
-		SawMaxGrad = 1.0f / (SawMinSlopeus * sr);
+		SawMaxGrad = 1.0f / (SawMinSlope_s * sr);
 	}
 	inline void ProcessSample(float &audioOutput, float &modOutput)
 	{
