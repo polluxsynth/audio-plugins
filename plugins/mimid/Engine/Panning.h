@@ -62,11 +62,12 @@ public:
 			// they have intermediate values.
 			float panspread_scaling = 1.0f - 0.5f * unisonSpreadAmt;
 			float panamt_scaling = 1.0f - (1.0f - panSpreadAmt) * unisonSpreadAmt;
+			float pan_scaling = panspread_scaling * panamt_scaling;
 			float panamt_scaling_tot = unisonSpreadAmt * (1.0f - panSpreadAmt) + panSpreadAmt;
 			// Addiitonally, the wider the unison image is, linearly
 			// drop the total volume by up to 3 dB (0.71x).
 			float total_scaling = 0.71f - unisonSpreadAmt * (0.71f - 0.71f * 0.71f);
-			lPanning = (position * (panSpread * panspread_scaling * panamt_scaling - 0.5f) * panamt_scaling_tot + 0.5f) * total_scaling;
+			lPanning = (position * (panSpread * pan_scaling - 0.5f) * panamt_scaling_tot + 0.5f) * total_scaling;
 			rPanning = total_scaling - lPanning;
 		}
 	}
