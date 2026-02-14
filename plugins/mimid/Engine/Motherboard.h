@@ -60,9 +60,10 @@ public:
 			voices[i].buddy = NULL;
 			pannings[i].position = 0; // center
 			pannings[i].panSpread = SRandom::globalRandom().nextFloat();
-			pannings[i].lPanning = 0.5f;
-			pannings[i].rPanning = 0.5f;
 		}
+		pannings.params.unisonSpreadAmt = 0;
+		pannings.params.panSpreadAmt = 0;
+		pannings.updatePannings();
 	}
 	~Motherboard()
 	{
@@ -114,12 +115,12 @@ public:
 	}
 	void setPanSpreadAmt(float val)
 	{
-		pannings.panSpreadAmt = val; // 0..1
+		pannings.params.panSpreadAmt = val; // 0..1
 		pannings.updatePannings();
 	}
 	void setUnisonPanAmt(float val)
 	{
-		pannings.unisonSpreadAmt = val; // 0..1
+		pannings.params.unisonSpreadAmt = val; // 0..1
 		pannings.updatePannings();
 	}
 	inline float processSynthVoice(Voice& voice, bool processMod)

@@ -26,6 +26,16 @@
 #pragma once
 #include <climits>
 
+struct PanningParams
+{
+	// Parameters
+	float panSpreadAmt, unisonSpreadAmt;
+	// Precalculated values for unison mode
+	float pan_scaling;
+	float panamt_scaling_tot;
+	float total_scaling;
+};
+
 class Panning
 {
 public:
@@ -36,39 +46,21 @@ public:
 	float panSpread; // Random per-voice value 0..1
 	float lPanning;	// runtime pan value left ch
 	float rPanning;	// runtime pan value right ch
-
 	// panSpreadAmt is amount random spread
 	// unisonSpreadAmt is amount of spread in dual mode
-	void setPanning(float panSpreadAmt, float unisonSpreadAmt)
+	void setPanning(const PanningParams &params)
 	{
 		// pannings are 0..1, with 0.5 being center, whereas
 		// panSpread is 0..1 and val is 0..1
 		if (position == PAN_CENTER) {
-			lPanning = (panSpread - 0.5f) * panSpreadAmt + 0.5f;
+			lPanning = (panSpread - 0.5f) * params.panSpreadAmt + 0.5f;
 			rPanning = 1.0f - lPanning;
 		} else {
-			// Since two voices will be playing, we should
-			// principally reduce both L and R panning values
-			// by ~6 dB = 0.5x . However, since the voices are
-			// not identical, go for RMS addition, so
-			// -3 dB = 0.71x
-			//
-			// Also, preserve panSpreadAmt when
-			// unisonSpreadAmt == 0.
-			// When unisonSpreadAmt = 1, panSpreadAmt can adjust
-			// panning spread from complete left (when 0) and
-			// left .. center (when 1). Then, scale linearly
-			// for both panSpreadAmt and unisonSpreadAmt when
-			// they have intermediate values.
-			float panspread_scaling = 1.0f - 0.5f * unisonSpreadAmt;
-			float panamt_scaling = 1.0f - (1.0f - panSpreadAmt) * unisonSpreadAmt;
-			float pan_scaling = panspread_scaling * panamt_scaling;
-			float panamt_scaling_tot = unisonSpreadAmt * (1.0f - panSpreadAmt) + panSpreadAmt;
-			// Addiitonally, the wider the unison image is, linearly
-			// drop the total volume by up to 3 dB (0.71x).
-			float total_scaling = 0.71f - unisonSpreadAmt * (0.71f - 0.71f * 0.71f);
-			lPanning = (position * (panSpread * pan_scaling - 0.5f) * panamt_scaling_tot + 0.5f) * total_scaling;
-			rPanning = total_scaling - lPanning;
+			lPanning = (position *
+				    (panSpread * params.pan_scaling - 0.5f) *
+				    params.panamt_scaling_tot + 0.5f) *
+				   params.total_scaling;
+			rPanning = params.total_scaling - lPanning;
 		}
 	}
 };
@@ -77,8 +69,8 @@ template <int S> class Pannings
 {
 public:
 	Panning pannings[S];
-	float panSpreadAmt;
-	float unisonSpreadAmt;
+	// Parameters and precalculated values
+	PanningParams params;
 
 	Panning& operator[](int voiceNumber)
 	{
@@ -86,16 +78,44 @@ public:
 	}
 	void updatePanning(int voiceNumber)
 	{
-		pannings[voiceNumber].setPanning(panSpreadAmt,
-						 unisonSpreadAmt);
+		pannings[voiceNumber].setPanning(params);
 	}
 	void updatePannings()
 	{
+		// First we do some precalculations for the unison case,
+		// that don't need to be done per voice.
+		//
+		// Since two voices will be playing, we should
+		// principally reduce both L and R panning values
+		// by ~6 dB = 0.5x . However, since the voices are
+		// not identical, go for RMS addition, so
+		// -3 dB = 0.71x
+		//
+		// Also, preserve panSpreadAmt when
+		// unisonSpreadAmt == 0.
+		// When unisonSpreadAmt = 1, panSpreadAmt can adjust
+		// panning spread from complete left (when 0) and
+		// left .. center (when 1). Then, scale linearly
+		// for both panSpreadAmt and unisonSpreadAmt when
+		// they have intermediate values.
+		float panspread_scaling = 1.0f - 0.5f * params.unisonSpreadAmt;
+		float panamt_scaling = 1.0f - (1.0f - params.panSpreadAmt) *
+					      params.unisonSpreadAmt;
+		params.pan_scaling = panspread_scaling * panamt_scaling;
+		params.panamt_scaling_tot = params.unisonSpreadAmt *
+					    (1.0f - params.panSpreadAmt) +
+					    params.panSpreadAmt;
+		// Addiitonally, the wider the unison image is, linearly
+		// drop the total volume by up to 3 dB (0.71x).
+		params.total_scaling = 0.71f - params.unisonSpreadAmt *
+					       (0.71f - 0.71f * 0.71f);
+		// Now do the per-voice updates
 		for (int i = 0; i < S; i++)
 			updatePanning(i);
 	}
 	void setPosition(int voiceNumber, int pos)
 	{
+		if (pannings[voiceNumber].position == pos) return;
 		pannings[voiceNumber].position = pos;
 		updatePanning(voiceNumber);
 	}
