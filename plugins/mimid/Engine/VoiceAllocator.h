@@ -267,6 +267,74 @@ public:
 		// last noted for the note in question.
 	}
 private:
+	// Handle note on in mono mode:
+	// Go through onpri, and gate on all notes, including potential
+	// buddies, buddifying as we go through.
+	// Then gate on all voices in offpri, again including potential
+	// buddies, and debuddification.
+	void uniNoteOn(int noteNo, float vel, bool multitrig, bool porta)
+	{
+		// Fixate onpri_size to the size of onpri before starting,
+		// in order to push potential debuddified voices to onpri
+		// without the pushed voices interfering with the scan.
+		int onpri_size = onpri.size();
+		for (int i = 0; i < onpri_size; i++) {
+			// Use peek instead of extract to avoid unnecessarily
+			// shifting the data around in onpri.
+			Voice *voice = onpri.peek(i); // We know it exists
+			noteOn(voice, noteNo, vel, multitrig, porta);
+			Voice *buddy = voice->buddy;
+			if (buddy) {
+				onpri.push(buddy);
+				noteOn(buddy, noteNo, vel, multitrig, porta);
+				// Debuddify
+				buddy->buddy = NULL;
+				voice->buddy = NULL;
+			}
+		}
+		Voice *voice = offpri.pop();
+		while (voice) {
+			onpri.push(voice);
+			noteOn(voice, noteNo, vel, multitrig, porta);
+			Voice *buddy = voice->buddy;
+			if (buddy) {
+				onpri.push(buddy);
+				noteOn(buddy, noteNo, vel, multitrig, porta);
+				// Debuddyify
+				buddy->buddy = NULL;
+				voice->buddy = NULL;
+			}
+			voice = offpri.pop();
+		}
+	}
+	// Handle note off in mono mode:
+	// Turn off all voices in onpri, including potential buddies and
+	// consequent debuddification.
+	void uniNoteOff()
+	{
+		// We manipulate onpri/offpri here to get a seamless
+		// transition between unison on and off, and to avoid
+		// having to manage the voice list outside of the
+		// priority queues.
+		// Since we're going to access all voices, we don't
+		// care about the priority order, so we optimize
+		// slightly by using peek() and pop() instead of
+		// extract() (the latter causing memmove).
+		Voice *voice = onpri.pop();
+		while (voice) {
+			offpri.push(voice);
+			voice->NoteOff();
+			Voice *buddy = voice->buddy;
+			if (buddy) {
+				offpri.push(buddy);
+				buddy->NoteOff();
+				// Debuddify
+				buddy->buddy = NULL;
+				voice->buddy = NULL;
+			}
+			voice = onpri.pop();
+		}
+	}
 	void uniSetNoteOn(int noteNo, float velocity)
 	{
 		if (uniPlaying) {
@@ -280,36 +348,7 @@ private:
 				return;
 			}
 		}
-
-		int i = 0;
-		while (i < totalvc) {
-			// We manipulate onpri/offpri here to get a seamless
-			// transition between unison on and off, and to avoid
-			// having to manage the voice list outside of the
-			// priority queues.
-			// Since we're going to access all voices, we don't
-			// care about the priority order, so we optimize
-			// slightly by using peek() and pop() instead of
-			// extract() (the latter causing memmove).
-			Voice *voice = onpri.peek(i);
-			if (!voice) {
-				voice = offpri.pop();
-				onpri.push(voice);
-			}
-			noteOn(voice, noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
-			i++;
-			if (voice->buddy) {
-				// Debuddify and allocate
-				Voice *buddy = voice->buddy;
-				buddy->buddy = NULL;
-				voice->buddy = NULL;
-				// We shouldn't be able to go over the voice
-				// count, so gate on unconditionally.
-				onpri.push(buddy);
-				noteOn(buddy, noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
-				i++;
-			}
-		}
+		uniNoteOn(noteNo, velocity, !strgNoteOn, uniPlaying || alwaysPorta);
 		uniPlaying = true;
 		uniNote = noteNo;
 	}
@@ -321,23 +360,10 @@ private:
 			// play it.
 			if (restore && restore_stack.size() > 0) {
 				noteNo = restore_stack._pop();
-				for (int i = 0; i < totalvc; i++) {
-					Voice *voice = onpri.peek(i);
-					if (!voice) {
-						voice = offpri.pop();
-						onpri.push(voice);
-					}
-					noteOn(voice, noteNo, velsave[noteNo], !strgNoteOff, true);
-				}
+				uniNoteOn(noteNo, velsave[noteNo], !strgNoteOff, true);
 				uniNote = noteNo;
 			} else {
-				for (int i = 0; i < totalvc; i++) {
-					Voice *voice = onpri.pop();
-					if (!voice)
-						break;
-					offpri.push(voice);
-					voice->NoteOff();
-				}
+				uniNoteOff();
 				uniPlaying = false;
 			}
 		}
