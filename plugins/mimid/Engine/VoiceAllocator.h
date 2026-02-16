@@ -494,6 +494,7 @@ public:
 				if (buddy) {
 					noteOn(buddy, restoreNote, velsave[restoreNote], !strgNoteOff);
 				}
+				uniNote = restoreNote;
 			} else { // Not restore mode, just gate off the voice
 				voice->NoteOff();
 				offpri._push(voice);
