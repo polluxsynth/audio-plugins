@@ -289,7 +289,7 @@
 		pset:value 3.79999995
 	] , [
 		lv2:symbol "voicecount" ;
-		pset:value 6.0
+		pset:value 12.0
 	] , [
 		lv2:symbol "volume" ;
 		pset:value 7.30000019
