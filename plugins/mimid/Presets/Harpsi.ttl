@@ -106,7 +106,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1amtcont" ;
-		pset:value 1.0
+		pset:value 0.0
 	] , [
 		lv2:symbol "lfo1contramt" ;
 		pset:value 1.79999995

@@ -61,10 +61,10 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Basic_Saw.ttl> .
 
-<Bowed_strings.ttl>
+<Bowed_Strings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
-	rdfs:seeAlso <Bowed_strings.ttl> .
+	rdfs:seeAlso <Bowed_Strings.ttl> .
 
 <Buzzy_Strings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
@@ -371,17 +371,17 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Seventh_Voyage.ttl> .
 
-<Slow_strings.ttl>
+<Slow_Strings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
-	rdfs:seeAlso <Slow_strings.ttl> .
+	rdfs:seeAlso <Slow_Strings.ttl> .
 
-<Slow_strings_AT.ttl>
+<Slow_Strings_AT.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
-	rdfs:seeAlso <Slow_strings_AT.ttl> .
+	rdfs:seeAlso <Slow_Strings_AT.ttl> .
 
-<Slow_strings_PWM.ttl>
+<Slow_Strings_PWM.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
 	rdfs:seeAlso <Slow_strings_PWM.ttl> .
