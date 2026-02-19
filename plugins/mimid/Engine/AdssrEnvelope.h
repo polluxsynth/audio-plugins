@@ -29,6 +29,7 @@ class AdssrEnvelope
 {
 private:
 	float Value, HValue;
+	float Draincount;
 	float attack, hold, decay, sustain, sustainTime, release; // saved parameter values with deriverence
 	float sustain_asymptote;
 	bool adsrMode;
@@ -37,7 +38,7 @@ private:
 	float coef_atk, coef_dec, coef_sust, coef_rel;
 	float coef_atk_lin, coef_hld_lin, coef_dec_lin, coef_sust_lin, coef_rel_lin;
 	float dir; // decay curve direction (1 => down, -1 = up)
-	enum { INI, ATK, HLD, DEC, SUS, SUST, REL, OFF } state, post_dec_state;
+	enum { INI, ATK, HLD, DEC, SUS, SUST, REL, DRAIN, OFF } state, post_dec_state;
 	float SampleRateKcInv;
 	float uf;
 	// In ADSSR mode, the asymptote is lower than the sustain level,
@@ -204,7 +205,7 @@ public:
 	}
 	void triggerRelease()
 	{
-		if (state != OFF)
+		if (state < DRAIN) // All except DRAIN and OFF
 			state = REL;
 	}
 	inline bool isActive()
@@ -257,15 +258,21 @@ public:
 			Value -= linear ? coef_sust_lin : Value * coef_sust + dc;
 			if (Value < 20e-6) {
 				Value = 0;
-				state = OFF;
+				Draincount = Samples * 8;
+				state = DRAIN;
 			}
 			break;
 		case REL: // Used for Release phase
 			Value -= linear ? coef_rel_lin : Value * coef_rel + dc;
 			if (Value < 20e-6) {
 				Value = 0;
-				state = OFF;
+				Draincount = Samples * 8;
+				state = DRAIN;
 			}
+			break;
+		case DRAIN:
+			if (!--Draincount)
+				state = OFF;
 			break;
 		case OFF:
 			Value = 0;
