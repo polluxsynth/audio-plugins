@@ -27,6 +27,7 @@
 #include <climits>
 #include "VoiceAllocator.h"
 #include "SynthEngine.h"
+#include "Panning.h"
 #include "Lfo.h"
 
 class Motherboard
@@ -35,21 +36,19 @@ public:
 	const static int MAX_VOICES = 32;
 	const static int modRatio = 1;
 private:
-	Voice *voiceList[MAX_VOICES];
 	int totalvc;
 	Decimator17 leftDecim, rightDecim;
 
 public:
 	float volume;
-	float panSpread[MAX_VOICES];
-	float pannings[MAX_VOICES];
+	Pannings<MAX_VOICES> pannings;
 	Voice voices[MAX_VOICES];
 	VoiceAllocator<MAX_VOICES> voiceAlloc;
 	float sampleRate;
 	bool oversample;
 	int modCount;
 	bool economyMode;
-	Motherboard(): leftDecim(), rightDecim()
+	Motherboard(): leftDecim(), rightDecim(), pannings(), voiceAlloc(voices, pannings)
 	{
 		economyMode = true;
 		oversample = false;
@@ -58,11 +57,13 @@ public:
 		totalvc = MAX_VOICES;
 		for (int i = 0; i < MAX_VOICES;++i) {
 			voices[i].voiceNumber = i;
-			voiceList[i] = &voices[i];
-			panSpread[i] = SRandom::globalRandom().nextFloat()-0.5;
-			pannings[i] = 0.5;
+			voices[i].buddy = NULL;
+			pannings[i].position = 0; // center
+			pannings[i].panSpread = SRandom::globalRandom().nextFloat();
 		}
-		voiceAlloc.init(MAX_VOICES, voiceList);
+		pannings.params.unisonSpreadAmt = 0;
+		pannings.params.panSpreadAmt = 0;
+		pannings.updatePannings();
 	}
 	~Motherboard()
 	{
@@ -79,8 +80,9 @@ public:
 		{
 			voices[i].lfo1.phaseSync(voices[0].lfo1);
 			voices[i].lfo2.phaseSync(voices[0].lfo2);
+			voices[i].lfo3.phaseSync(voices[0].lfo3);
 		}
-		voiceAlloc.reinit(count, voiceList);
+		voiceAlloc.reinit(count);
 		totalvc = count;
 	}
 	void setSampleRate()
@@ -113,16 +115,18 @@ public:
 	}
 	void setPanSpreadAmt(float val)
 	{
-		for (int i = 0; i < MAX_VOICES; i++)
-			// pannings are 0..1, with 0.5 being center, whereas
-			// panSpread is [-0.5..+0.5] and val is 0..1
-			pannings[i] = panSpread[i] * val + 0.5;
+		pannings.params.panSpreadAmt = val; // 0..1
+		pannings.updatePannings();
+	}
+	void setUnisonPanAmt(float val)
+	{
+		pannings.params.unisonSpreadAmt = val; // 0..1
+		pannings.updatePannings();
 	}
 	inline float processSynthVoice(Voice& voice, bool processMod)
 	{
 		if (processMod) {
-			if (economyMode)
-				voice.checkAdssrState();
+			voice.checkAdssrState();
 			// Always update LFOs to keep them in phase even if
 			// voice is not playing, as well as updating
 			// aftertouch in case it continues to change
@@ -130,6 +134,7 @@ public:
 			// unexpected aftertouch value next time it triggers.
 			voice.lfo1.update();
 			voice.lfo2.update();
+			voice.lfo3.update();
 			voice.aftert = voice.afterTouchSmoother.smoothStep();
 		}
 		if (voice.shouldProcess || !economyMode) {
@@ -152,11 +157,11 @@ public:
 			float x1 = processSynthVoice(voices[i], processMod);
 			if (oversample) {
 				float x2 = processSynthVoice(voices[i], false);
-				vlo += x2 * (1 - pannings[i]);
-				vro += x2 * pannings[i];
+				vlo += x2 * pannings[i].lPanning;
+				vro += x2 * pannings[i].rPanning;
 			}
-			vl += x1 * (1 - pannings[i]);
-			vr += x1 * pannings[i];
+			vl += x1 * pannings[i].lPanning;
+			vr += x1 * pannings[i].rPanning;
 		}
 		if (oversample) {
 			vl = leftDecim.Calc(vl, vlo);

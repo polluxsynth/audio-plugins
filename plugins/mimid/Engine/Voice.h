@@ -78,6 +78,10 @@ private:
 	float maxfiltercutoff;
 	float velocityValue;
 
+	float oct_tune; // tune + octave
+	float unisonDetune; // from parameter
+	float detunePosition; // -1 .. 0 .. +1
+
 	// State variables for various single pole filters
 	float oschpfst; // 12 Hz oscillator HPF
 	float prtst; // portamento
@@ -96,13 +100,19 @@ public:
 	AdssrEnvelope fenv;
 	Lfo lfo1;
 	Lfo lfo2;
+	Lfo lfo3;
+	OscillatorParams oscparams;
+	OscillatorModulation oscmodulation;
 	Oscillators osc;
 	Filter flt;
 	SquareDist sqdist;
 
 	ModRoute lfo1route;
 	ModRoute lfo2route;
+	ModRoute lfo3route;
 	ModRoute pwroute;
+	ModRoute modroute;
+	ModRoute atroute;
 
 	SRandom ng;
 
@@ -115,7 +125,6 @@ public:
 
 	float envVal;
 	float cutoff;
-	float filteroct;
 	float filtertune;
 	float fenvamt;
 	float res;
@@ -125,6 +134,7 @@ public:
 
 	float Lfo1Spread;
 	float Lfo2Spread;
+	float Lfo3Spread;
 
 	float FltSpread; // Random amount calculated at start
 	float FltSpreadAmt; // Calculated value depending on parameter
@@ -141,8 +151,9 @@ public:
 
 	int midiIndx;
 
-	bool Active;
-	bool shouldProcess;
+	bool Active; // = Gate, set on at Note On, off at Note Off
+	bool shouldProcess; // Lenv is not off, i.e. DSP should be run
+	Voice *buddy;
 
 	bool oscKeySync;
 	bool envRst;
@@ -154,12 +165,13 @@ public:
 
 	float pitchWheel, pitchWheelAmt;
 
-	float lfo1amt, lfo2amt;
-	float lfo1contramt, lfo2contramt;
-	float *lfo1controller, *lfo2controller;
+	float lfo1amt, lfo2amt, lfo3amt;
+	float lfo1contramt, lfo2contramt, lfo3contramt;
+	float *lfo1controller, *lfo2controller, *lfo3controller;
 
 	// Modwheel and aftertouch values
 	float modw, aftert;
+	float modWheelAmt, afterTouchAmt;
 
 	bool invertFenv;
 
@@ -179,16 +191,18 @@ public:
 
 	float unused1, unused2; // TODO: remove
 
-	Voice(): afterTouchSmoother()
+	Voice(): osc(oscparams, oscmodulation), afterTouchSmoother()
 	{
 		maxfiltercutoff = 22000.0f;
 		invertFenv = false;
 		ng = SRandom(SRandom::globalRandom().nextInt32());
 		sustainHold = false;
 		shouldProcess = false;
+		buddy = NULL;
 		vamp = vflt = 0;
 		velscale = 1;
 		velocityValue = 0;
+		oct_tune = unisonDetune = 0;
 		oscKeySync = false;
 		envRst = false;
 		hpffreq = 4;
@@ -203,10 +217,10 @@ public:
 		oschpfst = hpfst = prtst = 0;
 		fltKF = false;
 		cutoff = 0;
-		filteroct = 0;
 		filtertune = 0;
 		fenvamt = 0;
 		res = 0;
+		detunePosition = 0;
 		Active = false;
 		midiIndx = 30;
 		levelSpread = SRandom::globalRandom().nextFloat()-0.5;
@@ -214,6 +228,7 @@ public:
 		FenvSpread = SRandom::globalRandom().nextFloat()-0.5;
 		Lfo1Spread = SRandom::globalRandom().nextFloat()-0.5;
 		Lfo2Spread = SRandom::globalRandom().nextFloat()-0.5;
+		Lfo3Spread = SRandom::globalRandom().nextFloat()-0.5;
 		FltSpread = SRandom::globalRandom().nextFloat()-0.5;
 		PortaSpread = SRandom::globalRandom().nextFloat()-0.5;
 		oscmodEnable = false;
@@ -223,7 +238,7 @@ public:
 		cutoffnote = 0;
 		rescalc = 0;
 		osc2FltModCalc = 0;
-		lfo1controller = lfo2controller = &zero;
+		lfo1controller = lfo2controller = lfo3controller = &zero;
 	}
 	~Voice()
 	{
@@ -233,6 +248,7 @@ public:
 		// LFOs
 		float lfo1In = lfo1.getVal();
 		float lfo2In = lfo2.getVal();
+		float lfo3In = lfo3.getVal();
 
 		// Multiplying modamt with (1-lfoamt) scales
 		// the modulation so that the total value never goes above 1.0
@@ -242,6 +258,8 @@ public:
 			*lfo1controller * lfo1contramt * (1 - lfo1amt);
 		float lfo2totalamt = lfo2amt +
 			*lfo2controller * lfo2contramt * (1 - lfo2amt);
+		float lfo3totalamt = lfo3amt +
+			*lfo3controller * lfo3contramt * (1 - lfo3amt);
 
 		// Both envelopes and filter cv need a delay equal to osc internal delay
 		// Bipolar filter envelope
@@ -254,12 +272,12 @@ public:
 		envVal = lenvd.feedReturn(env.processSample() * (1 - (1-velocityValue)*vamp));
 
 		// PW modulation
-		osc.sh1 = 0;
-		osc.sh2 = 0;
+		osc.oscmodulation.sh1 = 0;
+		osc.oscmodulation.sh2 = 0;
 
 		// Pitch modulation
-		osc.pto1 = 0;
-		osc.pto2 = 0;
+		osc.oscmodulation.pto1 = 0;
+		osc.oscmodulation.pto2 = 0;
 
 		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
 		// Pitch calc base frequency is 440 Hz, but the default
@@ -276,7 +294,7 @@ public:
 			cutoff +
 			FltSpreadAmt +
                         fenvamt * envm +
-			-54 + (fltKF * (ptNote + filteroct + filtertune + 54));
+			-54 + (fltKF * (ptNote + filtertune + 54));
 
 		rescalc = res;
 
@@ -288,7 +306,10 @@ public:
 		// for the mod routings to take effect.
 		lfo1route.modulate(lfo1In * lfo1totalamt);
 		lfo2route.modulate(lfo2In * lfo2totalamt);
+		lfo3route.modulate(lfo3In * lfo3totalamt);
 		pwroute.modulate(pitchWheel * pitchWheelAmt);
+		modroute.modulate(modw * modWheelAmt);
+		atroute.modulate(aftert * afterTouchAmt);
 
 		// Filter audio is delayed because it runs on the oscillator
 		// output, so delay control signals to filter as well.
@@ -335,15 +356,15 @@ public:
 						  oscmod_maxpeak_inv;
 		}
 		// Calculate osc 2 waveshape parameters
-		switch (osc.osc2Wave) {
+		switch (osc.oscparams.osc2Wave) {
 		case 2: // Pulse
-			osc.pw2calc = limitf((osc.osc2sh + osc.sh2) * 0.5f + 0.5f, 0.0f, 1.0f);
+			osc.pw2calc = limitf((osc.oscparams.osc2sh + osc.oscmodulation.sh2) * 0.5f + 0.5f, 0.0f, 1.0f);
 			break;
 		case 3: // Triangle / Trapezoid
-			osc.symmetry2 = (osc.osc2sh + osc.sh2) * 0.5f + 0.5f;
+			osc.symmetry2 = (osc.oscparams.osc2sh + osc.oscmodulation.sh2) * 0.5f + 0.5f;
 			break;
 		case 1:	// Saw / VariSaw
-			osc.sgradient2 = superfast_exp2f_shape(osc.osc2sh + osc.sh2);
+			osc.sgradient2 = superfast_exp2f_shape(osc.oscparams.osc2sh + osc.oscmodulation.sh2);
 			break;
 		case 0: // Off
 		default:
@@ -351,15 +372,15 @@ public:
 		}
 
 		// Calculate osc 1 waveshape parameters
-		switch (osc.osc1Wave) {
+		switch (osc.oscparams.osc1Wave) {
 		case 2: // Pulse
-			osc.pw1calc = limitf((osc.osc1sh + osc.sh1) * 0.5f + 0.5f, 0.0f, 1.0f);
+			osc.pw1calc = limitf((osc.oscparams.osc1sh + osc.oscmodulation.sh1) * 0.5f + 0.5f, 0.0f, 1.0f);
 			break;
 		case 3: // Triangle / Trapezoid
-			osc.symmetry1 = (osc.osc1sh + osc.sh1) * 0.5f + 0.5f;
+			osc.symmetry1 = (osc.oscparams.osc1sh + osc.oscmodulation.sh1) * 0.5f + 0.5f;
 			break;
 		case 1:	// Saw / VariSaw
-			osc.sgradient1 = superfast_exp2f_shape(osc.osc1sh + osc.sh1);
+			osc.sgradient1 = superfast_exp2f_shape(osc.oscparams.osc1sh + osc.oscmodulation.sh1);
 			break;
 		case 0: // Off
 		default:
@@ -412,6 +433,29 @@ public:
 		x1 *= envVal;
 		return x1;
 	}
+private:
+	void updateTune()
+	{
+		float tune = oct_tune + unisonDetune * detunePosition;
+		filtertune = tune;
+		osc.oct_tune = tune;
+	}
+public:
+	void setTune(float tune)
+	{
+		oct_tune = tune;
+		updateTune();
+	}
+	void setUnisonDetune(float value)
+	{
+		unisonDetune = value;
+		updateTune();
+	}
+	void setDetunePosition(float position)
+	{
+		detunePosition = position;
+		updateTune();
+	}
 	void setHPFfreq(float val)
 	{
 		hpffreq = val;
@@ -437,72 +481,66 @@ public:
 	{
 		lfo1.setSpread(expf(Lfo1Spread*d * 2 * logf(1.5)));
 		lfo2.setSpread(expf(Lfo2Spread*d * 2 * logf(1.5)));
+		lfo3.setSpread(expf(Lfo3Spread*d * 2 * logf(1.5)));
+	}
+	void setModRoute(int param, ModRoute &route)
+	{
+		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		switch (param) {
+			case 0: route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
+				break;
+			case 1: route.setRoute(&osc.oscmodulation.pto1, NULL, 12.0f);
+				break;
+			case 2: route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 12.0f);
+				break;
+			case 3: route.setRoute(&osc.oscmodulation.pto2, NULL, 12.0f);
+				break;
+			case 4: route.setRoute(&osc.oscmodulation.sh1, NULL, 1.0f);
+				break;
+			case 5: route.setRoute(&osc.oscmodulation.sh1, &osc.oscmodulation.sh2, 1.0f);
+				break;
+			case 6: route.setRoute(&osc.oscmodulation.sh2, NULL, 1.0f);
+				break;
+			case 7: route.setRoute(&cutoffnote, NULL, 60.0f);
+				break;
+			case 8: route.setRoute(&rescalc, NULL, 1.0f);
+				break;
+			case 9: route.setRoute(&osc2FltModCalc, NULL, 100.0f);
+				break;
+		}
 	}
 	void setMod1Route(int param)
 	{
-		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
-		// 0    1     2       3     4    5      6    7     8    9
-		switch (param) {
-			case 0: lfo1route.setRoute(&osc.pto1, NULL, 0.0f);
-				break;
-			case 1: lfo1route.setRoute(&osc.pto1, NULL, 12.0f);
-				break;
-			case 2: lfo1route.setRoute(&osc.pto1, &osc.pto2, 12.0f);
-				break;
-			case 3: lfo1route.setRoute(&osc.pto2, NULL, 12.0f);
-				break;
-			case 4: lfo1route.setRoute(&osc.sh1, NULL, 1.0f);
-				break;
-			case 5: lfo1route.setRoute(&osc.sh1, &osc.sh2, 1.0f);
-				break;
-			case 6: lfo1route.setRoute(&osc.sh2, NULL, 1.0f);
-				break;
-			case 7: lfo1route.setRoute(&cutoffnote, NULL, 60.0f);
-				break;
-			case 8: lfo1route.setRoute(&rescalc, NULL, 1.0f);
-				break;
-			case 9: lfo1route.setRoute(&osc2FltModCalc, NULL, 100.0f);
-				break;
-		}
+		setModRoute(param, lfo1route);
 	}
 	void setMod2Route(int param)
 	{
-		// off, osc1, osc1+2, osc2, sh1, sh1+2, sh2, filt, res, bmod
-		// 0    1     2       3     4    5      6    7     8    9
-		switch (param) {
-			case 0: lfo2route.setRoute(&osc.pto1, NULL, 0.0f);
-				break;
-			case 1: lfo2route.setRoute(&osc.pto1, NULL, 12.0f);
-				break;
-			case 2: lfo2route.setRoute(&osc.pto1, &osc.pto2, 12.0f);
-				break;
-			case 3: lfo2route.setRoute(&osc.pto2, NULL, 12.0f);
-				break;
-			case 4: lfo2route.setRoute(&osc.sh1, NULL, 1.0f);
-				break;
-			case 5: lfo2route.setRoute(&osc.sh1, &osc.sh2, 1.0f);
-				break;
-			case 6: lfo2route.setRoute(&osc.sh2, NULL, 1.0f);
-				break;
-			case 7: lfo2route.setRoute(&cutoffnote, NULL, 60.0f);
-				break;
-			case 8: lfo2route.setRoute(&rescalc, NULL, 1.0f);
-				break;
-			case 9: lfo2route.setRoute(&osc2FltModCalc, NULL, 100.0f);
-				break;
-		}
+		setModRoute(param, lfo2route);
+	}
+	void setMod3Route(int param)
+	{
+		setModRoute(param, lfo3route);
+	}
+	void setModWheelRoute(int param)
+	{
+		setModRoute(param, modroute);
+	}
+	void setAfterTouchRoute(int param)
+	{
+		setModRoute(param, atroute);
 	}
 	void setPwRoute(ModRoute &route, int param)
 	{
 		// OFF - OSC1 - OSC1+2
 		// 0     1      2
 		switch (param) {
-			case 0: route.setRoute(&osc.pto1, NULL, 0.0f);
+			case 0: route.setRoute(&osc.oscmodulation.pto1, NULL, 0.0f);
 
 				break;
-			case 1: route.setRoute(&osc.pto1, NULL, 1.0f);
+			case 1: route.setRoute(&osc.oscmodulation.pto1, NULL, 1.0f);
 				break;
-			case 2: route.setRoute(&osc.pto1, &osc.pto2, 1.0f);
+			case 2: route.setRoute(&osc.oscmodulation.pto1, &osc.oscmodulation.pto2, 1.0f);
 				break;
 		}
 	}
@@ -543,6 +581,7 @@ public:
 		fenv.setSampleRate(modRate);
 		lfo1.setSampleRate(modRate);
 		lfo2.setSampleRate(modRate);
+		lfo3.setSampleRate(modRate);
 		afterTouchSmoother.setSampleRate(modRate);
 		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
 		// Limit filter freq to nyquist frequency minus a small
@@ -607,6 +646,7 @@ public:
 			fenv.triggerAttack();
 			lfo1.keyResetPhase();
 			lfo2.keyResetPhase();
+			lfo3.keyResetPhase();
 		}
 		if (oscKeySync)
 			osc.keyReset = true;
@@ -620,6 +660,15 @@ public:
 			env.triggerRelease();
 			fenv.triggerRelease();
 		}
+		Active = false;
+	}
+	void NoteOffImmediately()
+	{
+		ResetEnvelopes();
+		// Ramp down whatever is in the loudness env
+		// delay line to zero to minimize clicking
+		// when envelopes are reset.
+		lenvd.decayLine();
 		Active = false;
 	}
 	void sustOn()

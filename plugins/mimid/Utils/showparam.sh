@@ -18,6 +18,7 @@ get_param () {
 # show_param param-label file-name
 show_param () {
   val=$(get_param $1 $2)
+  [ -z "$val" ] && echo "Parameter $1 doesn't exist in $2" && exit 1
   echo "Parameter $1 is $val"
 }
 

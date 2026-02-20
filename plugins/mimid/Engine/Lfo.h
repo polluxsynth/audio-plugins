@@ -279,11 +279,21 @@ public:
 		symmetryRevInv = symmetry < 1.0 ? 1.0 / (1.0 - symmetry) : 0;
 		setSymmetryOffset();
 	}
+	// Waveform set for stepped-waveform-select LFOs
 	void setWaveForm(int select)
 	{
 		struct WaveDef &wavedef = WaveDef_Table[select];
 		wavetype = wavedef.wavetype;
 		setSymmetry(wavedef.symmetry);
+	}
+	// Waveform set for continuous-waveshape LFOs
+	void setShape(float shape)
+	{
+		wavetype = (shape <= 0.5) ? TRIANGLE : PULSE;
+		if (shape <= 0.5) // saw-tri-rsaw
+			setSymmetry(shape * 2.0f);
+		else // pul-saw-rpul
+			setSymmetry((shape - 0.5f) * 2.0f);
 	}
 	void recalcRate(float param)
 	{

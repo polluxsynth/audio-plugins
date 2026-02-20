@@ -24,6 +24,28 @@
 #include <cstring>
 using namespace std;
 
+// Priority queue / stack structure
+//
+//                               +--------> pop off top of stack
+//                               |     +--- push onto top of stack
+//                               |     v
+//  +---+---+---+---+---+-//-+-------+---+
+//  | 0 | 1 | 2 | 3 | 4 |    | tos-1 |   |
+//  +---+---+---+---+---+-//-+-------+---+
+//            |   ^
+//            |   +------------------ insert, moving elements above up
+//            +---------------------> extract, moving elemnts above down
+//
+// - insert(0) is like push but to the bottom of the stack (start of queue)
+// - extract(0) is like pop but from the bottom of the stack (start of queue)
+// - when pushing to a full stack (tos == S), bottom object is lost, i.e.
+//   the stack is the same size after the operation
+// - when inserting to a full stack, the top object is lost, i.e. the stack
+//   size is the same after the operation
+//
+// When objects are pushed onto the stack, they are considered the  newest
+// ones, so extractremove is used to get the oldest object.
+
 
 template <typename T, int S> class PriorityQueue {
 protected:
@@ -67,6 +89,7 @@ public:
 		tos = count;
 	}
 	// Non-safe push: push onto end of queue without bounds check
+	// or check for overflow
 	void _push(T item)
 	{
 		array[tos++] = item;
@@ -109,6 +132,28 @@ public:
 
 		return array[pos];
 	}
+	// Unsafe insert at pos, pushing whatever is above up one step,
+	// with no bounds check, or check for full stack
+	void _insert(T item, int pos)
+	{
+		memmove(&array[pos+1], &array[pos], sizeof(T) * (tos-pos));
+		tos++;
+		array[pos] = item;
+	}
+	// Unsafe insert at 0
+	void _insert(T item)
+	{
+		_insert(item, 0);
+	}
+	// Insert at pos, pushing whatever is above up one step, with
+	// bounds check. If stack is already full, top object is silently lost.
+	void insert(T item, int pos)
+	{
+		if (pos < 0 || pos >= tos) return;
+		// If queue would overflow, loose top object
+		if (tos >= S) tos--;
+		_insert(item, pos);
+	}
 	// Safe remove: Remove specified item from queue with bounds check
 	void remove(int pos)
 	{
@@ -136,19 +181,21 @@ public:
 		return _extract(0);
 	}
 #if 0
-	bool extract(int pos, T &item)
+	// Remove specified item from queue, with bounds check.
+	// If out of bounds, return (T) 0
+	T extract(int pos)
 	{
-		if (pos < 0 || pos >= tos) return false;
+		if (pos < 0 || pos >= tos) return 0;
 
-		item = array[pos];
-		_remove(pos);
-		return true;
-	}
-	bool extract(T &item)
-	{
-		return extract(0, item);
+		return _extract(pos);
 	}
 #endif
+	T extract()
+	{
+		if (tos <= 0) return 0;  // queue empty
+
+		return _extract(0);
+	}
 #if 0
 	typedef int (*Finder)(T *, int);
 	int find(Finder F)

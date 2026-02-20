@@ -33,9 +33,11 @@ typedef void (SynthEngine::*SetFuncType)(float);
 typedef uint32_t (*ScalePointType)(ParameterEnumerationValues &enumValues);
 
 // Set up enumValue member of Parameter struct from varargs list of strings
+// together with the minimum value (= first value) of the resulting enum
 // Used in lambda call, hence put outside class
-// Returns maximum value of values in enumValues, so 1 for a range of 0-1
-static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumValues, ...)
+// Returns maximum value of values in enumValues, e.g. 1 for a range of 0..1,
+// 2 for a range of -1..2
+static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumValues, int first, ...)
 {
 	va_list args;
 
@@ -44,7 +46,7 @@ static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumVa
 	// our caller to have a NULL pointer at the end of the
 	// argument list.
 	size_t argcount = 0;
-	va_start(args, enumValues);
+	va_start(args, first);
 	while (va_arg(args, char *))
 		argcount++;
 	va_end(args);
@@ -65,11 +67,11 @@ static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumVa
 	enumValues.deleteLater = true;
 	enumValues.restrictedMode = true;
 
-	int value = 0;
+	int value = first;
 
 	// Go through argument list again, generating strings
 	// for the individual values.
-	va_start(args, enumValues);
+	va_start(args, first);
 	for (size_t argno = 0; argno < argcount; argno++) {
 		ev->label = va_arg(args, char *);
 		ev++->value = value;
@@ -77,7 +79,7 @@ static uint32_t setParameterEnumerationValues(ParameterEnumerationValues &enumVa
 	}
 	va_end(args);
 
-	uint32_t retval = argcount - 1;
+	uint32_t retval = first + argcount - 1;
         // If there are two values, hint that the parameter is boolean
 	if (argcount == 2)
 		retval |= kParameterIsBoolean << HINT_SHIFT;
@@ -91,6 +93,7 @@ private:
 	Params parameters;
 	SetFuncType setfuncs[PARAM_COUNT];
 	ScalePointType scalepoints[SP_COUNT];
+	int minpoints[SP_COUNT];
 	SynthEngine synth;
 
 protected:
@@ -108,21 +111,26 @@ public:
 
 #include "Engine/ParamDefs.h"
 
-		// Set up scalepoints array.
+		// Set up scalepoints and minpoints arrays.
 		// scalepoints is an array of function pointers to lambda
 		// functions, one per scale point set, which are used
 		// when inializing the Scale Points for relevant parameters.
 		// Each lambda contains values from the corresponding
 		// macro call, calling setParameterEnumerationValues()
 		// with the correspnding values.
+		// minpoints is an array of the minimum (i.e. the first
+		// value of the corresponding enum) values for the scale point
+		// sets.
 
 // The NULL is important as it works as a sentinel for the list of char *'
 // Parameter is enumerated, with a list of strings for the values
-#define PARAMPOINTS(SPID, ...) \
+// The FIRST parameter governs the value of the first scale point
+#define PARAMPOINTS(SPID, FIRST, ...) \
 	scalepoints[SPID] = [](ParameterEnumerationValues &enumValues) \
 	{ \
-		 return setParameterEnumerationValues(enumValues, __VA_ARGS__, NULL); \
-	};
+		 return setParameterEnumerationValues(enumValues, FIRST, __VA_ARGS__, NULL); \
+	}; \
+	minpoints[SPID] = FIRST;
 
 // Parameter has specific hints
 #define PARAMHINTS(SPID, HINTS) \
@@ -144,7 +152,7 @@ protected:
 	}
 	const char *getMaker() const override { return "Pollux"; }
 	const char *getLicense() const override { return "GPL2"; }
-	uint32_t getVersion() const override { return d_version(2,1,2); }
+	uint32_t getVersion() const override { return d_version(2,2,0); }
 	int64_t getUniqueId() const override {
 	    return d_cconst('M','i','M','d');
 	}
@@ -176,6 +184,7 @@ protected:
 	void initParameter(uint32_t paramno, Parameter &parameter) override
 	{
 		uint32_t sp_status, SP_MAX;
+		int SP_MIN;
 		switch(paramno) {
 		// The low word of SP_MAX is used as a MAX value for
 		// PARAMPOINTS parameters, in order to automatically set
@@ -183,6 +192,8 @@ protected:
 		// of values.
 		// Alternatively, the high word of SP_MAX can be used to set
 		// parameter hints; see PARAMHINTS.
+		// SP_MIN is used as a MIN value for PARAMPOINTS parameters,
+		// i.e. the FIRST parameter in the PARAMPOINTS definitions.
 #define PARAM(PARAMNO, PG, SP, NAME, SYMBOL, MIN, MAX, DEFAULT, SETFUNC) \
 		case PARAMNO: \
 			parameter.name = NAME; \
@@ -190,6 +201,7 @@ protected:
 			parameter.groupId = PG; \
 			sp_status = scalepoints[SP](parameter.enumValues); \
 			SP_MAX = sp_status & SP_MASK; \
+			SP_MIN = minpoints[SP]; \
 			parameter.ranges.def = DEFAULT; \
 			parameter.ranges.min = MIN; \
 			parameter.ranges.max = MAX; \

@@ -28,5 +28,22 @@ add_param() {
   rm -f tmp
 }
 
-add_param "\"hold\"" "\"filterspread\"" 0.0 $1
-add_param "\"filterhold\"" "\"filterenvamount\"" 0.0 $1
+# Not critical, but the parameters are saved in alphabetical order,
+# so add new parameters in the same vain.
+
+add_param "\"unisondet\"" "\"tune\"" 0.0 $1
+add_param "\"unisonwidth\"" "\"unisondet\"" 10.0 $1
+
+add_param "\"modwamt\"" "\"lfospread\"" 0.0 $1
+add_param "\"modwdest\"" "\"modwamt\"" 0.0 $1
+add_param "\"atamt\"" "\"aftertouchscale\"" 0.0 $1
+add_param "\"atdest\"" "\"atamt\"" 0.0 $1
+
+add_param "\"lfo3amount\"" "\"lfo2wave\"" 0.0 $1
+add_param "\"lfo3amtcont\"" "\"lfo3amount\"" 0.0 $1
+add_param "\"lfo3contramt\"" "\"lfo3amtcont\"" 0.0 $1
+add_param "\"lfo3dest\"" "\"lfo3contramt\"" 0.0 $1
+add_param "\"lfo3polarity\"" "\"lfo3dest\"" 0.0 $1
+add_param "\"lfo3rate\"" "\"lfo3polarity\"" 6.0 $1
+add_param "\"lfo3shape\"" "\"lfo3rate\"" 2.5 $1
+add_param "\"lfo3sync\"" "\"lfo3shape\"" 0.0 $1

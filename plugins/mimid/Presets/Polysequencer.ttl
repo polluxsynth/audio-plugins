@@ -15,6 +15,12 @@
 		lv2:symbol "aftertouchscale" ;
 		pset:value 1.14999998
 	] , [
+		lv2:symbol "atamt" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "atdest" ;
+		pset:value 0.0
+	] , [
 		lv2:symbol "attack" ;
 		pset:value 0.0
 	] , [
@@ -144,7 +150,37 @@
 		lv2:symbol "lfo2wave" ;
 		pset:value 3.0
 	] , [
+		lv2:symbol "lfo3amount" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "lfo3amtcont" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "lfo3contramt" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "lfo3dest" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "lfo3polarity" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "lfo3rate" ;
+		pset:value 6.0
+	] , [
+		lv2:symbol "lfo3shape" ;
+		pset:value 2.5
+	] , [
+		lv2:symbol "lfo3sync" ;
+		pset:value 0.0
+	] , [
 		lv2:symbol "lfospread" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "modwamt" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "modwdest" ;
 		pset:value 0.0
 	] , [
 		lv2:symbol "octave" ;
@@ -228,6 +264,12 @@
 		lv2:symbol "tune" ;
 		pset:value 0.0
 	] , [
+		lv2:symbol "unisondet" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "unisonwidth" ;
+		pset:value 10.0
+	] , [
 		lv2:symbol "unused_1" ;
 		pset:value 0.0
 	] , [
@@ -247,7 +289,7 @@
 		pset:value 1.29999995
 	] , [
 		lv2:symbol "voicecount" ;
-		pset:value 6.0
+		pset:value 12.0
 	] , [
 		lv2:symbol "volume" ;
 		pset:value 8.94999981

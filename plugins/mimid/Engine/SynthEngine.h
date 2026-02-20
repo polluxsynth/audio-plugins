@@ -45,6 +45,9 @@ private:
 	float sampleRate;
 	float atscale;
 	float velscale;
+	float totalTune; // Corresponding to tune parameter
+	float octaveTune; // Octave setting converted to tune (semitones)
+	float unisonDetune; // Corresponding to unison detune parameter
 	// TODO Remove unused1,2:
 	float unused1, unused2;
 
@@ -56,6 +59,8 @@ public:
 	{
 		atscale = 1;
 		velscale = 1;
+		totalTune = octaveTune = 0;
+		unisonDetune = 0;
 	}
 	~SynthEngine()
 	{
@@ -65,6 +70,7 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].lfo1.setBpm(bpm);
 			synth.voices[i].lfo2.setBpm(bpm);
+			synth.voices[i].lfo3.setBpm(bpm);
 		}
 	}
 	void setPlayHead(float retrPos)
@@ -72,6 +78,7 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].lfo1.hostSyncRetrigger(retrPos);
 			synth.voices[i].lfo2.hostSyncRetrigger(retrPos);
+			synth.voices[i].lfo3.hostSyncRetrigger(retrPos);
 		}
 	}
 	void setSampleRate(float sr)
@@ -168,10 +175,15 @@ public:
 	}
 	void setKeyAsgnMode(float param)
 	{
-		// Poly - Mono - Mono+Auto [Portamento]
+		// Poly - Mono - Mono+Auto [Portamento] - Dual
 		int intval = roundToInt(param);
-		synth.voiceAlloc.uni = intval >= 1;
-		synth.voiceAlloc.alwaysPorta = intval < 2;
+		synth.voiceAlloc.uni = intval == 1 || intval == 2;
+		synth.voiceAlloc.alwaysPorta = intval != 2;
+		synth.voiceAlloc.dual = intval == 3;
+	}
+	void setUnisonPanAmt(float param)
+	{
+		synth.setUnisonPanAmt(param * 0.1f);
 	}
 	void procNoteOn(int noteNo,float velocity)
 	{
@@ -288,21 +300,60 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++)
 			synth.voices[i].setPwRoute(synth.voices[i].pwroute, intparam);
 	}
+	void setModWheelAmount(float param)
+	{
+		param *= 0.1f; // 0..10 -> 0..1
+		ForEachVoice(modWheelAmt = param);
+	}
+	void setModWheelDest(float param)
+	{
+		int intparam = roundToInt(param);
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		ForEachVoice(setModWheelRoute(intparam));
+	}
+	void setAfterTouchAmount(float param)
+	{
+		param *= 0.1f; // 0..10 -> 0..1
+		ForEachVoice(afterTouchAmt = param);
+	}
+	void setAfterTouchDest(float param)
+	{
+		int intparam = roundToInt(param);
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		ForEachVoice(setAfterTouchRoute(intparam));
+	}
 	void setPanSpread(float param)
 	{
 		synth.setPanSpreadAmt(param * 0.1f);
 	}
+	void setTuneAndOctave()
+	{
+		float tune = totalTune + octaveTune;
+
+		ForEachVoice(setTune(tune));
+	}
 	void setTune(float param)
 	{
-		ForEachVoice(osc.tune = param);
-		ForEachVoice(filtertune = param);
+		totalTune = param;
+		setTuneAndOctave();
 	}
 	void setOctave(float param)
 	{
 		// Add 2 before rounding to avoid problems around zero
-		int octave = (roundToInt(param + 2.0f) - 2) * 12;
-		ForEachVoice(osc.oct = octave);
-		ForEachVoice(filteroct = octave);
+		octaveTune = (roundToInt(param + 2.0f) - 2) * 12;
+		setTuneAndOctave();
+	}
+	void setUnisonDetune(float param)
+	{
+		// We halve the value, since when in dual mode, one voice
+		// will be negatively detuned with this value while the
+		// other voice will be positively detuned, hence, the
+		// actual difference will be twice the detune value.
+		param *= 0.5f; // original value range 0..1
+
+		ForEachVoice(setUnisonDetune(param));
 	}
 	void setFilterKeyFollow(float param)
 	{
@@ -383,17 +434,72 @@ public:
 		param *= param; // square to get better low end resolution
 		ForEachVoice(lfo2amt = param);
 	}
+	void setLfo3Frequency(float param)
+	{
+		for (int i = 0; i < synth.MAX_VOICES; i++) {
+			synth.voices[i].lfo3.setRawFrequency(param);
+			synth.voices[i].lfo3.setFrequency(logsc(param, 0, 100, 240));
+		}
+	}
+	void setLfo3Shape(float param)
+	{
+		// TODO: put scaling in setWaveForm ?
+		ForEachVoice(lfo3.setShape(param * 0.1f));
+	}
+	void setLfo3Amt(float param)
+	{
+		param *= 0.1f; // 0..10 -> 0..1
+		param *= param; // square to get better low end resolution
+		ForEachVoice(lfo3amt = param);
+	}
+	void setLfo3Dest(float param)
+	{
+		int intparam = roundToInt(param);
+		// off, osc1, osc1+2, osc2, pw1, pw1+2, pw2, filt, res, bmod
+		// 0    1     2       3     4    5      6    7     8    9
+		ForEachVoice(setMod3Route(intparam));
+	}
+	void setLfo3Controller(float val)
+	{
+		int intval = roundToInt(val);
+		// off - modwheel - aftertouch - vel
+		for (int i = 0; i < synth.MAX_VOICES; i++)
+			synth.voices[i].setModController(&synth.voices[i].lfo3controller, intval);
+	}
+	void setLfo3ControllerAmt(float val)
+	{
+		ForEachVoice(lfo3contramt = val * 0.1f);
+	}
+	void setLfo3Sync(float val)
+	{
+		// Off - Tempo - Key - Oneshot
+		int intval = roundToInt(val);
+		for (int i = 0; i < Motherboard::MAX_VOICES; i++) {
+			synth.voices[i].lfo3.setClockSync(intval == 1);
+			synth.voices[i].lfo3.setKeySync(intval >= 2 && intval <= 3);
+			synth.voices[i].lfo3.setOneShot(intval == 3);
+		}
+	}
+	void setLfo3Polarity(float val)
+	{
+		// Normal - Invert - Unipolar - Unipolar+Invert
+		int intval = roundToInt(val) & 3;
+
+		ForEachVoice(lfo3.setPolarity(intval));
+	}
 	void setOscSpread(float param)
 	{
-		ForEachVoice(osc.totalSpread = logsc(param, 0.001f, 0.90f));
+		float totalSpread = logsc(param, 0.001f, 0.90f);
+
+		ForEachVoice(osc.setOscSpread(totalSpread));
 	}
 	void setOsc1Shape(float param)
 	{
-		ForEachVoice (osc.osc1sh = param * 0.1f);
+		ForEachVoice (osc.oscparams.osc1sh = param * 0.1f);
 	}
 	void setOsc2Shape(float param)
 	{
-		ForEachVoice (osc.osc2sh = param * 0.1f);
+		ForEachVoice (osc.oscparams.osc2sh = param * 0.1f);
 	}
 	void setInvertFenv(float param)
 	{
@@ -420,11 +526,11 @@ public:
 	}
 	void setOsc1Pitch(float param)
 	{
-		ForEachVoice(osc.osc1p = roundToInt(param));
+		ForEachVoice(osc.oscparams.osc1p = roundToInt(param));
 	}
 	void setOsc2Pitch(float param)
 	{
-		ForEachVoice(osc.osc2p = roundToInt(param));
+		ForEachVoice(osc.oscparams.osc2p = roundToInt(param));
 	}
 	void setOsc1Mix(float param)
 	{
@@ -450,25 +556,25 @@ public:
 	{
 		// linsc is geared for 0..10. so we multiply param by 10
 		// as the displayed parameter value is 0..1.
-		ForEachVoice(osc.osc1Det = linsc(param * 10, 0, 1.0f));
+		ForEachVoice(osc.oscparams.osc1Det = linsc(param * 10, 0, 1.0f));
 	}
 	void setOsc2Det(float param)
 	{
-		ForEachVoice(osc.osc2Det = linsc(param * 10, 0, 1.0f));
+		ForEachVoice(osc.oscparams.osc2Det = linsc(param * 10, 0, 1.0f));
 	}
 
 	void setOsc1Wave(float param)
 	{
 		int intparam = roundToInt(param);
 		for (int i = 0; i < synth.MAX_VOICES; i++)
-			synth.voices[i].osc.osc1Wave = intparam;
+			synth.voices[i].osc.oscparams.osc1Wave = intparam;
 	}
 
 	void setOsc2Wave(float param)
 	{
 		int intparam = roundToInt(param);
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
-			synth.voices[i].osc.osc2Wave = intparam;
+			synth.voices[i].osc.oscparams.osc2Wave = intparam;
 			synth.voices[i].osc.osc2modout =
 				synth.voices[i].oscmodEnable = intparam != 0;
 		}
@@ -477,7 +583,7 @@ public:
 	{
 		int intparam = roundToInt(param);
 		// off - -1 square - -2 square - -2 pulse - noise
-		ForEachVoice(osc.osc2SubWaveform = intparam);
+		ForEachVoice(osc.oscparams.osc2SubWaveform = intparam);
 	}
 	void setOsc2SubMix(float param)
 	{

@@ -38,10 +38,10 @@ const float mult = ln2 / 12.0;
 
 // Replacements for Juce library functions
 
-#if 1
+#if 0 // Use alternate implementation to correctly round negative numbers
 inline int roundToInt(float f)
 {
-	return (int) (f + 0.5);
+	return (int) (f + 0.5f);
 }
 #else
 // Alternate implementation:
@@ -50,6 +50,9 @@ inline int roundToInt(float f)
 // interpret as an int and subtract the offset and exponent.
 // Old trick that was very efficient on old Pentiums but which might not
 // necessarily be faster now with modern CPUs.
+// Note that this alternate implementation correctly rounds negative
+// numbers with the exception of hitting exactly 0.5, when it rounds down
+// instead of up.
 inline int roundToInt(float val)
 {
 	union { float f; int32_t i; } u;
@@ -101,8 +104,8 @@ inline static float getNote(float freq)
 inline static float tptlpupw(float & state , float inp , float cutoff , float srInv)
 {
 	cutoff = (cutoff * srInv)*pi;
-	double v = (inp - state) * cutoff / (1 + cutoff);
-	double res = v + state;
+	float v = (inp - state) * cutoff / (1 + cutoff);
+	float res = v + state;
 	state = res + v;
 	return res;
 }
@@ -111,8 +114,8 @@ inline static float tptlpupw(float & state , float inp , float cutoff , float sr
 inline static float tptlp(float& state,float inp,float cutoff,float srInv)
 {
 	cutoff = tan(cutoff * (srInv)* pi) ;
-	double v = (inp - state) * cutoff / (1 + cutoff);
-	double res = v + state;
+	float v = (inp - state) * cutoff / (1 + cutoff);
+	float res = v + state;
 	state = res + v;
 	return res;
 };
@@ -120,8 +123,8 @@ inline static float tptlp(float& state,float inp,float cutoff,float srInv)
 // TPT LPF w/ already pre-warped cutoff
 inline static float tptpc(float& state,float inp,float cutoff)
 {
-	double v = (inp - state) * cutoff / (1 + cutoff);
-	double res = v + state;
+	float v = (inp - state) * cutoff / (1 + cutoff);
+	float res = v + state;
 	state = res + v;
 	return res;
 }
@@ -129,8 +132,8 @@ inline static float tptpc(float& state,float inp,float cutoff)
 // TPT LPF, supplying lpc = cutoff / (1 + cutoff)
 inline static float tptlpc(float &state, float inp, float lpc)
 {
-	double v = (inp - state) * lpc;
-	double res = v + state;
+	float v = (inp - state) * lpc;
+	float res = v + state;
 	state = res + v;
 	return res;
 }

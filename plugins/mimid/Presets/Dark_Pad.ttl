@@ -37,7 +37,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "envmode" ;
-		pset:value 1.0
+		pset:value 0.0
 	] , [
 		lv2:symbol "envrst" ;
 		pset:value 0.0
@@ -160,7 +160,7 @@
 		pset:value 24.0
 	] , [
 		lv2:symbol "osc1pw" ;
-		pset:value 0.0
+		pset:value 4.25
 	] , [
 		lv2:symbol "osc1wave" ;
 		pset:value 1.0
@@ -208,7 +208,7 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "release" ;
-		pset:value 3.47000003
+		pset:value 3.86999989
 	] , [
 		lv2:symbol "resonance" ;
 		pset:value 7.80000019
@@ -229,10 +229,10 @@
 		pset:value 0.0
 	] , [
 		lv2:symbol "unused_1" ;
-		pset:value 0.0
+		pset:value 0.63999999
 	] , [
 		lv2:symbol "unused_2" ;
-		pset:value 0.0
+		pset:value 0.72500002
 	] , [
 		lv2:symbol "vampfactor" ;
 		pset:value 3.82999992
@@ -247,7 +247,7 @@
 		pset:value 5.8499999
 	] , [
 		lv2:symbol "voicecount" ;
-		pset:value 6.0
+		pset:value 12.0
 	] , [
 		lv2:symbol "volume" ;
 		pset:value 5.25

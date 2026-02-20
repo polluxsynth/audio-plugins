@@ -38,6 +38,48 @@
 #include "VariSawOsc.h"
 #include "SubOsc.h"
 
+class OscillatorParams
+{
+public:
+	// Oscillator patch parameters
+	float osc1p, osc2p; // Pitch
+	float osc1Det, osc2Det; // Detune
+	float osc1sh, osc2sh; // Shape
+	int osc1Wave, osc2Wave; // Waveform
+	int osc2SubWaveform;
+
+public:
+	OscillatorParams()
+	{
+		osc1p = osc2p = 24.0f;
+		osc1Det = osc2Det = 0;
+		osc1sh = osc2sh = 0;
+		osc1Wave = osc2Wave = 0;
+		osc2SubWaveform = 0; // off
+	}
+	~OscillatorParams()
+	{
+	}
+};
+
+class OscillatorModulation
+{
+public:
+	// Modulation destinations
+	float pto1, pto2;
+	float sh1, sh2;
+
+public:
+	OscillatorModulation()
+	{
+		pto1 = pto2 = 0;
+		sh1 = sh2 = 0;
+	}
+	~OscillatorModulation()
+	{
+	}
+};
+
 class Oscillators
 {
 private:
@@ -45,16 +87,16 @@ private:
 	float sampleRateInv;
 	// MinTraSymmetry: unit: sample interval
 	static constexpr float MinTraSymmetry = 0.15f; /* Empirically determined */
-	// SawMinSlopeus: unit: s
-	static constexpr float SawMinSlopeus = 58.0e-6f; /* Empirically determined */
-	// Derating factor when saw slope is < SawMinSlopeus
-	static constexpr float SawMinDerate = 0.1f;
+	// SawMinSlope_s: unit: s
+	static constexpr float SawMinSlope_s = 29.0e-6f; /* Empirically determined */
 	float SawMaxGrad;
 
 	float x1, x2;
 
 	float osc1Factor;
 	float osc2Factor;
+	float osc1Random;
+	float osc2Random;
 
 	//delay line implements fixed sample delay
 	DelayLine<Samples> osc2d;
@@ -71,27 +113,17 @@ private:
 	SubOsc o2sub;
 public:
 
-	float tune; //+-1
-	int oct;
+	float oct_tune; // (master) tune + octaves
 
 	float dirt;
 
 	float notePlaying;
 
-
-	float totalSpread;
-
-	float osc1Det, osc2Det;
-	float osc1sh, osc2sh;
-	float sh1, sh2;
+	OscillatorParams &oscparams;
+	OscillatorModulation &oscmodulation;
 
 	float o1mx, o2mx, o2submx;
 	float nmx;
-	float pto1, pto2;
-
-	//osc waveshapes
-	int osc1Wave, osc2Wave;
-	int osc2SubWaveform;
 
 	// Osc waveshaping parameters
 	// These are calculated at the mod rate by Voice
@@ -102,7 +134,6 @@ public:
 	// VariSaw wave
 	float sgradient1, sgradient2;
 
-	float osc1p,osc2p;
 	float syncLevel;
 	float xmod;
 	bool osc2modout;
@@ -111,40 +142,34 @@ public:
 
 	float unused1, unused2; //TODO remove
 
-	Oscillators() :
+	Oscillators(OscillatorParams &oscpars, OscillatorModulation &oscmod) :
 		o1aa(), o2aa(), subaa(),
 		o1s(o1aa), o2s(o2aa),
 		o1p(o1aa), o2p(o2aa),
 		//o1t(o1aa), o2t(o2aa),
 		o1z(o1aa), o2z(o2aa),
 		o1v(o1aa), o2v(o2aa),
-		o2sub(subaa)
+		o2sub(subaa),
+		oscparams(oscpars),
+		oscmodulation(oscmod)
 	{
 		dirt = 0.1;
-		totalSpread = 0;
 		wn = SRandom(SRandom::globalRandom().nextInt32());
-		osc1Factor = wn.nextFloat() - 0.5f;
-		osc2Factor = wn.nextFloat() - 0.5f;
+		osc1Random = wn.nextFloat() - 0.5f;
+		osc2Random = wn.nextFloat() - 0.5f;
+		osc1Factor = osc2Factor = 0;
 		nmx = 0;
-		oct = 0;
-		tune = 0;
-		pto1 = pto2 = 0;
-		sh1 = sh2 = 0;
+		oct_tune = 0;
 		pw1calc = pw2calc = 0;
 		symmetry1 = symmetry2 = 0;
 		sgradient1 = sgradient2 = 1;
 		xmod = 0;
 		syncLevel = 1.0f;
-		osc1p = osc2p = 24.0f;
-		osc1Wave = osc2Wave = 0;
-		osc1Det = osc2Det = 0;
 		notePlaying = 30;
-		osc1sh = osc2sh = 0;
 		o1mx = o2mx = 0;
 		x1 = wn.nextFloat();
 		x2 = wn.nextFloat(); // osc2 and 3 start in phase
 		SawMaxGrad = 1.0f;
-		osc2SubWaveform = 0; // off
 		keyReset = false;
 	}
 	~Oscillators()
@@ -166,13 +191,20 @@ public:
 	{
 		SampleRate = sr;
 		sampleRateInv = 1.0f / SampleRate;
-		SawMaxGrad = 1.0f / (SawMinSlopeus * sr);
+		SawMaxGrad = 1.0f / (SawMinSlope_s * sr);
+	}
+	void setOscSpread(float param)
+	{
+		float totalSpread = logsc(param, 0.001f, 0.90f);
+
+		osc1Factor = osc1Random * totalSpread;
+		osc2Factor = osc2Random * totalSpread;
 	}
 	inline void ProcessSample(float &audioOutput, float &modOutput)
 	{
 		// osc 2 = master oscillator
 		float noiseGen = wn.nextFloat() - 0.5f;
-		float pitch2 = getPitch(dirt * noiseGen + notePlaying + osc2Det + osc2p + pto2 + tune + oct + totalSpread * osc2Factor);
+		float pitch2 = getPitch(dirt * noiseGen + notePlaying + oscparams.osc2Det + oscparams.osc2p + oscmodulation.pto2 + oct_tune + osc2Factor);
 		// hard sync is subject to sync level parameter
 		// osc key sync results in unconditional hard sync
 		int hsr = 0; // 1 => hard sync, -1 => unconditional hard sync
@@ -192,7 +224,7 @@ public:
 			hsr = 1; /* hard sync governed by sync level */ \
 		}
 
-		switch (osc2Wave) {
+		switch (oscparams.osc2Wave) {
 		case 2: // Pulse
 			o2p.processMaster(x2, fs, pw2calc, keyReset);
 			PhaseResetMaster(x2, fs, hsr, hsfrac, keyReset);
@@ -213,16 +245,22 @@ public:
 			if (sgradient2 != 1.0f) { // VariSaw
 			float grad_limit = SawMaxGrad / fs;
 			// Above a certain gradient, the waveform amplitude
-			// starts decreasing. We could put a hard limit here,
-			// but that would cause the resulting parameter to
-			// hit a brick wall when increased which gives a
-			// confusing user experience. Therefore, derate
-			// the increase instead, only bringing in 10% of the
-			// increase above the gradient limit, so that there
-			// still some albeit much less severe change in the
-			// waveform all the way to the max parameter value.
-			float grad_derate = sgradient2 < grad_limit ? 1.0f : SawMinDerate;
-			float sgrad = (sgradient2 - grad_limit) * grad_derate + grad_limit;
+			// starts decreasing. This corresponds to the analog
+			// sawtooth not having time to reach its max value
+			// before it is reset. However, there is also a minimum
+			// width that the resulting sawtooth can have, which
+			// correponds to the limit in switching speed of
+			// an analog comparator. Digitally, the decrease in
+			// amplitude corresponds to the blep and blamp of
+			// the varisaw wave cancelling out partially.
+			// Although it would be nice to have a soft transition
+			// into the limiting range, this would require a
+			// function such as tnh or an x^3 giving way to
+			// a flat section where the curve becomes horizontal,
+			// but we consider that too costly for the benefits.
+			// Thus we simply cap the gradient at a sample rate and
+			// oscillator frequency dependent value.
+			float sgrad = sgradient2 > grad_limit ? grad_limit : sgradient2;
 			// breakpoint is 1 / gradient, but only when
 			// gradient is > 1. Otherwise it is 1 (maxed).
 			// The normal case here is 1 / gradient, so optimize
@@ -262,10 +300,10 @@ public:
 		// Send hard sync reset as trigger for sub osc counter
 		// Because they're delayed above, we don't need to
 		// delay the output of sub osc further down.
-		o2sub.processMaster(hsr, hsfrac, osc2SubWaveform);
+		o2sub.processMaster(hsr, hsfrac, oscparams.osc2SubWaveform);
 
-		if (osc2SubWaveform) {
-			if (osc2SubWaveform == 4) { // noise
+		if (oscparams.osc2SubWaveform) {
+			if (oscparams.osc2SubWaveform == 4) { // noise
 				// MiMi-a uses a digital noise generator,
 				// so we do too. It has the minimum crest
 				// factor and thus gives the highest RMS level
@@ -274,7 +312,7 @@ public:
 				osc2submix = (noiseGen > 0) - 0.5;
 				// osc2submix = noiseGen * 1.3; // analog
 			} else // 1..3 are sub osc waveforms/octaves
-				osc2submix = o2sub.getValue(osc2SubWaveform);
+				osc2submix = o2sub.getValue(oscparams.osc2SubWaveform);
 		}
 
 		// osc1 = slave oscillator
@@ -284,7 +322,7 @@ public:
 		// Hard sync gate signal delayed too
 		// Offset on osc2mix * xmod is to get zero pitch shift at
 		// max xmod
-		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + osc1Det + osc1p + pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + tune + oct +totalSpread*osc1Factor));
+		float pitch1 = getPitch(cvd.feedReturn(dirt *noiseGen + notePlaying + oscparams.osc1Det + oscparams.osc1p + oscmodulation.pto1 + (osc2modout?osc2mix-0.0569:0)*xmod + oct_tune + osc1Factor));
 
 		fs = minf(pitch1 * sampleRateInv, 0.45f);
 
@@ -309,7 +347,7 @@ public:
 		} else if (x1 >= 1.0f) \
 			x1 -= 1.0f; \
 
-		switch (osc1Wave) {
+		switch (oscparams.osc1Wave) {
 		case 2: // Pulse
 			o1p.processSlave(x1, fs, hsr, hsfrac, pw1calc);
 			PhaseResetSlave(x1, fs, hsr, hsfrac);
@@ -328,8 +366,7 @@ public:
 		case 1:	// Saw / variable slope saw
 			if (sgradient1 != 1.0f) { // VariSaw
 			float grad_limit = SawMaxGrad / fs;
-			float grad_derate = sgradient1 < grad_limit ? 1.0f : SawMinDerate;
-			float sgrad = (sgradient1 - grad_limit) * grad_derate + grad_limit;
+			float sgrad = sgradient1 > grad_limit ? grad_limit : sgradient1;
 			float dividend = sgrad > 1.0f ? 1.0f : sgrad;
 			float sbreakpoint = dividend / sgrad;
 			o1v.processSlave(x1, fs, hsr, hsfrac, sbreakpoint, sgrad);
