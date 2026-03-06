@@ -152,9 +152,13 @@ protected:
 	}
 	const char *getMaker() const override { return "Pollux"; }
 	const char *getLicense() const override { return "GPL2"; }
-	uint32_t getVersion() const override { return d_version(2,2,0); }
+	uint32_t getVersion() const override {
+		return d_version(PLUGIN_VERSION_MAJOR,
+				 PLUGIN_VERSION_MINOR,
+				 PLUGIN_VERSION_MICRO);
+	}
 	int64_t getUniqueId() const override {
-	    return d_cconst('M','i','M','d');
+		return d_cconst('M','i','M','d');
 	}
 
 	// Doesn't seem to be necessary but just in case ...

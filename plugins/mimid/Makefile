@@ -15,12 +15,13 @@ NAME = MiMi-d
 FILES_DSP = \
 	MiMi-d.cpp
 
-FILES_UI =
+FILES_UI = \
+	MiMiUI.cpp
 
 # --------------------------------------------------------------
 # Do some magic
 
-#UI_TYPE = generic
+UI_TYPE = opengl
 #FILE_BROWSER_DISABLED = true
 include ../../dpf/Makefile.plugins.mk
 
