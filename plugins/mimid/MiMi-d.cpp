@@ -310,9 +310,13 @@ private:
 #undef atval
 	}
 
-	inline void processMidiPerSample(const MidiEvent *midiEvents, uint32_t &midiEventIndex, const uint32_t midiEventCount, const uint32_t &samplePos)
+	inline void processMidiPerSample(const MidiEvent *midiEvents,
+                                         uint32_t &midiEventIndex,
+                                         const uint32_t midiEventCount,
+                                         const uint32_t &samplePos)
 	{
-		while (midiEventIndex < midiEventCount && midiEvents[midiEventIndex].frame <= samplePos) {
+		while (midiEventIndex < midiEventCount &&
+		       midiEvents[midiEventIndex].frame <= samplePos) {
 			processMidiEvent(&midiEvents[midiEventIndex]);
 			midiEventIndex++;
 		}
@@ -354,7 +358,8 @@ protected:
 
 		while (samplePos < frames)
 		{
-			processMidiPerSample(midiEvents, midiEventIndex, midiEventCount, samplePos);
+			processMidiPerSample(midiEvents, midiEventIndex,
+					     midiEventCount, samplePos);
 
 			synth.processSample(outL + samplePos, outR + samplePos);
 
