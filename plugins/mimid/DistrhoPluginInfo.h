@@ -27,7 +27,7 @@
 #define DISTRHO_PLUGIN_URI   "https://butoba.net/homepage/mimid.html"
 
 #define PLUGIN_VERSION_MAJOR 2
-#define PLUGIN_VERSION_MINOR 2
+#define PLUGIN_VERSION_MINOR 3
 #define PLUGIN_VERSION_MICRO 0
 
 #define DISTRHO_PLUGIN_NUM_INPUTS   0
