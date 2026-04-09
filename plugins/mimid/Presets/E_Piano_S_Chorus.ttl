@@ -10,7 +10,7 @@
 	a pset:Preset ;
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	rdfs:label "E Piano S Chorus" ;
-	pset:bank <User> ;
+	pset:bank <Factory> ;
 	lv2:port [
 		lv2:symbol "aftertouchscale" ;
 		pset:value 1.14999998

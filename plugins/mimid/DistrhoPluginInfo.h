@@ -2,7 +2,7 @@
 	==============================================================================
 	This file is part of the MiMi-d synthesizer.
 
-	Copyright 2024 Ricard Wanderlof
+	Copyright 2024-2025 Ricard Wanderlof
 
 	This file may be licensed under the terms of of the
 	GNU General Public License Version 2 (the ``GPL'').
@@ -26,14 +26,23 @@
 #define DISTRHO_PLUGIN_NAME  "MiMi-d"
 #define DISTRHO_PLUGIN_URI   "https://butoba.net/homepage/mimid.html"
 
+#define PLUGIN_VERSION_MAJOR 2
+#define PLUGIN_VERSION_MINOR 3
+#define PLUGIN_VERSION_MICRO 0
+
 #define DISTRHO_PLUGIN_NUM_INPUTS   0
 #define DISTRHO_PLUGIN_NUM_OUTPUTS  2
-#define DISTRHO_PLUGIN_IS_SYNTH 1
-#define DISTRHO_PLUGIN_HAS_UI 0
+#define DISTRHO_PLUGIN_IS_SYNTH     1
+#define DISTRHO_PLUGIN_HAS_UI       1
 #define DISTRHO_PLUGIN_IS_RT_SAFE   1
-#define DISTRHO_PLUGIN_WANT_TIMEPOS   1
+#define DISTRHO_PLUGIN_WANT_TIMEPOS 1
 
-// Bring in Parameters enum */
+#define DISTRHO_UI_USE_NANOVG       1
+
+// Allow the LV2 host to resize the UI window at runtime.
+#define DISTRHO_UI_USER_RESIZABLE   1
+
+// Bring in Parameters enum
 #include "Engine/ParamsEnum.h"
 
 #endif /* _DISTRHO_PLUGIN_INFO_H_ */

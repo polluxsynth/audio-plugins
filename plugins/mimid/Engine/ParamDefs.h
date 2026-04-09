@@ -179,10 +179,10 @@
 	PARAM(OSC2WAVE, PG_OSC2, SP_OSCWAVE, "Wave", "osc2wave", SP_MIN, SP_MAX, 1, setOsc2Wave)
 
 	// Osc common (osc modulation and key sync)
-	PARAM(XMOD, PG_OSC_COM, SP_NONE, "Xmod", "xmod", 0, 10, 0, setOsc2Xmod)
-	PARAM(OSC2FLTMOD, PG_OSC_COM, SP_NONE, "Osc2FilterMod", "osc2filtermod", 0, 10, 0, setOsc2FltMod)
-	PARAM(OSCSYNC_LEVEL, PG_OSC_COM, SP_NONE, "SyncLevel", "synclevel", 0, 10, 0, setOsc2SyncLevel)
-	PARAM(OSC_KEY_SYNC, PG_OSC_COM, SP_KEYSYNC, "Waveform Reset", "osckeysync", SP_MIN, SP_MAX, 0, setOscKeySync)
+	PARAM(XMOD, PG_OSC_COM, SP_NONE, "Mod 2>1", "xmod", 0, 10, 0, setOsc2Xmod)
+	PARAM(OSC2FLTMOD, PG_OSC_COM, SP_NONE, "Mod 2>Filter", "osc2filtermod", 0, 10, 0, setOsc2FltMod)
+	PARAM(OSCSYNC_LEVEL, PG_OSC_COM, SP_NONE, "Sync 2>1", "synclevel", 0, 10, 0, setOsc2SyncLevel)
+	PARAM(OSC_KEY_SYNC, PG_OSC_COM, SP_KEYSYNC, "Wave Mode", "osckeysync", SP_MIN, SP_MAX, 0, setOscKeySync)
 
 	// Mixer and sub osc
 	PARAM(OSC1MIX, PG_MIXER, SP_NONE, "Osc1Mix", "osc1mix", 0, 10, 0, setOsc1Mix)

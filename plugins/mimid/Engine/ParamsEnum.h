@@ -41,6 +41,7 @@ enum ParameterGroups
 // This brings in the parameter groups as enum members
 #include "ParamDefs.h"
 
+	PG_COUNT,
 };
 
 enum ScalePoints

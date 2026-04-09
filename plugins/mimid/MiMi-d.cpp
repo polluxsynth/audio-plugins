@@ -152,9 +152,13 @@ protected:
 	}
 	const char *getMaker() const override { return "Pollux"; }
 	const char *getLicense() const override { return "GPL2"; }
-	uint32_t getVersion() const override { return d_version(2,2,0); }
+	uint32_t getVersion() const override {
+		return d_version(PLUGIN_VERSION_MAJOR,
+				 PLUGIN_VERSION_MINOR,
+				 PLUGIN_VERSION_MICRO);
+	}
 	int64_t getUniqueId() const override {
-	    return d_cconst('M','i','M','d');
+		return d_cconst('M','i','M','d');
 	}
 
 	// Doesn't seem to be necessary but just in case ...
@@ -310,9 +314,13 @@ private:
 #undef atval
 	}
 
-	inline void processMidiPerSample(const MidiEvent *midiEvents, uint32_t &midiEventIndex, const uint32_t midiEventCount, const uint32_t &samplePos)
+	inline void processMidiPerSample(const MidiEvent *midiEvents,
+                                         uint32_t &midiEventIndex,
+                                         const uint32_t midiEventCount,
+                                         const uint32_t &samplePos)
 	{
-		while (midiEventIndex < midiEventCount && midiEvents[midiEventIndex].frame <= samplePos) {
+		while (midiEventIndex < midiEventCount &&
+		       midiEvents[midiEventIndex].frame <= samplePos) {
 			processMidiEvent(&midiEvents[midiEventIndex]);
 			midiEventIndex++;
 		}
@@ -354,7 +362,8 @@ protected:
 
 		while (samplePos < frames)
 		{
-			processMidiPerSample(midiEvents, midiEventIndex, midiEventCount, samplePos);
+			processMidiPerSample(midiEvents, midiEventIndex,
+					     midiEventCount, samplePos);
 
 			synth.processSample(outL + samplePos, outR + samplePos);
 
