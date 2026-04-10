@@ -305,6 +305,7 @@ static constexpr RGBA COL_VALUE_TEXT       = { 1.000f, 1.000f, 1.000f, 0.95f };
 static constexpr RGBA COL_NAME_TEXT        = { 1.000f, 1.000f, 1.000f, 0.95f };
 static constexpr RGBA COL_FRAME_LINE       = { 1.000f, 1.000f, 1.000f, 0.70f };
 static constexpr RGBA COL_FRAME_TITLE      = { 1.000f, 1.000f, 1.000f, 0.95f };
+static constexpr RGBA COL_KNOB_LABEL       = { 1.000f, 1.000f, 1.000f, 0.95f };
 
 // -- Buttons ---------------------------------------------------------------
 // Off state gradient stops  -  matches knob face centre colour for consistency
@@ -398,6 +399,41 @@ static constexpr float MENU_STEP        =   0.01f;
 // UIScale valid range
 static constexpr float UI_SCALE_MIN     =  0.5f;
 static constexpr float UI_SCALE_MAX     =  2.0f;
+
+// -- Symbols ----------------------------------------------------------------
+// Symbol type identifiers for UILAYOUT_PARAM_POINTS
+enum Symbol {
+    SYM_NONE   = 0,
+    SYM_SAW    = 1, // ramp up, vertical drop
+    SYM_RSAW   = 2, // vertical rise, ramp down
+    SYM_TRI    = 3, // ramp up then down
+    SYM_SQUARE = 4, // 50% duty cycle square
+    SYM_PULSE  = 5, // narrow high, wide low
+    SYM_RPULSE = 6, // wide low, narrow high
+};
+
+// Gap between outer edge of track arc and inner edge of the nearest
+// symbol stroke, in logical units.  Increase to push symbols further out.
+static constexpr float SYM_DIST =  1.8f;
+// Scaling unit for symbol geometry, in logical units.  All symbol
+// dimensions (HW, HH, PW below) are expressed as fractions of this value.
+static constexpr float SYM_SIZE = 10.0f;
+// Stroke width for symbol lines, in logical units.
+static constexpr float SYM_LW   =  1.2f;
+// Half-width of the symbol as a fraction of SYM_SIZE.
+// The full symbol width is 2 * HW * SYM_SIZE.
+static constexpr float SYM_HW   =  0.25f;
+// Half-height of the symbol as a fraction of SYM_SIZE.
+// The full symbol height is 2 * HH * SYM_SIZE.
+static constexpr float SYM_HH   =  0.220f;
+// Width of the narrow pulse section in pulse/reverse-pulse symbols,
+// as a fraction of SYM_SIZE.
+static constexpr float SYM_PW   =  0.14f;
+// Downward nudge of imaginary arc that the symbols are on.
+// There's usually a bit of extra space above the knob for the symbols,
+// but not so much below, so nudging them all down can give a more
+// balanced visual appearance.
+static constexpr float SYM_Y_NUDGE = 1.0f;
 
 // Splash screen
 static constexpr float SPLASH_W           = 560.0f;

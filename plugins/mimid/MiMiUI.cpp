@@ -166,8 +166,12 @@ static std::vector<PageLayout> buildPages(ParamTables &pt)
 
 #include "UI/UILayoutDefs.h"
 
-    // Pass 2  -  modules and parameters pushed directly into pages
+    // Pass 2  -  modules and parameters pushed directly into pages.
+    // UILAYOUT_PARAM_POINTS preceding a UILAYOUT_PARAM stashes symbol
+    // points in _pendingSymPoints; UILAYOUT_PARAM moves them into the
+    // widget and clears the staging vector.
     ModuleLayout *cur = nullptr;
+    std::vector<std::pair<float,Symbol>> _pendingSymPoints;
 
 #define UILAYOUT_PAGE(ID, LABEL)   /* already done */
 #define UILAYOUT_COMMON_START      /* skip */
@@ -184,6 +188,14 @@ static std::vector<PageLayout> buildPages(ParamTables &pt)
     }
 #define UILAYOUT_MODULE_END \
     cur = nullptr;
+#define UILAYOUT_PARAM_POINTS(...) \
+    { \
+        const int _all[] = { __VA_ARGS__ }; \
+        const int _n = (int)(sizeof(_all)/sizeof(_all[0])); \
+        for (int _i = 0; _i + 1 < _n; _i += 2) \
+            _pendingSymPoints.push_back( \
+                {(float)_all[_i], (Symbol)_all[_i+1]}); \
+    }
 #define UILAYOUT_PARAM(PARAMNO, ...) \
     if (cur) { \
         auto _pw = makeParam(PARAMNO, pt.paramMeta, pt.scaleLabels); \
@@ -192,6 +204,7 @@ static std::vector<PageLayout> buildPages(ParamTables &pt)
             _pw.name = _ovr[0]; \
             pt.paramMeta[PARAMNO].uiName = _ovr[0]; \
         } \
+        _pw.symPoints = std::move(_pendingSymPoints); \
         cur->params.push_back(std::move(_pw)); \
     }
 
@@ -204,6 +217,7 @@ static std::vector<PageLayout> buildPages(ParamTables &pt)
 #undef HORIZ
 #undef VERT
 #undef WIDTH
+#undef UILAYOUT_PARAM_POINTS
 
     return pages;
 }

@@ -95,6 +95,9 @@ static constexpr const char *BTN_LABEL_UI   = "UI";
 #ifndef UILAYOUT_PARAM
 #define UILAYOUT_PARAM(PARAMNO, ...)
 #endif
+#ifndef UILAYOUT_PARAM_POINTS
+#define UILAYOUT_PARAM_POINTS(...)
+#endif
 
 // ===========================================================================
 // PAGES
@@ -139,7 +142,7 @@ UILAYOUT_MODULE(1, PG_OSC_COM, HORIZ, 1, 2)
     UILAYOUT_PARAM(XMOD)
     UILAYOUT_PARAM(OSC2FLTMOD)
     UILAYOUT_PARAM(OSCSYNC_LEVEL)
-    UILAYOUT_PARAM(OSC_KEY_SYNC, "Osc Wave")
+    UILAYOUT_PARAM(OSC_KEY_SYNC);
 UILAYOUT_MODULE_END
 
 UILAYOUT_MODULE(1, PG_MIXER, VERT, 5, 0)
@@ -218,6 +221,15 @@ UILAYOUT_MODULE_END
 
 UILAYOUT_MODULE(1, PG_LFO3, WIDTH(4), 10, 3)
     UILAYOUT_PARAM(LFO3FREQ)
+    // LFO3WAVE range 0-10: integer values 1-8 are named waveshapes.
+    // Angles = value/10 * 270 degrees from knob start.
+    UILAYOUT_PARAM_POINTS(
+         10, SYM_RSAW,
+         67, SYM_TRI,
+        125, SYM_SAW,
+        145, SYM_PULSE,
+        202, SYM_SQUARE,
+        260, SYM_RPULSE)
     UILAYOUT_PARAM(LFO3WAVE)
     UILAYOUT_PARAM(LFO3DEST)
     UILAYOUT_PARAM(LFO3AMT, "Initial Amt")
@@ -284,3 +296,4 @@ UILAYOUT_MODULE_END
 #undef UILAYOUT_MODULE
 #undef UILAYOUT_MODULE_END
 #undef UILAYOUT_PARAM
+#undef UILAYOUT_PARAM_POINTS

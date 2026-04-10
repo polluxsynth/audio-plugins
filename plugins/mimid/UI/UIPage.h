@@ -454,6 +454,8 @@ private:
                         pw.name.c_str(), valueTxt.c_str(), zeroNorm,
                         pw.paramNo == selectedParam, true,
                         glowColour);
+            if (!pw.symPoints.empty())
+                wc.drawSymbols(kp.cx, kp.cy, pw.symPoints);
         }
     }
 

@@ -75,6 +75,12 @@ struct ParamWidget {
     bool        isInteger;
     std::vector<std::string> scaleLabels;
 
+    // Symbols: pairs of {angleDeg, Symbol}.
+    // angleDeg is degrees from knob start (0=bottom-left, 270=bottom-right).
+    // Populated by UILAYOUT_PARAM_POINTS in MiMiUI.cpp.
+    // Empty for most knobs.
+    std::vector<std::pair<float,Symbol>> symPoints;
+
     std::string formatValue(float val) const
     {
         if (!scaleLabels.empty()) {

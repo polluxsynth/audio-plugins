@@ -125,6 +125,101 @@ public:
 
     // -- Public drawing interface ---------------------------------------------
 
+    // -- Symbols --------------------------------------------------------------
+
+    // Draw one symbol of type SYM_* centred at (cx, cy), scaled by s
+    // (= SYM_SIZE).  Waveform geometry is governed by SYM_HW (half-width),
+    // SYM_HH (half-height), and SYM_PW (pulse width fraction), all in
+    // UIConstants.h.
+    void drawSymbol(Symbol symbol, float cx, float cy, float s) const
+    {
+        if (symbol == SYM_NONE) return;
+        const float hw  = s * SYM_HW;
+        const float hh  = s * SYM_HH;
+        const float x0  = cx - hw, x1 = cx + hw;
+        const float y0  = cy - hh, y1 = cy + hh;
+        const float mx  = cx;
+        const float my  = cy;
+        const float pw  = s * SYM_PW;
+
+        fVG->beginPath();
+        switch (symbol) {
+            case SYM_SAW:
+                fVG->moveTo(x0, y1);
+                fVG->lineTo(x1, y0);
+                fVG->lineTo(x1, y1);
+                break;
+            case SYM_RSAW:
+                fVG->moveTo(x0, y1);
+                fVG->lineTo(x0, y0);
+                fVG->lineTo(x1, y1);
+                break;
+            case SYM_TRI:
+                fVG->moveTo(x0, y1);
+                fVG->lineTo(mx, y0);
+                fVG->lineTo(x1, y1);
+                break;
+            case SYM_SQUARE:
+                fVG->moveTo(x0, my);
+                fVG->lineTo(x0, y0);
+                fVG->lineTo(mx, y0);
+                fVG->lineTo(mx, y1);
+                fVG->lineTo(x1, y1);
+                fVG->lineTo(x1, my);
+                break;
+            case SYM_PULSE:
+                fVG->moveTo(x0,      y1);
+                fVG->lineTo(x0,      y0);
+                fVG->lineTo(x0 + pw, y0);
+                fVG->lineTo(x0 + pw, y1);
+                fVG->lineTo(x1,      y1);
+                break;
+            case SYM_RPULSE:
+                fVG->moveTo(x0,      y0);
+                fVG->lineTo(x1 - pw, y0);
+                fVG->lineTo(x1 - pw, y1);
+                fVG->lineTo(x1,      y1);
+                fVG->lineTo(x1,      y0);
+                break;
+            default: return;
+        }
+        fVG->strokeWidth(SYM_LW);
+        fVG->lineCap(NanoVG::SQUARE);
+        fVG->lineJoin(NanoVG::MITER);
+        fVG->stroke();
+    }
+
+    // Draw all symbols for a knob.  Each entry is a {angleDeg, symbol} pair
+    // where angleDeg is degrees from the knob start point (0 = bottom-left,
+    // 270 = bottom-right).  Symbols are placed outside the track + ticks so
+    // they are unaffected by partial knob redraws.
+    // symCentreR places the symbol centre such that the inner edge of the
+    // symbol stroke (hh inside the centre) begins at trackOuter + SYM_DIST,
+    // giving a consistent gap at all angles.
+    void drawSymbols(
+        float cx, float cy,
+        const std::vector<std::pair<float,Symbol>> &points) const
+    {
+        if (points.empty()) return;
+        const float trackOuter = fGeometry.trackR
+                               + fGeometry.tw * TICK_STEP_OUTER
+                               + TICK_STEP_WIDTH * 0.5f;
+        const float hh         = SYM_SIZE * SYM_HH;
+        const float symCentreR = trackOuter + SYM_DIST + hh;
+        const float startRad =
+            ARC_START_DEG * static_cast<float>(M_PI) / 180.0f;
+
+        cy += SYM_Y_NUDGE;
+        setStrokeColor(COL_KNOB_LABEL);
+        for (const auto &pt : points) {
+            const float angle = startRad
+                + pt.first * static_cast<float>(M_PI) / 180.0f;
+            const float sx = cx + std::cos(angle) * symCentreR;
+            const float sy = cy + std::sin(angle) * symCentreR;
+            drawSymbol(pt.second, sx, sy, SYM_SIZE);
+        }
+    }
+
     void drawBackground(float w, float h) const
     {
         fVG->beginPath();
