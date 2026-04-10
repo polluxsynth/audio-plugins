@@ -134,21 +134,26 @@ public:
     }
 
     // Clear the bounding box of a knob to the background colour before a
-    // partial redraw.  The box extends by margin on top and sides to cover
-    // the shadow and glow ring.  The bottom extends to trackR + tw/2.
+    // partial redraw.  The circle radius covers the track arc, tick marks,
+    // shadow, and glow ring.  A circle fits the round knob more closely
+    // than a rectangle, leaving less of the background needlessly repainted.
+    // A scissor clamps the bottom edge to the same position as the original
+    // rectangle bottom (cy + trackR + tw/2), protecting the name label below.
     void clearKnobArea(float cx, float cy) const
     {
-        const float halfTrack = fGeometry.tw * 0.5f;
         const float tickReach = fGeometry.trackR
                               + fGeometry.tw * TICK_STEP_OUTER
-                              + TICK_STEP_WIDTH * 0.5f;
-        const float top    = cy - tickReach;
-        const float bottom = cy + fGeometry.trackR + halfTrack;
-        const float hwidth = tickReach;   // symmetric left/right worst case
+                              + TICK_STEP_WIDTH * 0.25f;
+        const float circleTop  = cy - tickReach;
+        const float clipBottom = cy + fGeometry.trackR
+                               + fGeometry.tw * 0.5f;
+        fVG->scissor(cx - tickReach, circleTop,
+                     tickReach * 2.0f, clipBottom - circleTop);
         fVG->beginPath();
-        fVG->rect(cx - hwidth, top, hwidth * 2.0f, bottom - top);
+        fVG->circle(cx, cy, tickReach);
         setFillColor(COL_BACKGROUND);
         fVG->fill();
+        fVG->resetScissor();
     }
 
     // showIndex, showArc, showValue come from fSettings.
