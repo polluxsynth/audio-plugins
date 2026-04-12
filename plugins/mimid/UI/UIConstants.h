@@ -410,6 +410,7 @@ enum Symbol {
     SYM_SQUARE = 4, // 50% duty cycle square
     SYM_PULSE  = 5, // narrow high, wide low
     SYM_RPULSE = 6, // wide low, narrow high
+    SYM_INF    = 7, // infinity sign (two arcs + crossed lines)
 };
 
 // Gap between outer edge of track arc and inner edge of the nearest
@@ -429,6 +430,14 @@ static constexpr float SYM_HH   =  0.220f;
 // Width of the narrow pulse section in pulse/reverse-pulse symbols,
 // as a fraction of SYM_SIZE.
 static constexpr float SYM_PW   =  0.14f;
+// Infinity symbol (SYM_INF): two 270-degree arcs joined by crossed lines.
+// Radius of each lobe arc, as a fraction of SYM_SIZE.
+static constexpr float SYM_INF_R  = 0.20f;
+// Horizontal offset of each lobe centre from the symbol centre, as a
+// fraction of SYM_SIZE.  Must be less than SYM_INF_R * cos(45deg) so that
+// the open arc endpoints cross past the centre line and the joining lines
+// actually intersect at (cx, cy).
+static constexpr float SYM_INF_OX = 0.30f;
 // Downward nudge of imaginary arc that the symbols are on.
 // There's usually a bit of extra space above the knob for the symbols,
 // but not so much below, so nudging them all down can give a more

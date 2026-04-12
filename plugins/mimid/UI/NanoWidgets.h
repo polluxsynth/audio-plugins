@@ -134,6 +134,50 @@ public:
     void drawSymbol(Symbol symbol, float cx, float cy, float s) const
     {
         if (symbol == SYM_NONE) return;
+
+        // SYM_INF: two 270-degree arcs (lobes) joined by crossed lines.
+        // Each arc has a 90-degree gap facing inward; two diagonal lines
+        // connect the open endpoints across the centre, crossing at (cx,cy).
+        // Drawn with round caps/joins; handled separately from the
+        // line-based symbols below.
+        if (symbol == SYM_INF) {
+            const float r   = s * SYM_INF_R;
+            const float ox  = s * SYM_INF_OX;
+            // Open-endpoint offset from lobe centre: r*cos45 = r*sin45.
+            const float e   = r * 0.7071f;  // r * cos(45deg)
+            // Arc angles in radians (NanoVG: 0=right, CW in screen space).
+            constexpr float pi   = static_cast<float>(M_PI);
+            const float a45  = pi * 1.0f / 4.0f;
+            const float a315 = pi * 7.0f / 4.0f;
+            const float a135 = pi * 3.0f / 4.0f;
+            const float a225 = pi * 5.0f / 4.0f;
+            fVG->strokeWidth(SYM_LW);
+            fVG->lineCap(NanoVG::ROUND);
+            fVG->lineJoin(NanoVG::ROUND);
+            // Left lobe: centre (cx-ox, cy), gap faces right.
+            // Arc runs CW from 45deg to 315deg (270 degrees).
+            fVG->beginPath();
+            fVG->arc(cx - ox, cy, r, a45, a315, NanoVG::CW);
+            fVG->stroke();
+            // Right lobe: centre (cx+ox, cy), gap faces left.
+            // Arc runs CW from 225deg to 135deg (270 degrees).
+            fVG->beginPath();
+            fVG->arc(cx + ox, cy, r, a225, a135, NanoVG::CW);
+            fVG->stroke();
+            // Crossed lines joining the open endpoints.
+            // L_top=(cx-ox+e, cy-e)  R_bot=(cx+ox-e, cy+e)
+            // L_bot=(cx-ox+e, cy+e)  R_top=(cx+ox-e, cy-e)
+            fVG->beginPath();
+            fVG->moveTo(cx - ox + e, cy - e);
+            fVG->lineTo(cx + ox - e, cy + e);
+            fVG->stroke();
+            fVG->beginPath();
+            fVG->moveTo(cx - ox + e, cy + e);
+            fVG->lineTo(cx + ox - e, cy - e);
+            fVG->stroke();
+            return;
+        }
+
         const float hw  = s * SYM_HW;
         const float hh  = s * SYM_HH;
         const float x0  = cx - hw, x1 = cx + hw;
@@ -214,8 +258,18 @@ public:
         for (const auto &pt : points) {
             const float angle = startRad
                 + pt.first * static_cast<float>(M_PI) / 180.0f;
-            const float sx = cx + std::cos(angle) * symCentreR;
-            const float sy = cy + std::sin(angle) * symCentreR;
+            float sx = cx + std::cos(angle) * symCentreR;
+            float sy = cy + std::sin(angle) * symCentreR;
+            // SYM_INF is wider than tall. Nudge it in the horizontal
+            // direction (only) so the inner lobe centre sits at
+            // symCentreR rather than the symbol centre, keeping the gap
+            // from the knob consistent. This also enables us to have
+            // a larger symbol than otherwise possible without intruding on
+            // the knob redraw path.
+            if (pt.second == SYM_INF) {
+                const float nudge = SYM_SIZE * SYM_INF_OX;
+                sx += std::cos(angle) * nudge;
+            }
             drawSymbol(pt.second, sx, sy, SYM_SIZE);
         }
     }
