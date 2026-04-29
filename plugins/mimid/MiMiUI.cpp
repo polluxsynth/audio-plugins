@@ -633,29 +633,33 @@ public:
     // -- Idle callback / deferred value draw -------------------------------
     void uiIdle() override
     {
-        if (fUpdateDrawPending) {
-            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        if (!fUpdateDrawPending) return;
+        const auto elapsed =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
                 Clock::now() - fLastUpdateTime).count();
-            if (elapsed >= UPDATE_DRAW_INTERVAL_MS) {
-                repaint();
-            }
-        }
+        if (elapsed >= UPDATE_DRAW_INTERVAL_MS)
+            repaint();
     }
 
     // -- Parameter update from host ----------------------------------------
     void parameterChanged(uint32_t index, float value) override
     {
-        if (index < PARAM_COUNT) {
-            fParamValues[index] = value;
-            fPage.setDirty(index);
+        if (index >= PARAM_COUNT) return;
 
-            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - fLastUpdateTime).count();
-            requestRedraw(RedrawLevel::Value);
-            if (elapsed < UPDATE_DRAW_INTERVAL_MS)
-                fUpdateDrawPending = true;
-            else
-                repaint();
-        }
+        // Skip if value hasn't changed  -  avoids unnecessary dirty flags
+        // and repaints when hosts re-send the same value, or when stepped
+        // parameters are already at a boundary.
+        if (value == fParamValues[index]) return;
+
+        fParamValues[index] = value;
+        fPage.setDirty(index);
+        requestRedraw(RedrawLevel::Value);
+
+        // Always defer to uiIdle for rate-limiting: never call repaint()
+        // directly here.  uiIdle fires frequently enough that the added
+        // latency is imperceptible, and it prevents a repaint() storm when
+        // the host delivers a burst of automation events back-to-back.
+        fUpdateDrawPending = true;
     }
 
     // -- Resize ------------------------------------------------------------
@@ -797,6 +801,11 @@ public:
         float newVal = fDragStartVal + dy / DRAG_FULL_RANGE_PX * speed * (hi - lo);
         newVal = std::max(lo, std::min(hi, newVal));
         newVal = snapToSteps(newVal, lo, hi, fParamMeta[fDragParam].steps);
+
+        // Skip the update if the (possibly snapped) value hasn't moved.
+        // This avoids redundant FBO renders on every mouse-move event when
+        // dragging a stepped param that's already at a step boundary.
+        if (newVal == fParamValues[fDragParam]) return true;
 
         setParameterValue(fDragParam, newVal);
         parameterChanged(fDragParam, newVal);
