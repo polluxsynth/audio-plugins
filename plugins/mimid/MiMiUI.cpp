@@ -939,19 +939,15 @@ public:
 
         // '+' / 'k' / Page Up  -  increase selected parameter
         if (ev.key == '+' || ev.key == 'k' || ev.key == kKeyPageUp) {
-            if (fPage.selectedParam() >= 0) {
+            if (fPage.selectedParam() >= 0)
                 adjustSelected(1, ev.mod);
-                repaint();
-            }
             return true;
         }
 
         // '-' / 'j' / Page Down  -  decrease selected parameter
         if (ev.key == '-' || ev.key == 'j' || ev.key == kKeyPageDown) {
-            if (fPage.selectedParam() >= 0) {
+            if (fPage.selectedParam() >= 0)
                 adjustSelected(-1, ev.mod);
-                repaint();
-            }
             return true;
         }
 
@@ -1030,6 +1026,7 @@ public:
         fPage.setDirty(sel);
         // selected param value changed -> display panel needs update
         requestRedraw(RedrawLevel::Value);
+        repaint();
     }
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MiMiUI)
