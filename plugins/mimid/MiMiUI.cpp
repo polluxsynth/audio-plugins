@@ -394,8 +394,8 @@ class MiMiUI : public UI
     // Full and Display redraws always execute immediately.
     // Value redraws are throttled to DRAW_FRAME_INTERVAL_MS.
     using Clock = std::chrono::steady_clock;
-    Clock::time_point fLastDrawTime;   // time of last FBO render; default = epoch (far past)
-    bool              fValueDrawPending = false; // true if a Value draw was deferred
+    Clock::time_point fLastUpdateTime;   // time of last FBO render; default = epoch (far past)
+    bool fUpdateDrawPending = false; // true if a parameter update draw was deferred
 
     // -- Off-screen framebuffer (FBO) ---------------------------------------
     // The UI is rendered into this FBO; onNanoDisplay blits it to the screen.
@@ -539,18 +539,6 @@ public:
         // -- FBO render pass (only when something changed) -----------------
         bool shouldRender = (fRedrawLevel != RedrawLevel::None || !fFBOValid);
 
-        // Throttle Value-only redraws to DRAW_FRAME_INTERVAL_MS.
-        // Full and Display redraws, and the initial render, always
-        // execute immediately.
-        if (shouldRender && fRedrawLevel == RedrawLevel::Value && fFBOValid) {
-            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                Clock::now() - fLastDrawTime).count();
-            if (elapsed < DRAW_FRAME_INTERVAL_MS) {
-                fValueDrawPending = true;
-                shouldRender = false;
-            }
-        }
-
         if (shouldRender) {
             // DPF has already called nvgBeginFrame() for us on the default
             // framebuffer. Cancel it via the NanoVG public API, render into
@@ -607,10 +595,10 @@ public:
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glViewport(0, 0, (GLsizei)physW, (GLsizei)physH);
 
-            fFBOValid         = true;
-            fRedrawLevel      = RedrawLevel::None;
-            fValueDrawPending = false;
-            fLastDrawTime     = Clock::now();
+            fFBOValid          = true;
+            fRedrawLevel       = RedrawLevel::None;
+            fUpdateDrawPending = false;
+            fLastUpdateTime    = Clock::now();
             fPage.clearAllDirty();
 
             // Open the blit frame; DPF calls endFrame() on the NanoBaseWidget
@@ -645,11 +633,12 @@ public:
     // -- Idle callback / deferred value draw -------------------------------
     void uiIdle() override
     {
-        if (fValueDrawPending) {
+        if (fUpdateDrawPending) {
             const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                Clock::now() - fLastDrawTime).count();
-            if (elapsed >= DRAW_FRAME_INTERVAL_MS)
+                Clock::now() - fLastUpdateTime).count();
+            if (elapsed >= UPDATE_DRAW_INTERVAL_MS) {
                 repaint();
+            }
         }
     }
 
@@ -659,10 +648,13 @@ public:
         if (index < PARAM_COUNT) {
             fParamValues[index] = value;
             fPage.setDirty(index);
-            // Value level redraws dirty knobs and updates the display panel;
-            // correct whether or not the changed param is currently selected.
+
+            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - fLastUpdateTime).count();
             requestRedraw(RedrawLevel::Value);
-            repaint();
+            if (elapsed < UPDATE_DRAW_INTERVAL_MS)
+                fUpdateDrawPending = true;
+            else
+                repaint();
         }
     }
 
@@ -806,11 +798,8 @@ public:
         newVal = std::max(lo, std::min(hi, newVal));
         newVal = snapToSteps(newVal, lo, hi, fParamMeta[fDragParam].steps);
 
-        fParamValues[fDragParam] = newVal;
         setParameterValue(fDragParam, newVal);
-        fPage.setDirty(fDragParam);
-        requestRedraw(RedrawLevel::Value);
-        repaint();
+        parameterChanged(fDragParam, newVal);
         return true;
     }
 
@@ -842,12 +831,9 @@ public:
         newVal = snapToSteps(newVal, lo, hi, steps);
 
         editParameter(param, true);
-        fParamValues[param] = newVal;
         setParameterValue(param, newVal);
         editParameter(param, false);
-        fPage.setDirty(param);
-        requestRedraw(RedrawLevel::Value);
-        repaint();
+        parameterChanged(param, newVal);
         return true;
     }
 
@@ -1020,13 +1006,10 @@ public:
         newVal = snapToSteps(newVal, lo, hi, steps);
 
         editParameter(sel, true);
-        fParamValues[sel] = newVal;
         setParameterValue(sel, newVal);
         editParameter(sel, false);
-        fPage.setDirty(sel);
         // selected param value changed -> display panel needs update
-        requestRedraw(RedrawLevel::Value);
-        repaint();
+        parameterChanged(sel, newVal);
     }
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MiMiUI)

@@ -219,8 +219,7 @@ static constexpr float CONTINUOUS_STEPS    = 100.0f;
 
 // Minimum interval between value-update redraws (milliseconds).
 // Full and Display redraws always execute immediately.
-// Currentlyl no cap
-static constexpr int   DRAW_FRAME_INTERVAL_MS = 0;
+static constexpr int   UPDATE_DRAW_INTERVAL_MS = 50;
 
 // title font size as fraction of BTN_STRIP_H
 static constexpr float STRIP_TITLE_FONT_RATIO = 1.00f;
