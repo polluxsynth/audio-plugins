@@ -153,7 +153,7 @@ public:
         fHover = -1;
         fNeedsFullRedraw = true;
     }
-    void closeSplash() { fSplashOpen = false; }
+    void closeSplash() { fSplashOpen = false; fNeedsFullRedraw = true; }
 
     void draw(const NanoWidgets &wc, float canvasW, float canvasH,
               float titleFontSize, float scale)
@@ -221,10 +221,14 @@ public:
             float delta = (fDragStartY - my) / MENU_DRAG_RANGE * MENU_DRAG_UNITS;
             float newVal = fDragStartVal + std::round(delta / MENU_STEP) * MENU_STEP;
             applyNumeric(kMenuItems[fDragRow].id, newVal);
+            fNeedsFullRedraw = true;
             return true;
         }
         int row = hitTest(mx, my);
-        if (row != fHover) fHover = row;
+        if (row != fHover) {
+            fHover = row;
+            fNeedsFullRedraw = true;
+        }
         return true;
     }
 
@@ -272,6 +276,7 @@ public:
                 next += dir;
             }
             fHover = next;
+            fNeedsFullRedraw = true;
             return true;
         }
         if (key == kKeyLeft || key == kKeyRight) {
@@ -294,13 +299,14 @@ public:
                     // uiScale is the only numeric value that we have in the
                     // menu, otherwise we'd need to select which one here.
                     fArmedOrigVal = fSettings.uiScale;
+                    fNeedsFullRedraw = true;
                 } else {
                     activate(fHover);
                 }
             }
             return true;
         }
-        return true;
+        return false; // key not handled, no redraw needed
     }
 
 private:
@@ -371,10 +377,12 @@ private:
     void adjustNumeric(int row, float delta)
     {
         if (row < 0 || row >= kMenuItemCount) return;
+        float oldVal = fSettings.uiScale;
         applyNumeric(kMenuItems[row].id,
-                     // (kMenuItems[row].id == // MENU_UI_SCALE ? 
                      fSettings.uiScale + delta * MENU_STEP,
                      false); // don't notify until confirmed
+        if (fSettings.uiScale != oldVal)
+            fNeedsFullRedraw = true;
     }
 
     // Apply a numeric value to settings. notify=false updates the in-memory
@@ -384,7 +392,12 @@ private:
     {
         newVal = std::round(newVal / MENU_STEP) * MENU_STEP;
         if (id == MENU_UI_SCALE) {
-            fSettings.uiScale = std::max(UI_SCALE_MIN, std::min(UI_SCALE_MAX, newVal));
+            float clamped = std::max(UI_SCALE_MIN,
+                                     std::min(UI_SCALE_MAX, newVal));
+            if (clamped != fSettings.uiScale) {
+                fSettings.uiScale = clamped;
+                fNeedsFullRedraw = true;
+            }
             if (notify) fOnSettingsChanged(fSettings);
         }
     }
@@ -395,6 +408,7 @@ private:
         if (fArmed < 0) return;
         fOnSettingsChanged(fSettings);
         fArmed = -1;
+        fNeedsFullRedraw = true;
     }
 
     void indicatorText(const NanoWidgets &wc, float menuW,

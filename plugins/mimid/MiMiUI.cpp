@@ -655,6 +655,13 @@ public:
         fPage.setDirty(index);
         requestRedraw(RedrawLevel::Value);
 
+        // Suppress display updates while the menu or splash is open.
+        // The user cannot see the knobs anyway, and suppressing here
+        // avoids the blit cost on every parameter change.  When the
+        // menu closes a Full redraw is triggered, so knob state will
+        // be correct immediately on dismiss.
+        if (fMenu.isOpen() || fMenu.isSplashOpen()) return;
+
         // Always defer to uiIdle for rate-limiting: never call repaint()
         // directly here.  uiIdle fires frequently enough that the added
         // latency is imperceptible, and it prevents a repaint() storm when
@@ -783,7 +790,7 @@ public:
         // Menu / splash
         if (fMenu.isSplashOpen() || fMenu.isOpen()) {
             fMenu.onMotion(mx, my);
-            repaint();
+            if (fMenu.takeNeedsFullRedraw()) repaint();
             return true;
         }
 
@@ -851,12 +858,14 @@ public:
     {
         // -- Splash / menu  -  delegate to UIMenu ---------------------------
         if (fMenu.isSplashOpen() || fMenu.isOpen()) {
-            bool consumed = fMenu.onKey(ev.key, ev.press,
-                                        kKeyUp, kKeyDown, kKeyLeft, kKeyRight,
-                                        kKeyPageUp, kKeyPageDown);
-            if (fMenu.takeNeedsFullRedraw()) requestRedraw(RedrawLevel::Full);
-            repaint();
-            return consumed;
+            fMenu.onKey(ev.key, ev.press,
+                        kKeyUp, kKeyDown, kKeyLeft, kKeyRight,
+                        kKeyPageUp, kKeyPageDown);
+            if (fMenu.takeNeedsFullRedraw()) {
+                requestRedraw(RedrawLevel::Full);
+                repaint();
+            }
+            return true; // always consume  -  prevent host acting on keys
         }
 
         if (ev.key == 9) {  // Tab  -  cycle page
