@@ -74,14 +74,16 @@ static constexpr float KNOB_SPEC_FADE_Y  = 0.45f;
 static constexpr float KNOB_SPEC_RADIUS  = 0.98f;
 
 // Drop shadow
-// base blur (multiplied by 2.4f at draw)
+// Set KNOB_SHADOW_BLUR to 0.0 to disable.
+// blur radius added to knob radius for shadow circle
+// (multiplied by 2.4f at draw)
 static constexpr float KNOB_SHADOW_BLUR     =  4.0f;
-// fraction of shadow value
+// horizontal and vertical offset of shadow centre (in blur radii)
 static constexpr float KNOB_SHADOW_OFFSET_X =  0.25f;
 static constexpr float KNOB_SHADOW_OFFSET_Y =  0.75f;
-// vertical scale applied to shadow ellipse
+// vertical squash factor applied to shadow ellipse (< 1 = flatter ellipse)
 static constexpr float KNOB_SHADOW_SQUASH   =  0.85f;
-// extra radius beyond knob body for shadow arc
+// additional radius beyond knob r for the shadow circle
 static constexpr float KNOB_SHADOW_RADIUS   =  2.0f;
 // shadow opacity
 static constexpr float KNOB_SHADOW_ALPHA    =  0.30f;
@@ -146,7 +148,8 @@ static constexpr const char *FONT_NAME_BOLD    = "bold";
 // group title)
 // font size as fraction of knob radius
 static constexpr float FONT_SIZE_RATIO  = 0.50f;
-// minimum font size in logical units
+// minimum font size in logical units; used as a legibility guard if KNOB_R
+// is set to a small value because we want small knobs.
 static constexpr float FONT_SIZE_MIN    = 10.0f;
 // label/title font relative to value font
 static constexpr float LABEL_FONT_SCALE = 1.20f;

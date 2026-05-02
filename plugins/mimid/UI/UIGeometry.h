@@ -98,7 +98,7 @@ struct UIGeometry {
 
     // -- Helpers -----------------------------------------------------------
 
-    // Angle for a normalised parameter value [0.f.1]
+    // Angle for a normalised parameter value [0..1]
     float valueToAngle(float norm) const {
         return arcStart + norm * arcRange;
     }

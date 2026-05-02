@@ -22,7 +22,7 @@
  */
 
 /*
- * ==============================================================================
+ * =========================================================================
  * This file is part of the MiMi-d synthesizer.
  *
  * Copyright 2026 Ricard Wanderlof
@@ -39,7 +39,7 @@
  * program. If not, go to http://www.gnu.org/licenses/gpl.html
  * or write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * ==============================================================================
+ * =========================================================================
  */
 
 #pragma once
@@ -86,7 +86,8 @@ struct ParamWidget {
         if (!scaleLabels.empty()) {
             int idx = (int)std::round((val-minVal)/(maxVal-minVal)*(float)steps);
             if (idx < 0) idx = 0;
-            if (idx >= (int)scaleLabels.size()) idx = (int)scaleLabels.size()-1;
+            if (idx >= (int)scaleLabels.size())
+                idx = (int)scaleLabels.size() - 1;
             return scaleLabels[idx];
         } else if (isInteger) {
             return std::to_string((int)std::round((double)val));
@@ -161,7 +162,7 @@ public:
         cairo_t *cr = wc.getCR();
         const float stripCY = BTN_STRIP_H / 2.0f;
 
-        // -- "MiMi-d" title -- size directly from strip height ---------------
+        // -- "MiMi-d" title -- size directly from strip height --------------
         fTitleFontSize = BTN_STRIP_H * STRIP_TITLE_FONT_RATIO;
         wc.setFont(FONT_NAME_BOLD, fTitleFontSize);
         const float advance = wc.textMeasure(PLUGIN_NAME);
@@ -184,7 +185,7 @@ public:
         float afterPageBtn = fGeom.pageBtnX + fGeom.pageBtnW + PAGE_BTN_HPAD;
         fGeom.dispX = afterPageBtn + STRIP_BTN_GAP + PAGE_BTN_HPAD;
 
-        // -- Vertical break after page button -----------------------------
+        // -- Vertical break after page button ------------------------------
         drawVBreak(wc, afterPageBtn);
 
         // -- UI button -- right-anchored: set anchor on first call only.
@@ -203,7 +204,7 @@ public:
         // left edge) --
         drawVBreak(wc, fGeom.uiBtnX - PAGE_BTN_HPAD - STRIP_BTN_GAP);
 
-        // -- Parameter display panel -- drawn last; needs dispX and uiBtnX -
+        // -- Parameter display panel -- drawn last; needs dispX and uiBtnX
         fGeom.dispW = std::min(
             fGeom.uiBtnX - PAGE_BTN_HPAD - STRIP_BTN_GAP
                          - PAGE_BTN_HPAD - fGeom.dispX,
@@ -221,7 +222,7 @@ public:
                                        selName, selValue, glowColour);
         }
 
-        // -- Horizontal separator below strip -----------------------------
+        // -- Horizontal separator below strip ------------------------------
         // Engraved effect: dark line + 1px-offset light highlight line.
         const float y = BTN_STRIP_SEP_Y;
         cairo_new_path(cr);
@@ -241,7 +242,7 @@ public:
     // Partial redraws  -  require a prior draw() to have cached fGeom.
     // drawDisplay: full panel repaint (chrome + name + value); also caches
     //   fValueX for subsequent drawValue calls.
-    // drawValue: repaints only the value field using cached fValueX — the
+    // drawValue: repaints only the value field using cached fValueX - the
     //   name text and chrome already on the surface are left untouched.
     void drawDisplay(const CairoWidgets &wc,
                      const char *selName, const char *selValue,
@@ -295,8 +296,8 @@ private:
 // Grid helpers  -  used by ButtonStrip and Page
 // -----------------------------------------------------------------------------
 
-inline void gridToCX(int col, int row, const GridOrigin &orig, const UIGeometry &g,
-                     float &cx, float &cy)
+inline void gridToCX(int col, int row, const GridOrigin &orig,
+                     const UIGeometry &g, float &cx, float &cy)
 {
     cx = orig.x + col * g.kpitch;
     cy = orig.y + row * g.rowPitch;

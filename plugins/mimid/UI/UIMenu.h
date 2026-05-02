@@ -3,7 +3,7 @@
  */
 
 /*
- * ==============================================================================
+ * =========================================================================
  * This file is part of the MiMi-d synthesizer.
  *
  * Copyright 2026 Ricard Wanderlof
@@ -20,7 +20,7 @@
  * program. If not, go to http://www.gnu.org/licenses/gpl.html
  * or write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * ==============================================================================
+ * =========================================================================
  */
 #pragma once
 
@@ -64,7 +64,8 @@ static const MenuItemDef kMenuItems[] = {
     { MENU_NONE,         MIT_SEP,      nullptr                     },
     { MENU_ABOUT,        MIT_ACTION,   "About"                     },
 };
-static const int kMenuItemCount = (int)(sizeof(kMenuItems)/sizeof(kMenuItems[0]));
+static const int kMenuItemCount = (int)(sizeof(kMenuItems) /
+                                        sizeof(kMenuItems[0]));
 } // anonymous namespace
 
 // MenuGeometry is outside the anonymous namespace so UIMenu can use
@@ -106,7 +107,8 @@ public:
         float cy = MENU_PAD_Y;
         for (int i = 0; i < kMenuItemCount; i++) {
             fGeom.itemY[i] = cy;
-            float h = (kMenuItems[i].type == MIT_SEP) ? MENU_SEP_H : MENU_ITEM_H;
+            float h = (kMenuItems[i].type == MIT_SEP) ? MENU_SEP_H
+                                                      : MENU_ITEM_H;
             fGeom.itemH[i] = h;
             cy += h;
         }
@@ -191,6 +193,8 @@ public:
                 // arm this one
                 confirmArmed();
                 fArmed = row;
+                // uiScale is the only numeric value that we have in the
+                // menu, otherwise we'd need to select which one here.
                 fArmedOrigVal = // (kMenuItems[row].id == MENU_UI_SCALE) ?
                                 fSettings.uiScale;
                 fDragRow = row;
@@ -289,7 +293,8 @@ public:
                     fArmed = fHover;
                     // uiScale is the only numeric value that we have in the
                     // menu, otherwise we'd need to select which one here.
-                    fArmedOrigVal = fSettings.uiScale;
+                    fArmedOrigVal = // (kMenuItems[row].id == MENU_UI_SCALE) ?
+                                    fSettings.uiScale;
                     fNeedsFullRedraw = true;
                 } else {
                     activate(fHover);
@@ -376,9 +381,9 @@ private:
             fNeedsFullRedraw = true;
     }
 
-    // Apply a numeric value to settings. notify=false updates the in-memory
-    // value only (for live preview during editing); notify=true also calls
-    // fOnSettingsChanged which writes the file.
+    // Apply a numeric value to settings.
+    // notify=false updates in-memory only (live preview during editing);
+    // notify=true also calls fOnSettingsChanged which writes the file.
     void applyNumeric(MenuItemId id, float newVal, bool notify = true)
     {
         newVal = std::round(newVal / MENU_STEP) * MENU_STEP;
@@ -534,9 +539,12 @@ private:
                                              : FONT_NAME_REGULAR,
                        MENU_FONT_SIZE);
 
-            if      (it.type == MIT_HEADER) wc.setFillColor(COL_MENU_HEADER);
-            else if (it.type == MIT_INFO)   wc.setFillColor(COL_MENU_INFO);
-            else                            wc.setFillColor(COL_MENU_ITEM);
+            if (it.type == MIT_HEADER)
+                wc.setFillColor(COL_MENU_HEADER);
+            else if (it.type == MIT_INFO)
+                wc.setFillColor(COL_MENU_INFO);
+            else
+                wc.setFillColor(COL_MENU_ITEM);
 
             if (!it.label) continue;
 
