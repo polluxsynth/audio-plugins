@@ -46,7 +46,7 @@
 
 #include "UILayout.h"
 #include "UIConstants.h"
-#include "NanoWidgets.h"
+#include "CairoWidgets.h"
 #include "UIParam.h"
 
 // -----------------------------------------------------------------------------
@@ -209,7 +209,7 @@ public:
     // -- Drawing -----------------------------------------------------------
 
     // Full redraw of page 0 + current page.
-    void draw(const NanoWidgets &wc) const
+    void draw(const CairoWidgets &wc) const
     {
         const int sel = fSelectedParam[fCurrentPage];
         drawPage(wc, fPages[0], sel, glowColour());
@@ -221,7 +221,7 @@ public:
     // Only redraws params that are on a currently visible page (page 0 or
     // fCurrentPage)  -  params on the hidden page are skipped so their knob
     // position on the surface is not overwritten.
-    void drawDirtyKnobs(const NanoWidgets &wc)
+    void drawDirtyKnobs(const CairoWidgets &wc)
     {
         for (int i = 0; i < PARAM_COUNT; i++) {
             if (!fDirtyParam[i]) continue;
@@ -389,7 +389,7 @@ private:
 
     // -- Module and page drawing -------------------------------------------
 
-    void drawModule(const NanoWidgets &wc,
+    void drawModule(const CairoWidgets &wc,
                     const ModuleLayout &mod,
                     int selectedParam, RGBA glowColour) const
     {
@@ -459,7 +459,7 @@ private:
         }
     }
 
-    void drawPage(const NanoWidgets &wc,
+    void drawPage(const CairoWidgets &wc,
                   const PageLayout &page,
                   int selectedParam, RGBA glowColour) const
     {
@@ -468,7 +468,7 @@ private:
     }
 
     // -- Single knob partial redraw ----------------------------------------
-    void drawKnobForParam(const NanoWidgets &wc, int paramNo) const
+    void drawKnobForParam(const CairoWidgets &wc, int paramNo) const
     {
         const KnobLayout  &kl = fKnobLayout[paramNo];
         if (!kl.pw) return;

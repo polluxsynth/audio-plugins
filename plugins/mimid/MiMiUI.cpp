@@ -2,19 +2,21 @@
  * MiMiUI.cpp   -   DISTRHO UI for MiMi-d synthesizer
  *
  * Build requirements:
- *   - DISTRHO_UI_USE_NANOVG=1
- *   - Link against OpenGL
+ *   - DISTRHO_UI_USE_CAIRO=1
+ *   - Link against cairo and freetype2
  *
  * The UI draws in logical units (UI_W x UI_H, derived from UI_SIZE in
- * UILayoutDefs.h). NanoVG renders into an off-screen FBO which is blitted
- * to the screen on every onNanoDisplay() call.  The FBO is only re-rendered
- * when fRedrawLevel != None (i.e. something has changed).
+ * UILayoutDefs.h). Cairo renders into an off-screen image surface which
+ * is blitted to the window on every onCairoDisplay() call.  The surface
+ * is only re-rendered when fRedrawLevel != None (i.e. something has
+ * changed).
  *
  * UI settings are read from ~/.config/pollux/mimid/ui-settings at
  * startup (scale, knob display flags, ghost mode).
  *
  * Fonts "regular" and "bold" are embedded as static arrays
-*  (NotoSans-Regular.h, NotoSans-Bold.h) and loaded via createFontFromMemory().
+ * (NotoSans-Regular.h, NotoSans-Bold.h) and loaded by CairoWidgets
+ * via FreeType; no font loading is needed in MiMiUI.
  *
  * Interaction:
  *   - Left-click + drag up/down on any knob changes its value.
@@ -50,15 +52,12 @@
 #include "UI/UIConstants.h"
 #include "UI/UIGeometry.h"
 #include "UI/UISettings.h"
-#include "UI/NanoWidgets.h"
+#include "UI/CairoWidgets.h"
 #include "UI/UIMenu.h"
 #include "UI/UILayout.h"
 #include "UI/UIParam.h"
 #include "UI/UIPage.h"
 #include "UI/UILayoutDefs.h"     // for UI_W / UI_H via UI_SIZE macro
-
-#include "UI/NotoSans-Regular.h"
-#include "UI/NotoSans-Bold.h"
 
 #include <vector>
 #include <string>
@@ -363,7 +362,7 @@ class MiMiUI : public UI
     const ParamMeta                (&fParamMeta)[PARAM_COUNT];
     const std::vector<std::string> (&fScaleLabels)[SP_COUNT];
     UIGeometry   fGeometry;
-    NanoWidgets  fWC;              // widget drawing  -  stores geometry and settings
+    CairoWidgets fWC;              // widget drawing  -  stores geometry and settings
 
     float  fParamValues[PARAM_COUNT] = {};
 
@@ -397,21 +396,16 @@ class MiMiUI : public UI
     Clock::time_point fLastUpdateTime;   // time of last FBO render; default = epoch (far past)
     bool fUpdateDrawPending = false; // true if a parameter update draw was deferred
 
-    // -- Off-screen framebuffer (FBO) ---------------------------------------
-    // The UI is rendered into this FBO; onNanoDisplay blits it to the screen.
-    // This avoids artefacts from the GL framebuffer being cleared before each
-    // onNanoDisplay call (by DPF / the host windowing system).
-    //
-    // fFBOImage is a nanoVG-managed GL texture (created via createImageFromRGBA
-    // with IMAGE_FLIP_Y to compensate for OpenGL Y-inversion).  fGLFBO is a
-    // raw GL framebuffer object that renders into that same texture, with
-    // fGLStencil providing the stencil attachment nanoVG requires.
-    NanoImage fFBOImage;           // nanoVG image handle (owns the GL texture)
-    GLuint    fGLFBO     = 0;      // GL framebuffer object
-    GLuint    fGLStencil = 0;      // GL stencil renderbuffer
-    uint      fFBOWidth  = 0;      // physical pixel dimensions of the FBO
-    uint      fFBOHeight = 0;
-    bool      fFBOValid  = false;  // false until the first full render pass
+    // -- Off-screen surface ------------------------------------------------
+    // The UI is rendered into this Cairo image surface; onCairoDisplay
+    // blits it to the window.  This avoids artefacts from the window
+    // context being cleared before each onCairoDisplay call.
+    // The surface is created in the constructor and recreated lazily in
+    // onCairoDisplay when the window dimensions change.
+    cairo_surface_t *fSurface    = nullptr;
+    uint             fSurfWidth  = 0;      // logical pixel dimensions of the surface
+    uint             fSurfHeight = 0;
+    bool             fSurfValid  = false;  // false until the first full render pass
 
 public:
     MiMiUI()
@@ -438,196 +432,138 @@ public:
               fWC.updateSettings(s);
           }, makeVersionString())
     {
-        createFontFromMemory(FONT_NAME_REGULAR, NotoSans_Regular_ttf,
-                                                sizeof(NotoSans_Regular_ttf),
-                                                false);
-        createFontFromMemory(FONT_NAME_BOLD,    NotoSans_Bold_ttf,
-                                                sizeof(NotoSans_Bold_ttf),
-                                                false);
-
         // Allow the host to resize the window freely; DPF enforces the aspect
         // ratio.  The minimum size is one quarter of the default dimensions.
         setGeometryConstraints(UI_W * UI_SCALE_MIN, UI_H * UI_SCALE_MIN, true);
         setSize(static_cast<uint>(UI_W * fUIScale),
                 static_cast<uint>(UI_H * fUIScale));
+
+        // Create the initial off-screen surface at logical pixel dimensions.
+        const uint surfW = static_cast<uint>(UI_W * fUIScale);
+        const uint surfH = static_cast<uint>(UI_H * fUIScale);
+        fSurface   = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                surfW, surfH);
+        fSurfWidth  = surfW;
+        fSurfHeight = surfH;
     }
 
     ~MiMiUI() override
     {
-        // GL context is still current during destruction in DPF/LV2.
-        if (fGLFBO)     glDeleteFramebuffers(1,  &fGLFBO);
-        if (fGLStencil) glDeleteRenderbuffers(1, &fGLStencil);
-        // fFBOImage destructor releases the nanoVG image (and its GL texture).
+        if (fSurface)
+            cairo_surface_destroy(fSurface);
     }
 
     // -- Paint -------------------------------------------------------------
-    // The UI is always rendered into an off-screen FBO so that DPF/host
-    // clearing the GL framebuffer before each call is harmless.  Every
-    // onNanoDisplay() blits the FBO to the screen (one textured quad, ~free
-    // on the GPU).  The FBO is only re-rendered when fRedrawLevel != None or
-    // when the FBO is first created / resized.
+    // The UI is always rendered into an off-screen image surface so that
+    // DPF/host clearing the window context before each call is harmless.
+    // Every onCairoDisplay() blits the surface to the window.  The surface
+    // is only re-rendered when fRedrawLevel != None or when it is first
+    // created / resized.
 
 private:
-    // Allocate (or reallocate) the off-screen FBO at physical pixel size w×h.
-    // Must be called while a GL context is current (i.e. from onNanoDisplay).
-    void createFBO(uint w, uint h)
-    {
-        // Release existing GL objects first (order matters: delete the FBO
-        // before the texture it references, then let NanoImage release the
-        // texture by reassignment below).
-        if (fGLFBO) {
-            glDeleteFramebuffers(1,  &fGLFBO);
-            fGLFBO = 0;
-        }
-        if (fGLStencil) {
-            glDeleteRenderbuffers(1, &fGLStencil);
-            fGLStencil = 0;
-        }
-
-        // Create (or recreate) the nanoVG-managed texture.
-        // IMAGE_FLIP_Y tells nanoVG to flip the image vertically when blitting
-        // it back to the screen, compensating for OpenGL's bottom-left origin.
-        // DPF asserts data != nullptr, so we pass a zeroed temporary buffer;
-        // the contents don't matter since the FBO will overwrite it
-        // on first use.
-        const size_t bufSize = (size_t)w * h * 4;
-        std::vector<uchar> zeroBuf(bufSize, 0);
-        fFBOImage = createImageFromRGBA(w, h, zeroBuf.data(),
-                                        NanoVG::IMAGE_FLIP_Y);
-        const GLuint texId = fFBOImage.getTextureHandle();
-
-        // Build the GL FBO and attach the texture as the colour target.
-        glGenFramebuffers(1, &fGLFBO);
-        glBindFramebuffer(GL_FRAMEBUFFER, fGLFBO);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                               GL_TEXTURE_2D, texId, 0);
-
-        // Attach a stencil renderbuffer (nanoVG uses the stencil buffer for
-        // its fill rules and scissor clipping).
-        glGenRenderbuffers(1, &fGLStencil);
-        glBindRenderbuffer(GL_RENDERBUFFER, fGLStencil);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8,
-                              (GLsizei)w, (GLsizei)h);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-                                  GL_RENDERBUFFER, fGLStencil);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        fFBOWidth  = w;
-        fFBOHeight = h;
-        fFBOValid  = false;
-    }
-
     void requestRedraw(RedrawLevel lvl)
     {
         if (lvl > fRedrawLevel) fRedrawLevel = lvl;
     }
 
 public:
-    void onNanoDisplay() override
+    void onCairoDisplay(const CairoGraphicsContext &ctx) override
     {
-        const uint physW = getWidth();
-        const uint physH = getHeight();
-        const float s    = fUIScale;
+        cairo_t *cr = ctx.handle;
 
-        // -- Lazy FBO creation / resize ------------------------------------
-        if (!fGLFBO || fFBOWidth != physW || fFBOHeight != physH) {
-            createFBO(physW, physH);
+        // -- Lazy surface creation / resize --------------------------------
+        // Dimensions are in logical pixels (fUIScale already applied by
+        // the constructor and onResize).
+        const uint surfW = static_cast<uint>(UI_W * fUIScale);
+        const uint surfH = static_cast<uint>(UI_H * fUIScale);
+        if (!fSurface || fSurfWidth != surfW || fSurfHeight != surfH) {
+            if (fSurface)
+                cairo_surface_destroy(fSurface);
+            fSurface   = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                    surfW, surfH);
+            fSurfWidth  = surfW;
+            fSurfHeight = surfH;
+            fSurfValid  = false;
             fRedrawLevel = RedrawLevel::Full;
         }
 
-        // -- FBO render pass (only when something changed) -----------------
-        bool shouldRender = (fRedrawLevel != RedrawLevel::None || !fFBOValid);
+        // -- Off-screen render pass (only when something changed) ----------
+        const bool shouldRender =
+            (fRedrawLevel != RedrawLevel::None || !fSurfValid);
 
         if (shouldRender) {
-            // DPF has already called nvgBeginFrame() for us on the default
-            // framebuffer. Cancel it via the NanoVG public API, render into
-            // our FBO, then open a fresh frame for the blit which DPF's
-            // endFrame() will close after we return.
-            fWC.setVG(*this);
-            NanoVG& vg = fWC.getVG();
-            vg.cancelFrame();
+            cairo_t *cs = cairo_create(fSurface);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, fGLFBO);
-            glViewport(0, 0, (GLsizei)physW, (GLsizei)physH);
+            // Scale cs from logical units to surface pixels.
+            const double ds = fUIScale;
+            cairo_scale(cs, ds, ds);
 
-            vg.beginFrame(physW, physH, 1.0f);
-            vg.scale(s, s);
+            fWC.setCR(cs);
 
-            if (fRedrawLevel == RedrawLevel::Full || !fFBOValid) {
-                // Full redraw: clear and repaint background, strip, all knobs.
-                // In ghost mode the background and knobs are skipped, but the
-                // strip draw must always run to populate the fGeom geometry
-                // cache that partial display-panel redraws depend on.
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            if (fRedrawLevel == RedrawLevel::Full || !fSurfValid) {
+                fRedrawLevel = RedrawLevel::None;
 
-                const std::string &selName = fPage.getSelectedParamName();
+                // Clear the dirty flags here, now that we've committed to
+                // repainting, rather than later, avoiding setDirty calls
+                // that arrive while drawing being silently lost.
+                fPage.clearAllDirty();
+
+                const std::string &selName  = fPage.getSelectedParamName();
                 const std::string &selValue = fPage.getSelectedParamValue();
 
-                if (!fSettings.ghostMode) fWC.drawBackground(UI_W, UI_H);
+                if (!fSettings.ghostMode)
+                    fWC.drawBackground(UI_W, UI_H);
                 fStrip.draw(fWC, fPageBtnPressed, fMenu.isOpen(), UI_W,
                             selName.c_str(), selValue.c_str(),
                             fPage.glowColour());
-                if (!fSettings.ghostMode) fPage.draw(fWC);
+                if (!fSettings.ghostMode)
+                    fPage.draw(fWC);
             } else {
-                // Partial redraw: repaint dirty knobs over retained
-                // FBO contents,
-                // and update the display panel if the selected param changed.
-                // Knobs on the hidden page are skipped by drawDirtyKnobs; their
-                // dirty flags are cleared so they don't accumulate across page
-                // toggles (the page toggle triggers a Full redraw anyway).
+                // Save and clear before drawing so any repaint() triggered
+                // during drawing promotes correctly from None.
+                const RedrawLevel level = fRedrawLevel;
+                fRedrawLevel = RedrawLevel::None;
 
                 fPage.drawDirtyKnobs(fWC);
-                if (fRedrawLevel >= RedrawLevel::Display)
+
+                if (level >= RedrawLevel::Display)
                     fStrip.drawDisplay(fWC,
                                        fPage.getSelectedParamName().c_str(),
                                        fPage.getSelectedParamValue().c_str(),
                                        fPage.glowColour());
-                else
+                else if (level >= RedrawLevel::Value)
                     fStrip.drawValue(fWC,
                                      fPage.getSelectedParamValue().c_str(),
                                      fPage.glowColour());
             }
 
-            vg.endFrame();
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glViewport(0, 0, (GLsizei)physW, (GLsizei)physH);
-
-            fFBOValid          = true;
-            fRedrawLevel       = RedrawLevel::None;
+            fSurfValid         = true;
             fUpdateDrawPending = false;
             fLastUpdateTime    = Clock::now();
-            fPage.clearAllDirty();
 
-            // Open the blit frame; DPF calls endFrame() on the NanoBaseWidget
-            // after we return, which flushes it to the default framebuffer.
-            vg.beginFrame(physW, physH, 1.0f);
+            cairo_destroy(cs);
+
+            // Blit off-screen surface to window.
+            cairo_set_source_surface(cr, fSurface, 0.0, 0.0);
+            cairo_paint(cr);
+        } else {
+            // Nothing new to render; blit retained surface.
+            cairo_set_source_surface(cr, fSurface, 0.0, 0.0);
+            cairo_paint(cr);
         }
-        // else: DPF's frame is already open — use it directly for the blit.
 
-        // -- Blit FBO to screen --------------------------------------------
-        // fFBOImage was created with IMAGE_FLIP_Y, so imagePattern renders
-        // it right-side-up despite OpenGL's bottom-left texture origin.
-        const NanoVG::Paint img = imagePattern(
-            0.0f, 0.0f, (float)physW, (float)physH, 0.0f, fFBOImage, 1.0f);
-        beginPath();
-        rect(0.0f, 0.0f, (float)physW, (float)physH);
-        fillPaint(img);
-        fill();
-
-        // -- Menu / splash overlay (always live, not cached in FBO) --------
-        // Drawn in the blit frame so hover state and splash animation update
-        // every repaint() without requiring an FBO re-render.
-        fWC.setVG(*this);
-        fMenu.draw(fWC, UI_W, UI_H, fStrip.titleFontSize(), s);
+        // -- Menu / splash overlay (always live, not cached in surface) ----
+        // Drawn directly onto cr in logical coordinates so hover state and
+        // splash animation update on every repaint() without requiring a
+        // surface re-render.
+        cairo_scale(cr, fUIScale, fUIScale);
+        fWC.setCR(cr);
+        fMenu.draw(fWC, UI_W, UI_H, fStrip.titleFontSize());
 
         if (fMenu.takeNeedsFullRedraw()) {
             requestRedraw(RedrawLevel::Full);
             repaint();
         }
-        // DPF calls endFrame() after we return.
     }
 
     // -- Idle callback / deferred value draw -------------------------------
@@ -678,7 +614,9 @@ public:
         // Not throttled to get fluid appearance on resize; uses a bit of
         // CPU due to the full redraw, but we consider resize a fairly
         // unusual operation being used for configuration rather than
-        // reuqiring utmost efficiency.
+        // requiring utmost efficiency.
+        // The off-screen surface is recreated lazily in onCairoDisplay
+        // the next time it is called after the size changes.
         float wSize = ev.size.getWidth() / (float)UI_W;
         float hSize = ev.size.getHeight() / (float)UI_H;
         float scale = std::min(wSize, hSize);

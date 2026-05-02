@@ -28,7 +28,7 @@
 #include <functional>
 #include "UIConstants.h"
 #include "UISettings.h"
-#include "NanoWidgets.h"
+#include "CairoWidgets.h"
 #include "UILayoutDefs.h"
 
 namespace {
@@ -155,23 +155,14 @@ public:
     }
     void closeSplash() { fSplashOpen = false; fNeedsFullRedraw = true; }
 
-    void draw(const NanoWidgets &wc, float canvasW, float canvasH,
-              float titleFontSize, float scale)
+    void draw(const CairoWidgets &wc, float canvasW, float canvasH,
+              float titleFontSize)
     {
         if (!fSplashOpen && !fMenuOpen) return;
-        NanoVG &vg = wc.getVG();
-        vg.save();
-        vg.scale(scale, scale);
         if (fSplashOpen)
-            // Splash uses fixed coordinates and thus doesn't need to
-            // make any internal considerations regarding scale.
             drawSplash(wc, canvasW, canvasH, titleFontSize);
         else
-            // Meny uses mouse coordinates as origin, so needs to know scale
-            // on order to snap starting coordinate to physical pixels when
-            // resizing down to avoid fuzzyness.
-            drawMenu(wc, scale);
-        vg.restore();
+            drawMenu(wc);
     }
 
     bool onMouse(float mx, float my, bool press, int button)
@@ -316,7 +307,7 @@ private:
         float lx = mx - fMenuX, ly = my - fMenuY;
         if (lx < 0 || lx > fGeom.w || ly < 0 || ly > fGeom.h) return -1;
         for (int i = 0; i < kMenuItemCount; i++) {
-            if (ly >= fGeom.itemY[i] && ly < fGeom.itemY[i] + fGeom.itemH[i]) {
+            if (ly >= fGeom.itemY[i] && ly <  fGeom.itemY[i] + fGeom.itemH[i]) {
                 MenuItemType t = kMenuItems[i].type;
                 if (t == MIT_NUMERIC || t == MIT_BOOL ||
                     t == MIT_TRISTATE || t == MIT_ACTION) return i;
@@ -356,9 +347,9 @@ private:
             case MIT_TRISTATE:
                 if (it.id == MENU_SHOW_VALUE) {
                     fSettings.showValue =
-                        (fSettings.showValue == SHOW_NONE)    ? SHOW_STEPPED :
-                        (fSettings.showValue == SHOW_STEPPED) ? SHOW_ALL
-                                                              : SHOW_NONE;
+                        (fSettings.showValue == SHOW_NONE)     ? SHOW_STEPPED :
+                        (fSettings.showValue == SHOW_STEPPED)  ? SHOW_ALL
+                                                               : SHOW_NONE;
                     fOnSettingsChanged(fSettings);
                     fNeedsFullRedraw = true;
                 }
@@ -411,7 +402,7 @@ private:
         fNeedsFullRedraw = true;
     }
 
-    void indicatorText(const NanoWidgets &wc, float menuW,
+    void indicatorText(const CairoWidgets &wc, float menuW,
                        float midY, const char *txt) const
     {
         const float tx = menuW - MENU_PAD_X - wc.textMeasure(txt);
@@ -420,98 +411,97 @@ private:
     }
 
     // Armed (reverse-video) value field for numeric items being edited
-    void indicatorArmed(const NanoWidgets &wc, float menuW,
+    void indicatorArmed(const CairoWidgets &wc, float menuW,
                         float iy, float ih, float midY, const char *txt) const
     {
-        NanoVG &vg = wc.getVG();
-        const float tw   = wc.textMeasure(txt);
-        const float th   = MENU_FONT_SIZE; // approximate height for pill sizing
-        const float pad  = MENU_ARMED_PAD;
-        const float rw   = tw + pad * 2.0f;
-        const float rx   = menuW - MENU_PAD_X - rw;
-        const float ry   = iy + (ih - th) / 2.0f;
+        cairo_t      *cr  = wc.getCR();
+        const float   tw  = wc.textMeasure(txt);
+        const float   th  = MENU_FONT_SIZE; // approx height for pill sizing
+        const float   pad = MENU_ARMED_PAD;
+        const float   rw  = tw + pad * 2.0f;
+        const float   rx  = menuW - MENU_PAD_X - rw;
+        const float   ry  = iy + (ih - th) / 2.0f;
         // Light background pill
         wc.setFillColor(COL_MENU_ARMED_BG);
-        vg.beginPath();
-        vg.rect(rx, ry, rw, th);
-        vg.fill();
+        cairo_rectangle(cr, rx, ry, rw, th);
+        cairo_fill(cr);
         // Dark text
         wc.setFillColor(COL_MENU_ARMED_TEXT);
         wc.textLeft(rx + pad, midY, txt);
     }
 
     // Single tick  -  used for MIT_BOOL on and MIT_TRISTATE SHOW_STEPPED
-    void indicatorTick(const NanoWidgets &wc, float menuW,
+    void indicatorTick(const CairoWidgets &wc, float menuW,
                        float iy, float ih) const
     {
-        NanoVG &vg = wc.getVG();
-        const float ts  = MENU_TICK_SIZE;
-        const float cx2 = menuW - MENU_PAD_X - MENU_TICK_OFFSET;
-        const float cy2 = iy + ih / 2.0f;
+        cairo_t     *cr  = wc.getCR();
+        const float  ts  = MENU_TICK_SIZE;
+        const float  cx2 = menuW - MENU_PAD_X - MENU_TICK_OFFSET;
+        const float  cy2 = iy + ih / 2.0f;
         // Tick shape ratios defined in UIConstants as
         // MENU_TICK_ARM / _BASE / _TOP
-        vg.beginPath();
-        vg.moveTo(cx2 - ts,                    cy2);
-        vg.lineTo(cx2 - ts * MENU_TICK_ARM,  cy2 + ts * MENU_TICK_BASE);
-        vg.lineTo(cx2 + ts * MENU_TICK_BASE, cy2 - ts * MENU_TICK_TOP);
+        cairo_new_path(cr);
+        cairo_move_to(cr, cx2 - ts, cy2);
+        cairo_line_to(cr, cx2 - ts * MENU_TICK_ARM,
+                          cy2 + ts * MENU_TICK_BASE);
+        cairo_line_to(cr, cx2 + ts * MENU_TICK_BASE,
+                          cy2 - ts * MENU_TICK_TOP);
         wc.setStrokeColor(COL_MENU_ITEM);
-        vg.strokeWidth(MENU_TICK_W);
-        vg.lineCap(NanoVG::ROUND);
-        vg.lineJoin(NanoVG::ROUND);
-        vg.stroke();
+        cairo_set_line_width(cr, MENU_TICK_W);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        cairo_stroke(cr);
     }
 
     // Double tick  -  used for MIT_TRISTATE SHOW_ALL.
-    void indicatorDoubleTick(const NanoWidgets &wc, float menuW,
+    void indicatorDoubleTick(const CairoWidgets &wc, float menuW,
                              float iy, float ih) const
     {
-        NanoVG &vg = wc.getVG();
-        const float ts      = MENU_TICK_SIZE;
-        const float spacing = ts * MENU_TICK_SPACING;
-        const float cx2     = menuW - MENU_PAD_X - MENU_TICK_OFFSET;
-        const float cy2     = iy + ih / 2.0f;
+        cairo_t     *cr      = wc.getCR();
+        const float  ts      = MENU_TICK_SIZE;
+        const float  spacing = ts * MENU_TICK_SPACING;
+        const float  cx2     = menuW - MENU_PAD_X - MENU_TICK_OFFSET;
+        const float  cy2     = iy + ih / 2.0f;
         wc.setStrokeColor(COL_MENU_ITEM);
-        vg.strokeWidth(MENU_TICK_W);
-        vg.lineCap(NanoVG::ROUND);
-        vg.lineJoin(NanoVG::ROUND);
+        cairo_set_line_width(cr, MENU_TICK_W);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         // Tick shape ratios defined in UIConstants as
         // MENU_TICK_ARM / _BASE / _TOP
         for (int i = 0; i < 2; i++) {
             const float ox = (i - 1) * spacing;
-            vg.beginPath();
-            vg.moveTo(cx2 + ox - ts,                    cy2);
-            vg.lineTo(cx2 + ox - ts * MENU_TICK_ARM,
-                      cy2 + ts * MENU_TICK_BASE);
-            vg.lineTo(cx2 + ox + ts * MENU_TICK_BASE,
-                      cy2 - ts * MENU_TICK_TOP);
-            vg.stroke();
+            cairo_new_path(cr);
+            cairo_move_to(cr, cx2 + ox - ts, cy2);
+            cairo_line_to(cr, cx2 + ox - ts * MENU_TICK_ARM,
+                              cy2 + ts * MENU_TICK_BASE);
+            cairo_line_to(cr, cx2 + ox + ts * MENU_TICK_BASE,
+                              cy2 - ts * MENU_TICK_TOP);
+            cairo_stroke(cr);
         }
     }
 
-    void drawMenu(const NanoWidgets &wc, float scale) const
+    void drawMenu(const CairoWidgets &wc) const
     {
-        NanoVG &vg = wc.getVG();
-        vg.save();
-        // Snap origin to integer physical pixels to avoid sub-pixel
-        // blurring of borders and text when the window is resized.
-        const float sx = std::round(fMenuX * scale) / scale;
-        const float sy = std::round(fMenuY * scale) / scale;
-        vg.translate(sx, sy);
+        cairo_t *cr = wc.getCR();
+        cairo_save(cr);
+        // Snap origin to integer logical pixels to avoid sub-pixel blurring
+        // of borders and text when the window is resized.
+        const float sx = std::round(fMenuX);
+        const float sy = std::round(fMenuY);
+        cairo_translate(cr, sx, sy);
 
         // Background
-        vg.beginPath();
-        vg.roundedRect(0, 0, fGeom.w, fGeom.h, MENU_CORNER_R);
+        wc.roundedRect(0, 0, fGeom.w, fGeom.h, MENU_CORNER_R);
         wc.setFillColor(COL_MENU_BG);
-        vg.fill();
+        cairo_fill(cr);
 
         // Border
-        vg.beginPath();
-        vg.roundedRect(MENU_BORDER_W * 0.5f, MENU_BORDER_W * 0.5f,
+        wc.roundedRect(MENU_BORDER_W * 0.5f, MENU_BORDER_W * 0.5f,
                        fGeom.w - MENU_BORDER_W, fGeom.h - MENU_BORDER_W,
                        MENU_CORNER_R - MENU_BORDER_W * 0.5f);
         wc.setStrokeColor(COL_MENU_BORDER);
-        vg.strokeWidth(MENU_BORDER_W);
-        vg.stroke();
+        cairo_set_line_width(cr, MENU_BORDER_W);
+        cairo_stroke(cr);
 
         for (int i = 0; i < kMenuItemCount; i++) {
             const MenuItemDef &it = kMenuItems[i];
@@ -519,12 +509,12 @@ private:
             const float midY = iy + ih / 2.0f; // vertical midpoint of item row
 
             if (it.type == MIT_SEP) {
-                vg.beginPath();
-                vg.moveTo(MENU_PAD_X,          iy + ih / 2.0f);
-                vg.lineTo(fGeom.w - MENU_PAD_X, iy + ih / 2.0f);
+                cairo_new_path(cr);
+                cairo_move_to(cr, MENU_PAD_X,           iy + ih / 2.0f);
+                cairo_line_to(cr, fGeom.w - MENU_PAD_X, iy + ih / 2.0f);
                 wc.setStrokeColor(COL_MENU_SEP);
-                vg.strokeWidth(MENU_BORDER_W);
-                vg.stroke();
+                cairo_set_line_width(cr, MENU_BORDER_W);
+                cairo_stroke(cr);
                 continue;
             }
 
@@ -534,16 +524,15 @@ private:
                                       it.type == MIT_TRISTATE ||
                                       it.type == MIT_ACTION);
             if (interactive && i == fHover) {
-                vg.beginPath();
-                vg.rect(MENU_HOVER_INSET, iy,
-                        fGeom.w - MENU_HOVER_INSET * 2.0f, ih);
+                cairo_rectangle(cr, MENU_HOVER_INSET, iy,
+                                fGeom.w - MENU_HOVER_INSET * 2.0f, ih);
                 wc.setFillColor(COL_MENU_BG_HOVER);
-                vg.fill();
+                cairo_fill(cr);
             }
 
-            vg.fontSize(MENU_FONT_SIZE);
-            vg.fontFace(it.type == MIT_HEADER
-                        ? FONT_NAME_BOLD : FONT_NAME_REGULAR);
+            wc.setFont(it.type == MIT_HEADER ? FONT_NAME_BOLD
+                                             : FONT_NAME_REGULAR,
+                       MENU_FONT_SIZE);
 
             if      (it.type == MIT_HEADER) wc.setFillColor(COL_MENU_HEADER);
             else if (it.type == MIT_INFO)   wc.setFillColor(COL_MENU_INFO);
@@ -559,6 +548,7 @@ private:
                                                                  "%.4f",
                                            fSettings.uiScale);
                 const std::string vstr = tmp;
+                wc.setFont(FONT_NAME_REGULAR, MENU_FONT_SIZE);
                 if (i == fArmed)
                     indicatorArmed(wc, fGeom.w, iy, ih, midY, vstr.c_str());
                 else
@@ -588,62 +578,61 @@ private:
                 }
             }
         }
-        vg.restore();
+        cairo_restore(cr);
     }
 
-    void drawSplash(const NanoWidgets &wc, float canvasW, float canvasH,
+    void drawSplash(const CairoWidgets &wc, float canvasW, float canvasH,
                     float titleFontSize) const
     {
-        NanoVG &vg = wc.getVG();
-        const float sw = SPLASH_W, sh = SPLASH_H;
-        const float sx = (canvasW - sw) / 2.0f, sy = (canvasH - sh) / 2.0f;
+        cairo_t     *cr = wc.getCR();
+        const float  sw = SPLASH_W;
+        const float  sh = SPLASH_H;
+        const float  sx = (canvasW - sw) / 2.0f;
+        const float  sy = (canvasH - sh) / 2.0f;
 
         // Dim overlay
-        vg.beginPath();
-        vg.rect(0, 0, canvasW, canvasH);
-        vg.fillColor(0.0f, 0.0f, 0.0f, SPLASH_DIM_ALPHA);
-        vg.fill();
+        cairo_rectangle(cr, 0, 0, canvasW, canvasH);
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, SPLASH_DIM_ALPHA);
+        cairo_fill(cr);
 
         // Panel background
-        vg.beginPath();
-        vg.roundedRect(sx, sy, sw, sh, MENU_CORNER_R);
+        wc.roundedRect(sx, sy, sw, sh, MENU_CORNER_R);
         wc.setFillColor(COL_MENU_BG);
-        vg.fill();
+        cairo_fill(cr);
 
         // Panel border
-        vg.beginPath();
-        vg.roundedRect(sx + MENU_BORDER_W * 0.5f, sy + MENU_BORDER_W * 0.5f,
+        wc.roundedRect(sx + MENU_BORDER_W * 0.5f,
+                       sy + MENU_BORDER_W * 0.5f,
                        sw - MENU_BORDER_W, sh - MENU_BORDER_W,
                        MENU_CORNER_R - MENU_BORDER_W * 0.5f);
         wc.setStrokeColor(COL_MENU_BORDER);
-        vg.strokeWidth(MENU_BORDER_W);
-        vg.stroke();
+        cairo_set_line_width(cr, MENU_BORDER_W);
+        cairo_stroke(cr);
 
         // Plugin name (title font)
-        vg.fontSize(titleFontSize);
-        vg.fontFace(FONT_NAME_BOLD);
+        wc.setFont(FONT_NAME_BOLD, titleFontSize);
         wc.setFillColor(COL_MENU_ITEM);
         wc.textCentred(sx + sw / 2.0f, sy + SPLASH_TITLE_Y, PLUGIN_NAME);
 
         // Description
-        vg.fontSize(MENU_FONT_SIZE);
-        vg.fontFace(FONT_NAME_REGULAR);
+        wc.setFont(FONT_NAME_REGULAR, MENU_FONT_SIZE);
         wc.setFillColor(COL_MENU_HEADER);
-        wc.textCentred(sx + sw / 2.0f, sy + SPLASH_DESC_Y, PLUGIN_DESCRIPTION);
-        wc.textCentred(sx + sw / 2.0f, sy + SPLASH_DESC_Y + SPLASH_TEXT_LINE_H,
+        wc.textCentred(sx + sw / 2.0f, sy + SPLASH_DESC_Y,
+                       PLUGIN_DESCRIPTION);
+        wc.textCentred(sx + sw / 2.0f,
+                       sy + SPLASH_DESC_Y + SPLASH_TEXT_LINE_H,
                        fVersion.c_str());
 
         // Separator line
-        vg.beginPath();
-        vg.moveTo(sx + MENU_PAD_X,      sy + SPLASH_SEP_Y);
-        vg.lineTo(sx + sw - MENU_PAD_X, sy + SPLASH_SEP_Y);
+        cairo_new_path(cr);
+        cairo_move_to(cr, sx + MENU_PAD_X,      sy + SPLASH_SEP_Y);
+        cairo_line_to(cr, sx + sw - MENU_PAD_X, sy + SPLASH_SEP_Y);
         wc.setStrokeColor(COL_MENU_SEP);
-        vg.strokeWidth(MENU_BORDER_W);
-        vg.stroke();
+        cairo_set_line_width(cr, MENU_BORDER_W);
+        cairo_stroke(cr);
 
         // Splash text lines
-        vg.fontSize(MENU_HINT_SIZE);
-        vg.fontFace(FONT_NAME_REGULAR);
+        wc.setFont(FONT_NAME_REGULAR, MENU_HINT_SIZE);
         wc.setFillColor(COL_MENU_HEADER);
         float textY = sy + SPLASH_TEXT_Y;
         for (const char * const *line = SPLASH_TEXT; *line; ++line) {
@@ -653,16 +642,15 @@ private:
 
         // Second separator, after splash text
         const float sep2Y = textY + SPLASH_SEP2_PAD;
-        vg.beginPath();
-        vg.moveTo(sx + MENU_PAD_X,      sep2Y);
-        vg.lineTo(sx + sw - MENU_PAD_X, sep2Y);
+        cairo_new_path(cr);
+        cairo_move_to(cr, sx + MENU_PAD_X,      sep2Y);
+        cairo_line_to(cr, sx + sw - MENU_PAD_X, sep2Y);
         wc.setStrokeColor(COL_MENU_SEP);
-        vg.strokeWidth(MENU_BORDER_W);
-        vg.stroke();
+        cairo_set_line_width(cr, MENU_BORDER_W);
+        cairo_stroke(cr);
 
         // Close hint
-        vg.fontSize(MENU_HINT_SIZE);
-        vg.fontFace(FONT_NAME_REGULAR);
+        wc.setFont(FONT_NAME_REGULAR, MENU_HINT_SIZE);
         wc.setFillColor(COL_MENU_INFO);
         wc.textCentred(sx + sw / 2.0f, sep2Y + SPLASH_CLOSE_PAD,
                        SPLASH_CLOSE_HINT_TEXT);

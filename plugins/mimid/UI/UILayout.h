@@ -10,7 +10,7 @@
  * gridToCX / advanceGrid  -  free functions for grid coordinate arithmetic,
  *   used by ButtonStrip and Page.
  *
- * All drawing functions receive a const NanoWidgets reference (wc) which
+ * All drawing functions receive a const CairoWidgets reference (wc) which
  * carries UIGeometry and UISettings, eliminating those as separate parameters.
  *
  * Placement:
@@ -50,7 +50,7 @@
 #include <cmath>
 
 #include "UIGeometry.h"
-#include "NanoWidgets.h"
+#include "CairoWidgets.h"
 
 // -----------------------------------------------------------------------------
 // Module width  -  number of columns before wrapping
@@ -151,20 +151,19 @@ public:
     // Draw the full button strip. Computes and caches geometry as it renders
     // left-to-right, then draws the display panel last (it needs both the
     // left edge from the page button and the right edge from the UI button).
-    void draw(const NanoWidgets &wc,
+    void draw(const CairoWidgets &wc,
               bool pageBtnPressed, bool uiBtnPressed,
               float canvasW,
               const char *selName  = nullptr,
               const char *selValue = nullptr,
               RGBA glowColour      = COL_KNOB_GLOW)
     {
-        NanoVG &vg = wc.getVG();
+        cairo_t *cr = wc.getCR();
         const float stripCY = BTN_STRIP_H / 2.0f;
 
         // -- "MiMi-d" title -- size directly from strip height ---------------
         fTitleFontSize = BTN_STRIP_H * STRIP_TITLE_FONT_RATIO;
-        vg.fontFace(FONT_NAME_BOLD);
-        vg.fontSize(fTitleFontSize);
+        wc.setFont(FONT_NAME_BOLD, fTitleFontSize);
         const float advance = wc.textMeasure(PLUGIN_NAME);
         float titleRightEdge = STRIP_TITLE_X + advance;
         wc.setFillColor(COL_FRAME_TITLE);
@@ -213,48 +212,54 @@ public:
         fGeom.dispY = PAGE_BTN_Y;
 
         if (fGeom.dispW > STRIP_DISP_MIN_W) {
-            wc.clearDisplayArea(fGeom.dispX, fGeom.dispY, fGeom.dispW, fGeom.dispH);
-            wc.drawParamDisplayFrame(fGeom.dispX, fGeom.dispY, fGeom.dispW, fGeom.dispH);
-            fValueX = wc.drawParamText(fGeom.dispX, fGeom.dispY, fGeom.dispH,
+            wc.clearDisplayArea(fGeom.dispX, fGeom.dispY,
+                                fGeom.dispW, fGeom.dispH);
+            wc.drawParamDisplayFrame(fGeom.dispX, fGeom.dispY,
+                                     fGeom.dispW, fGeom.dispH);
+            fValueX = wc.drawParamText(fGeom.dispX, fGeom.dispY,
+                                       fGeom.dispW, fGeom.dispH,
                                        selName, selValue, glowColour);
         }
 
         // -- Horizontal separator below strip -----------------------------
         // Engraved effect: dark line + 1px-offset light highlight line.
         const float y = BTN_STRIP_SEP_Y;
-        vg.beginPath();
-        vg.moveTo(0.0f, y);
-        vg.lineTo(canvasW, y);
-        vg.strokeColor(0.0f, 0.0f, 0.0f, STRIP_SEP_DARK_A);
-        vg.strokeWidth(1.0f);
-        vg.stroke();
-        vg.beginPath();
-        vg.moveTo(0.0f, y + ENGRAVE_OFFSET);
-        vg.lineTo(canvasW, y + ENGRAVE_OFFSET);
-        vg.strokeColor(1.0f, 1.0f, 1.0f, STRIP_SEP_LIGHT_A);
-        vg.strokeWidth(1.0f);
-        vg.stroke();
+        cairo_new_path(cr);
+        cairo_move_to(cr, 0.0f, y);
+        cairo_line_to(cr, canvasW, y);
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, STRIP_SEP_DARK_A);
+        cairo_set_line_width(cr, 1.0f);
+        cairo_stroke(cr);
+        cairo_new_path(cr);
+        cairo_move_to(cr, 0.0f, y + ENGRAVE_OFFSET);
+        cairo_line_to(cr, canvasW, y + ENGRAVE_OFFSET);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, STRIP_SEP_LIGHT_A);
+        cairo_set_line_width(cr, 1.0f);
+        cairo_stroke(cr);
     }
 
     // Partial redraws  -  require a prior draw() to have cached fGeom.
     // drawDisplay: full panel repaint (chrome + name + value); also caches
     //   fValueX for subsequent drawValue calls.
     // drawValue: repaints only the value field using cached fValueX — the
-    //   name text and chrome already in the FBO are left untouched.
-    void drawDisplay(const NanoWidgets &wc,
+    //   name text and chrome already on the surface are left untouched.
+    void drawDisplay(const CairoWidgets &wc,
                      const char *selName, const char *selValue,
                      RGBA glowColour = COL_KNOB_GLOW)
     {
         if (fGeom.dispW <= STRIP_DISP_MIN_W) return;
-        wc.clearDisplayArea(fGeom.dispX, fGeom.dispY, fGeom.dispW, fGeom.dispH);
-        wc.drawParamDisplayFrame(fGeom.dispX, fGeom.dispY, fGeom.dispW, fGeom.dispH);
-        fValueX = wc.drawParamText(fGeom.dispX, fGeom.dispY, fGeom.dispH,
+        wc.clearDisplayArea(fGeom.dispX, fGeom.dispY,
+                            fGeom.dispW, fGeom.dispH);
+        wc.drawParamDisplayFrame(fGeom.dispX, fGeom.dispY,
+                                 fGeom.dispW, fGeom.dispH);
+        fValueX = wc.drawParamText(fGeom.dispX, fGeom.dispY,
+                                   fGeom.dispW, fGeom.dispH,
                                    selName, selValue, glowColour);
     }
 
     // selValue may be null/empty (no param selected); in that case only the
     // clear runs, leaving the value field blank.
-    void drawValue(const NanoWidgets &wc,
+    void drawValue(const CairoWidgets &wc,
                    const char *selValue,
                    RGBA glowColour = COL_KNOB_GLOW) const
     {
@@ -262,26 +267,27 @@ public:
         float width = fGeom.dispW - (fValueX - fGeom.dispX);
         wc.clearDisplayValueArea(fValueX, fGeom.dispY, width, fGeom.dispH);
         if (!selValue || selValue[0] == '\0') return;  // no value text to draw
-        wc.drawParamValue(fGeom.dispY, fGeom.dispH, fValueX, selValue, glowColour);
+        wc.drawParamValue(fGeom.dispX, fGeom.dispY, fGeom.dispW, fGeom.dispH,
+                          fValueX, selValue, glowColour);
     }
 
 private:
     // Draw engraved vertical break (dark + light lines) at x
-    static void drawVBreak(const NanoWidgets &wc, float x)
+    static void drawVBreak(const CairoWidgets &wc, float x)
     {
-        NanoVG &vg = wc.getVG();
-        vg.beginPath();
-        vg.moveTo(x, 0.0f);
-        vg.lineTo(x, BTN_STRIP_SEP_Y);
-        vg.strokeColor(0.0f, 0.0f, 0.0f, STRIP_SEP_DARK_A);
-        vg.strokeWidth(FRAME_LINE_W);
-        vg.stroke();
-        vg.beginPath();
-        vg.moveTo(x + ENGRAVE_OFFSET, 0.0f);
-        vg.lineTo(x + ENGRAVE_OFFSET, BTN_STRIP_SEP_Y);
-        vg.strokeColor(1.0f, 1.0f, 1.0f, STRIP_SEP_LIGHT_A);
-        vg.strokeWidth(FRAME_LINE_W);
-        vg.stroke();
+        cairo_t *cr = wc.getCR();
+        cairo_new_path(cr);
+        cairo_move_to(cr, x, 0.0f);
+        cairo_line_to(cr, x, BTN_STRIP_SEP_Y);
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, STRIP_SEP_DARK_A);
+        cairo_set_line_width(cr, FRAME_LINE_W);
+        cairo_stroke(cr);
+        cairo_new_path(cr);
+        cairo_move_to(cr, x + ENGRAVE_OFFSET, 0.0f);
+        cairo_line_to(cr, x + ENGRAVE_OFFSET, BTN_STRIP_SEP_Y);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, STRIP_SEP_LIGHT_A);
+        cairo_set_line_width(cr, FRAME_LINE_W);
+        cairo_stroke(cr);
     }
 };
 

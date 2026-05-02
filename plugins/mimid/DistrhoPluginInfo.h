@@ -37,7 +37,7 @@
 #define DISTRHO_PLUGIN_IS_RT_SAFE   1
 #define DISTRHO_PLUGIN_WANT_TIMEPOS 1
 
-#define DISTRHO_UI_USE_NANOVG       1
+#define DISTRHO_UI_USE_CAIRO        1
 
 // Allow the LV2 host to resize the UI window at runtime.
 #define DISTRHO_UI_USER_RESIZABLE   1
