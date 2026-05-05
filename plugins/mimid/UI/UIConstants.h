@@ -73,20 +73,14 @@ static constexpr float KNOB_SPEC_FADE_Y  = 0.45f;
 // specular arc radius as fraction of knob radius
 static constexpr float KNOB_SPEC_RADIUS  = 0.98f;
 
-// Drop shadow
-// Set KNOB_SHADOW_BLUR to 0.0 to disable.
-// blur radius added to knob radius for shadow circle
-// (multiplied by 2.4f at draw)
-static constexpr float KNOB_SHADOW_BLUR     =  4.0f;
-// horizontal and vertical offset of shadow centre (in blur radii)
-static constexpr float KNOB_SHADOW_OFFSET_X =  0.25f;
-static constexpr float KNOB_SHADOW_OFFSET_Y =  0.75f;
-// vertical squash factor applied to shadow ellipse (< 1 = flatter ellipse)
-static constexpr float KNOB_SHADOW_SQUASH   =  0.85f;
-// additional radius beyond knob r for the shadow circle
-static constexpr float KNOB_SHADOW_RADIUS   =  2.0f;
-// shadow opacity
-static constexpr float KNOB_SHADOW_ALPHA    =  0.30f;
+// Drop shadow: filled circle offset behind the knob face,
+// same technique as the button shadow (BTN_SHADOW_OX/OY).
+// Only a crescent at the lower-right edge stays visible.
+// X/Y offsets in pixels; DEPTH is extra radius beyond KNOB_R.
+static constexpr float KNOB_SHADOW_OX    =  1.0f;
+static constexpr float KNOB_SHADOW_OY    =  3.0f;
+static constexpr float KNOB_SHADOW_DEPTH =  1.5f;
+static constexpr float KNOB_SHADOW_ALPHA =  0.30f;
 
 // rim stroke width
 static constexpr float KNOB_RIM_W          =  3.0f;
