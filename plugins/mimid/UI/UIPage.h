@@ -399,7 +399,7 @@ private:
 
         // Collect actual (cx,cy) for each real param and record min/max col/row
         // for frame computation
-        struct KnobPos { float cx, cy; int col, row; };
+        struct KnobPos { float cx, cy; };
         std::vector<KnobPos> positions;
 
         int col = mod.gridCol, row = mod.gridRow, slotInRow = 0;
@@ -409,7 +409,7 @@ private:
             float cx, cy;
             gridToCX(col, row, fOrigin, g, cx, cy);
             if (pw.paramNo >= 0) {
-                positions.push_back({cx, cy, col, row});
+                positions.push_back({cx, cy});
                 minCol = std::min(minCol, col);
                 maxCol = std::max(maxCol, col);
                 minRow = std::min(minRow, row);
