@@ -28,7 +28,7 @@
 
 #define PLUGIN_VERSION_MAJOR 2
 #define PLUGIN_VERSION_MINOR 3
-#define PLUGIN_VERSION_MICRO 0
+#define PLUGIN_VERSION_MICRO 1
 
 #define DISTRHO_PLUGIN_NUM_INPUTS   0
 #define DISTRHO_PLUGIN_NUM_OUTPUTS  2
@@ -37,7 +37,7 @@
 #define DISTRHO_PLUGIN_IS_RT_SAFE   1
 #define DISTRHO_PLUGIN_WANT_TIMEPOS 1
 
-#define DISTRHO_UI_USE_NANOVG       1
+#define DISTRHO_UI_USE_CAIRO        1
 
 // Allow the LV2 host to resize the UI window at runtime.
 #define DISTRHO_UI_USER_RESIZABLE   1

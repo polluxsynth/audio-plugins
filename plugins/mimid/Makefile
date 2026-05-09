@@ -21,7 +21,7 @@ FILES_UI = \
 # --------------------------------------------------------------
 # Do some magic
 
-UI_TYPE = opengl
+UI_TYPE = cairo
 #FILE_BROWSER_DISABLED = true
 include ../../dpf/Makefile.plugins.mk
 
@@ -31,6 +31,7 @@ include ../../dpf/Makefile.plugins.mk
 ifneq ($(WASM),true)
 BASE_FLAGS += -pthread
 LINK_FLAGS += -pthread
+LINK_FLAGS += $(shell pkg-config --libs freetype2)
 endif
 # Uncomment following line to allow objdump -S to print source
 #BASE_FLAGS += -g

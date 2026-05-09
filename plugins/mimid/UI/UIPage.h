@@ -46,7 +46,7 @@
 
 #include "UILayout.h"
 #include "UIConstants.h"
-#include "NanoWidgets.h"
+#include "CairoWidgets.h"
 #include "UIParam.h"
 
 // -----------------------------------------------------------------------------
@@ -209,7 +209,7 @@ public:
     // -- Drawing -----------------------------------------------------------
 
     // Full redraw of page 0 + current page.
-    void draw(const NanoWidgets &wc) const
+    void draw(const CairoWidgets &wc) const
     {
         const int sel = fSelectedParam[fCurrentPage];
         drawPage(wc, fPages[0], sel, glowColour());
@@ -221,7 +221,7 @@ public:
     // Only redraws params that are on a currently visible page (page 0 or
     // fCurrentPage)  -  params on the hidden page are skipped so their knob
     // position on the surface is not overwritten.
-    void drawDirtyKnobs(const NanoWidgets &wc)
+    void drawDirtyKnobs(const CairoWidgets &wc)
     {
         for (int i = 0; i < PARAM_COUNT; i++) {
             if (!fDirtyParam[i]) continue;
@@ -389,7 +389,7 @@ private:
 
     // -- Module and page drawing -------------------------------------------
 
-    void drawModule(const NanoWidgets &wc,
+    void drawModule(const CairoWidgets &wc,
                     const ModuleLayout &mod,
                     int selectedParam, RGBA glowColour) const
     {
@@ -399,7 +399,7 @@ private:
 
         // Collect actual (cx,cy) for each real param and record min/max col/row
         // for frame computation
-        struct KnobPos { float cx, cy; int col, row; };
+        struct KnobPos { float cx, cy; };
         std::vector<KnobPos> positions;
 
         int col = mod.gridCol, row = mod.gridRow, slotInRow = 0;
@@ -409,7 +409,7 @@ private:
             float cx, cy;
             gridToCX(col, row, fOrigin, g, cx, cy);
             if (pw.paramNo >= 0) {
-                positions.push_back({cx, cy, col, row});
+                positions.push_back({cx, cy});
                 minCol = std::min(minCol, col);
                 maxCol = std::max(maxCol, col);
                 minRow = std::min(minRow, row);
@@ -454,10 +454,12 @@ private:
                         pw.name.c_str(), valueTxt.c_str(), zeroNorm,
                         pw.paramNo == selectedParam, true,
                         glowColour);
+            if (!pw.symPoints.empty())
+                wc.drawSymbols(kp.cx, kp.cy, pw.symPoints);
         }
     }
 
-    void drawPage(const NanoWidgets &wc,
+    void drawPage(const CairoWidgets &wc,
                   const PageLayout &page,
                   int selectedParam, RGBA glowColour) const
     {
@@ -466,7 +468,7 @@ private:
     }
 
     // -- Single knob partial redraw ----------------------------------------
-    void drawKnobForParam(const NanoWidgets &wc, int paramNo) const
+    void drawKnobForParam(const CairoWidgets &wc, int paramNo) const
     {
         const KnobLayout  &kl = fKnobLayout[paramNo];
         if (!kl.pw) return;

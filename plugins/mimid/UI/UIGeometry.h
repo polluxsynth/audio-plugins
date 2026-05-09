@@ -59,7 +59,6 @@ struct UIGeometry {
     // -- Frame (asymmetric) -----------------------------------------------
     float topHalf;     // knob centre -> top frame line
     float botHalf;     // knob centre -> bottom frame line
-    float fh;          // total frame height
 
     // -- Vertical row grid ------------------------------------------------
     float rowPitch;    // centre-to-centre vertical distance between knob rows
@@ -86,7 +85,7 @@ struct UIGeometry {
 
         topHalf  = trackR + FRAME_VPAD_TOP;
         botHalf  = nameDY + nameH + FRAME_VPAD_BOT;
-        fh       = topHalf + botHalf;
+        const float fh = topHalf + botHalf;
 
         rowPitch = fh + FRAME_GAP_V;
 
@@ -99,35 +98,16 @@ struct UIGeometry {
 
     // -- Helpers -----------------------------------------------------------
 
-    // Angle for a normalised parameter value [0.f.1]
+    // Angle for a normalised parameter value [0..1]
     float valueToAngle(float norm) const {
         return arcStart + norm * arcRange;
     }
-
-    // Knob centre y given frame top y
-    float knobCY(float fy) const { return fy + topHalf; }
 
     // Frame top y given knob centre y
     float frameTop(float cy) const { return cy - topHalf; }
 
     // Frame bottom y given knob centre y
     float frameBot(float cy) const { return cy + botHalf; }
-
-    // First knob cx of next horizontal group given last knob cx of
-    // current group
-    float nextGroupH(float lastCX) const { return lastCX + kpitch + FRAME_GAP_H; }
-
-    // Frame top y of next vertical group given frame top y of current
-    float nextGroupV(float fy) const { return fy + fh + FRAME_GAP_V; }
-
-    // Frame left x for a group whose first knob is at firstCX
-    float frameFX(float firstCX) const { return firstCX - kpitch / 2.0f; }
-
-    // Frame right x for a group whose last knob is at lastCX
-    float frameFR(float lastCX) const { return lastCX + kpitch / 2.0f; }
-
-    // Frame width for N horizontal knobs starting at firstCX
-    float frameW(int nKnobs) const { return kpitch * nKnobs; }
 
     // Canvas position of the knob grid origin (col 0, row 0 knob centre)
     const GridOrigin &gridOrigin() const { return origin; }
