@@ -152,7 +152,7 @@ static constexpr float LABEL_FONT_SCALE = 1.20f;
 // Negative value compensates for the renderer reporting a larger
 // ascent bounding box than the actual text ink, which would otherwise
 // leave excess space above the text.
-static constexpr float NAME_DY_OFFSET   = -3.0f;
+static constexpr float NAME_DY_OFFSET   = -2.5f;
 // extra height above labelFontSize for name bounding box
 static constexpr float NAME_H_PAD       = 7.0f;
 
