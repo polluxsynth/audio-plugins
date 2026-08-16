@@ -287,7 +287,7 @@ struct RGBA { float r, g, b, a; };
 
 // -- Background ------------------------------------------------------------
 // RAL 5015 Sky Blue
-static constexpr RGBA COL_BACKGROUND       = { 0.000f, 0.475f, 0.671f, 1.0f };
+static constexpr RGBA COL_BACKGROUND       = { 0.000f, 0.486f, 0.690f, 1.0f };
 
 // -- Knob ------------------------------------------------------------------
 // #404040
