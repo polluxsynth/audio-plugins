@@ -406,6 +406,22 @@ class MiMiUI : public UI
     uint             fSurfHeight = 0;
     bool             fSurfValid  = false;  // false until the first full render pass
 
+    // -- Menu / splash overlay surface --------------------------------------
+    // Render surface for menu/splash screen, via an off-screen image surface
+    // rather than directly onto the window's Cairo context.
+    // On macOS, cr wraps a Quartz-backed CGContext, and Cairo's
+    // Quartz backend cannot reliably composite our embedded
+    // FreeType-based text directly onto it (confirmed by testing:
+    // shapes render fine, text doesn't, and the failure empirically
+    // takes surrounding shape draws down with it. Online documentation
+    // also notes that non-Quartz font rendering causes problems).
+    // Rendering to a plain ARGB32 image surface first and blitting sidesteps
+    // the backend limitation entirely, matching what the main UI surface
+    // above already does.
+    cairo_surface_t *fOverlaySurface = nullptr;
+    uint             fOverlayWidth   = 0;
+    uint             fOverlayHeight  = 0;
+
 public:
     MiMiUI()
         : UI(),
@@ -449,6 +465,8 @@ public:
     {
         if (fSurface)
             cairo_surface_destroy(fSurface);
+        if (fOverlaySurface)
+            cairo_surface_destroy(fOverlaySurface);
     }
 
     // -- Paint -------------------------------------------------------------
@@ -550,13 +568,41 @@ public:
             cairo_paint(cr);
         }
 
-        // -- Menu / splash overlay (always live, not cached in surface) ----
-        // Drawn directly onto cr in logical coordinates so hover state and
-        // splash animation update on every repaint() without requiring a
-        // surface re-render.
-        cairo_scale(cr, fUIScale, fUIScale);
-        fWC.setCR(cr);
-        fMenu.draw(fWC, UI_W, UI_H, fStrip.titleFontSize());
+        // -- Menu / splash overlay (always live, not cached across frames) -
+        // Re-rendered on every repaint() so hover state and splash
+        // animation stay current, but still drawn into an off-screen image
+        // surface first and then blitted, rather than directly onto cr -
+        // see the fOverlaySurface comment above for why.
+        if (fMenu.isOpen() || fMenu.isSplashOpen()) {
+            if (!fOverlaySurface || fOverlayWidth  != surfW ||
+                                    fOverlayHeight != surfH) {
+                if (fOverlaySurface)
+                    cairo_surface_destroy(fOverlaySurface);
+                fOverlaySurface = cairo_image_surface_create(
+                                        CAIRO_FORMAT_ARGB32, surfW, surfH);
+                fOverlayWidth  = surfW;
+                fOverlayHeight = surfH;
+            }
+
+            cairo_t *co = cairo_create(fOverlaySurface);
+
+            // The surface is only recreated on resize, so it retains
+            // whatever was painted on the previous frame; clear it to
+            // fully transparent before drawing, or the dim overlay would
+            // compound and stale splash/menu content would linger.
+            cairo_save(co);
+            cairo_set_operator(co, CAIRO_OPERATOR_CLEAR);
+            cairo_paint(co);
+            cairo_restore(co);
+
+            cairo_scale(co, fUIScale, fUIScale);
+            fWC.setCR(co);
+            fMenu.draw(fWC, UI_W, UI_H, fStrip.titleFontSize());
+            cairo_destroy(co);
+
+            cairo_set_source_surface(cr, fOverlaySurface, 0.0, 0.0);
+            cairo_paint(cr);
+        }
 
         if (fMenu.takeNeedsFullRedraw()) {
             requestRedraw(RedrawLevel::Full);
