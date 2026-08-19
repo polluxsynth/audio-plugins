@@ -360,7 +360,6 @@ class MiMiUI : public UI
     float        fUIScale;         // runtime scale; updated by onResize()
     ParamTables  fParamTables;     // parameter metadata, populated at construction
     const ParamMeta                (&fParamMeta)[PARAM_COUNT];
-    const std::vector<std::string> (&fScaleLabels)[SP_COUNT];
     UIGeometry   fGeometry;
     CairoWidgets fWC;              // widget drawing  -  stores geometry and settings
 
@@ -414,7 +413,6 @@ public:
           fUIScale(fSettings.uiScale),
           fParamTables(buildMetaTables()),
           fParamMeta(fParamTables.paramMeta),
-          fScaleLabels(fParamTables.scaleLabels),
           fGeometry(),
           fWC(fGeometry, fSettings),
           fPage(buildPages(fParamTables),
