@@ -1,0 +1,233 @@
+name: Build DPF Plugin
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+#    tags:
+#      - 'v*' # Trigger on version tags (e.g., v1.0.0) for releases
+  pull_request:
+    branches:
+      - master
+      - dev
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+env:
+  PLUGIN_NAME: MiMi-d          # display/bundle name, e.g. MiMi-d.vst3
+  PLUGIN_SLUG: mimid           # lowercase, used in source paths
+  VENDOR_NAME: Pollux          # Needed for VST3 paths
+  VENDOR_SLUG: pollux          # Used for bundle ID
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            artifact_suffix: linux-x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            artifact_suffix: linux-arm64
+          - os: macos-14
+            platform: macos
+            artifact_suffix: macos
+          #- os: windows-latest
+          #  target: windows
+
+    steps:
+      # 1. Checkout the repository and its submodules (DPF is usually a submodule)
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0 # Fetch all history for version tagging
+
+      # 2. Determine version
+      - name: Determine version
+        id: version
+        run: |
+          RAW_TAG=$(git describe --tags --always --long --match "[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "0.0.0-0-g0000000")
+          if [[ "$RAW_TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)$ ]]; then
+            TAG="${BASH_REMATCH[1]}"
+            DISTANCE="${BASH_REMATCH[2]}"
+            SHA="${BASH_REMATCH[3]}"
+            if [ "$DISTANCE" = "0" ]; then
+              VERSION="$TAG"
+            else
+              VERSION="${TAG}-${SHA}"
+            fi
+          else
+            # No matching tag found at all; fall back to the raw ref (e.g. short sha)
+            VERSION=$(echo "$RAW_TAG" | sed -E 's/^v//')
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      # 3. Install dependencies for freetype and cairo
+      - name: Install Linux GUI dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libcairo2-dev libx11-dev libxext-dev libfreetype-dev
+
+      - name: Install macOS GUI Dependencies
+        if: matrix.platform == 'macos'
+        run: |
+          # Native arm64 Homebrew packages
+          # (already present at /opt/homebrew on macos-14 runners)
+          #brew install cairo freetype pkg-config
+          #brew install dylibbundler
+
+          # The x86_64 side (needed to link the x86_64 half of the universal
+          # binary) is NOT preinstalled, so it has to be installed explicitly
+          # via the Rosetta/x86_64 Homebrew at /usr/local.
+          softwareupdate --install-rosetta --agree-to-license || true
+
+          # macos-14 runners ship a second, x86_64 Homebrew at /usr/local.
+          # Bootstrap it if it's ever missing.
+          if [ ! -x /usr/local/bin/brew ]; then
+            arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          arch -x86_64 /usr/local/bin/brew install cairo freetype pkg-config
+          arch -x86_64 /usr/local/bin/brew install dylibbundler
+
+      # 3a. Print out pkg-config results for cairo
+      - name: Debug pkg-config
+        run: |
+          echo "--- Checking base cairo ---"
+          pkg-config --exists cairo && echo "Exists" || echo "Missing"
+          echo "--- Checking cairo-xlib ---"
+          pkg-config --exists cairo-xlib && echo "Exists" || echo "Missing"
+
+      # 3b. Verify paths
+      - name: Verify paths
+        run: |
+          cairo_cflags=$(pkg-config --cflags cairo)
+          echo "Cairo cflags are $cairo_cflags"
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            ls /opt/homebrew/include
+          fi
+
+      # 4. Build the plugin using the DPF Makefile Action
+      - name: Build Plugin
+        run: |
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            export CC=clang
+            export CXX=clang++
+
+            # Homebrew only ships single-arch libs (arm64 at /opt/homebrew,
+            # x86_64 at /usr/local), so a fat binary can't be produced in one
+            # clang invocation. Build each arch separately against its own
+            # libs, then lipo-merge the two bundles into a universal one.
+            build_arch () {
+              local arch="$1"
+              local prefix="$2"
+              local mac_min="12.0"
+              echo "=== Building macOS $arch (prefix: $prefix, min OS: $mac_min) ==="
+              export PKG_CONFIG_PATH="$prefix/opt/cairo/lib/pkgconfig:$prefix/opt/freetype/lib/pkgconfig"
+              export MACOSX_DEPLOYMENT_TARGET="$mac_min"
+              export CFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
+              export CXXFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
+              export LDFLAGS="-arch $arch -mmacosx-version-min=$mac_min -L$prefix/lib"
+              make TARGET=vst3 clean
+              make TARGET=vst3
+              # Bundle non-system dylibs into the .vst3 and rewrite install
+              # names. This is needed because otherwise it is required for the
+              # user to have them installed separately on their machine.
+              dylibbundler -od -b \
+                -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+                -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
+                -p "@loader_path/../Frameworks/"
+
+              rm -rf "bin-$arch"
+              mv bin "bin-$arch"
+            }
+
+            build_arch arm64  /opt/homebrew
+            build_arch x86_64 /usr/local
+
+            # Merge into a single universal (fat) bundle
+            mkdir -p bin
+            cp -R "bin-arm64/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.vst3"
+            lipo -create \
+              "bin-arm64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+              "bin-x86_64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+              -output "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
+
+            for dylib in bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/*.dylib; do
+              name=$(basename "$dylib")
+              echo "Adding dylib $dylib"
+              lipo -create \
+                "bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
+                "bin-x86_64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
+                -output "bin/$PLUGIN_NAME.vst3/Contents/Frameworks/$name"
+            done
+          else
+            make TARGET=lv2_sep
+          fi
+
+      # 4a. Check Mac binary with lipo
+      - name: Check Mac binary
+        if: matrix.platform == 'macos'
+        run: |
+          lipo -info bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
+          otool -L bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
+
+      # 5.1: Add lv2 presets to Linux bundle
+      - name: Add LV2 presets to Linux bundle
+        if: matrix.platform == 'linux'
+        run: |
+          mkdir bin/$PLUGIN_NAME.presets.lv2
+          # Fetch the presets, including the manifest
+          cp -r plugins/$PLUGIN_SLUG/Presets/* bin/$PLUGIN_NAME.presets.lv2
+          # Fetch the manual
+          cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
+
+      # 5.2: Add .vstpresets to Mac bundle
+      - name: Add VST3 presets to Mac bundle
+        if: matrix.platform == 'macos'
+        run: |
+          # Create VST3 presets
+          sh plugins/$PLUGIN_SLUG/Utils/ttl2vstpreset.sh plugins/$PLUGIN_SLUG/Presets Vstpresets
+          # To clean up, remove Vstpresets
+
+      # 6: Build MacOS .pkg installer
+      - name: Create MacOS .pkg installer
+        if: matrix.platform == 'macos'
+        run: |
+            mkdir pkg_root
+            mkdir -p pkg_root/Library/Audio/Plug-Ins/CLAP
+            mkdir -p pkg_root/Library/Audio/Plug-Ins/LV2
+            mkdir -p pkg_root/Library/Audio/Plug-Ins/VST3
+            mkdir -p pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+
+            [ -d "bin/$PLUGIN_NAME.clap" ] && cp -R bin/$PLUGIN_NAME.clap pkg_root/Library/Audio/Plug-Ins/CLAP/
+            [ -d "bin/$PLUGIN_NAME.lv2" ]  && cp -R bin/$PLUGIN_NAME.lv2  pkg_root/Library/Audio/Plug-Ins/LV2/
+            [ -d "bin/$PLUGIN_NAME.vst3" ] && cp -R bin/$PLUGIN_NAME.vst3 pkg_root/Library/Audio/Plug-Ins/VST3/
+            [ -d "Vstpresets" ] && cp -R Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+
+            pkgbuild --root pkg_root \
+                     --install-location / \
+                     --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
+                     --version "${{ steps.version.outputs.version }}" \
+                     bin/$PLUGIN_NAME.pkg
+            # We don't need the vst3 bundle anymore now, so remove it or
+            # it will explicitly be part of the bundle.
+            rm -r bin/$PLUGIN_NAME.vst3
+            # But it's handy to have the installation instructions at hand
+            cp macos/mimid-mac-install.txt "bin/Installation README"
+            # and the manual
+            cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
+
+      # 7. Bundle your compiled binary assets
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
+          path: bin/
