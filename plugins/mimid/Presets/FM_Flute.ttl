@@ -270,9 +270,6 @@
 		lv2:symbol "unisonwidth" ;
 		pset:value 10.0
 	] , [
-		lv2:symbol "unisonpan" ;
-		pset:value 10.0
-	] , [
 		lv2:symbol "unused_1" ;
 		pset:value 0.0
 	] , [
