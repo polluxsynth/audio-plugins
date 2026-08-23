@@ -1,0 +1,7 @@
+1. Download the .zip file.
+2. Click on Downloaded files, then the downloaded file.
+3. Drag MiMi-d.pkg onto the Desktop, and Control-click it.
+4. Select Open.
+5. In the resulting dialog about unverified developer, click Open.
+6. You will be guided through the standard installation procedure.
+7. Rescan plugins in your DAW.
