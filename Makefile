@@ -11,6 +11,7 @@
 # makefile statement with haphazard results.
 $(shell [ -f dpf/Makefile.base.mk ] || git submodule update --init --recursive dpf 1>&2)
 
+TARGET=all
 PLUGIN=mimid
 PLUGIN_NAME=MiMi-d
 WITH_LTO=true
@@ -33,7 +34,8 @@ ifeq ($(HAVE_OPENGL),true)
 endif
 
 plugins: dgl
-	$(MAKE) WITH_LTO=$(WITH_LTO) NOOPT=$(NOOPT) all -C plugins/$(PLUGIN)
+	@echo "Making $(TARGET)"
+	$(MAKE) WITH_LTO=$(WITH_LTO) NOOPT=$(NOOPT) -C plugins/$(PLUGIN) $(TARGET)
 
 ifneq ($(CROSS_COMPILING),true)
 gen: plugins dpf/utils/lv2_ttl_generator
