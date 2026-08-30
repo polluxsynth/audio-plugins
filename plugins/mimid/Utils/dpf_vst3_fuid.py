@@ -218,7 +218,30 @@ def main():
                      help="also print the four internal-only TUIDs "
                           "(component/controller/processor/view), for "
                           "cross-checking against the travesty-based verifier")
+    ap.add_argument("--oneline", action="store_true",
+                     help="print only the bare FUID string(s), one per line, "
+                          "with no labels/headers -- for capturing directly "
+                          "into a shell variable, e.g. "
+                          "fuid=$(python3 dpf_vst3_fuid.py ... --oneline). "
+                          "Illegal with --platform both, since that produces "
+                          "two different strings for the same FUID.")
+    ap.add_argument("--raw", action="store_true",
+                     help="with --oneline, print the raw byte dump instead "
+                          "of the FUID::toString() form. Only permitted "
+                          "together with --oneline. Note this is identical "
+                          "to the plain --oneline output on --platform linux, "
+                          "since FUID::toString() is a plain byte dump there "
+                          "-- it only differs from --platform windows.")
     args = ap.parse_args()
+
+    if args.raw and not args.oneline:
+        ap.error("--raw is only permitted together with --oneline")
+    if args.oneline and args.platform == "both":
+        ap.error("--oneline is illegal with --platform both "
+                  "(pick --platform linux or --platform windows)")
+    if args.oneline and args.all:
+        ap.error("--oneline is illegal with --all "
+                  "(--oneline only prints the single class FUID)")
 
     with open(args.info_header, encoding="utf-8") as f:
         info_h_text = strip_comments(f.read())
@@ -238,6 +261,19 @@ def main():
     brand_id = get_brand_id(info_h_text)
 
     tags = TAGS if args.all else {"class": TAGS["class"]}
+
+    if args.oneline:
+        # Bare value(s) only -- safe to capture with $(...) in a shell script.
+        for name, tag in tags.items():
+            raw = build_tuid(tag, unique_id, brand_id)
+            if args.raw:
+                value = raw.hex()
+            elif args.platform == "windows":
+                value = fuid_tostring_windows(raw)
+            else:
+                value = fuid_tostring_linux(raw)
+            print(value)
+        return
 
     print(f"unique id : 0x{unique_id:08X}")
     print(f"brand id  : 0x{brand_id:08X}"
