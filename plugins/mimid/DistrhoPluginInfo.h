@@ -23,6 +23,7 @@
 #define _DISTRHO_PLUGIN_INFO_H_
 
 #define DISTRHO_PLUGIN_BRAND "Pollux"
+#define DISTRHO_PLUGIN_BRAND_ID Pllx
 #define DISTRHO_PLUGIN_NAME  "MiMi-d"
 #define DISTRHO_PLUGIN_URI   "https://butoba.net/homepage/mimid.html"
 
