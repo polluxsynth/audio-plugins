@@ -14,10 +14,12 @@ on:
   workflow_dispatch: # Allows manual triggering from the GitHub UI
 
 env:
-  PLUGIN_NAME: MiMi-d          # display/bundle name, e.g. MiMi-d.vst3
-  PLUGIN_SLUG: mimid           # lowercase, used in source paths
-  VENDOR_NAME: Pollux          # Needed for VST3 paths
-  VENDOR_SLUG: pollux          # Used for bundle ID
+  # Plugin to build, matched against the DISTRHO_PLUGIN_NAME macro in
+  # DistrhoPluginInfo.h for the plugin. VENDOR_NAME and both slugs are then
+  # derived at build time (see "Extract plugin metadata" below).
+  # Limitation: only a single name is supported for now.
+
+  PLUGIN_NAME: MiMi-d
 
 jobs:
   build:
@@ -48,13 +50,63 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # Fetch all history for version tagging
 
-      # 2. Set up Python so we get a well-defined version
+      # 2. Locate the DistrhoPluginInfo.h for $PLUGIN_NAME, then derive
+      #    VENDOR_NAME and both slugs from it, so only PLUGIN_NAME (above)
+      #    ever needs to be maintained by hand.
+      - name: Extract plugin metadata
+        id: meta
+        run: |
+          # Find whichever DistrhoPluginInfo.h under plugins/*/ declares this
+          # Slightly complex search method (more complex than a simple grep)
+          # in order to avoid issues if PLUGIN_NAME contains characters which
+          # would not be interpreted literally in a regexp.
+          #   1st grep: isolate DISTRHO_PLUGIN_NAME definition lines (with
+          #             filenames) across all headers.
+          #   2nd grep: -F (fixed-string) literal match of "$PLUGIN_NAME" on
+          #             those lines, so PLUGIN_NAME is never interpreted as
+          #             regex even if it contains characters like . or +.
+          #             Including both quote characters in the pattern also
+          #             stops "MiMi-d" from matching a value like "MiMi-d2".
+          # NOTE: -E (extended regex) is used throughout, with plain "+"
+          #       rather than the GNU-only "\+", so this behaves the same
+          #       under BSD grep/sed (macOS runners) and GNU grep/sed
+          #       (Linux runners).
+          HEADER=$(grep -Ern "^#define[[:space:]]+DISTRHO_PLUGIN_NAME" plugins --include=DistrhoPluginInfo.h \
+            | grep -F "\"${PLUGIN_NAME}\"" | head -n1 | cut -d: -f1)
+
+          if [ -z "$HEADER" ]; then
+            echo "::error::No DistrhoPluginInfo.h under plugins/ declares DISTRHO_PLUGIN_NAME \"$PLUGIN_NAME\""
+            exit 1
+          fi
+          echo "Using $HEADER"
+
+          VENDOR_NAME=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_BRAND[[:space:]]+"(.*)"/\1/p' "$HEADER")
+          if [ -z "$VENDOR_NAME" ]; then
+            echo "::error::Failed to extract DISTRHO_PLUGIN_BRAND from $HEADER"
+            exit 1
+          fi
+
+          # Slug = lowercase, alphanumeric only (e.g. "MiMi-d" -> "mimid")
+          PLUGIN_SLUG=$(echo "$PLUGIN_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+          VENDOR_SLUG=$(echo "$VENDOR_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+
+          echo "VENDOR_NAME=$VENDOR_NAME"
+          echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+          echo "VENDOR_SLUG=$VENDOR_SLUG"
+
+          {
+            echo "VENDOR_NAME=$VENDOR_NAME"
+            echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+            echo "VENDOR_SLUG=$VENDOR_SLUG"
+          } >> "$GITHUB_ENV"
+
+      # 3. Set up Python so we get a well-defined version
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.13'
 
-      # 3. Determine version
+      # 4. Determine version
       - name: Determine version
         id: version
         run: |
@@ -75,7 +127,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $VERSION"
 
-      # 4. Install dependencies for freetype and cairo
+      # 5. Install dependencies for freetype and cairo
       - name: Install Linux GUI dependencies
         if: matrix.platform == 'linux'
         run: |
@@ -103,7 +155,7 @@ jobs:
           arch -x86_64 /usr/local/bin/brew install cairo freetype pkg-config
           arch -x86_64 /usr/local/bin/brew install dylibbundler
 
-      # 4a. Print out pkg-config results for cairo
+      # 5a. Print out pkg-config results for cairo
       - name: Debug pkg-config
         run: |
           echo "--- Checking base cairo ---"
@@ -111,7 +163,7 @@ jobs:
           echo "--- Checking cairo-xlib ---"
           pkg-config --exists cairo-xlib && echo "Exists" || echo "Missing"
 
-      # 4b. Verify paths
+      # 5b. Verify paths
       - name: Verify paths
         run: |
           cairo_cflags=$(pkg-config --cflags cairo)
@@ -120,7 +172,7 @@ jobs:
             ls /opt/homebrew/include
           fi
 
-      # 5. Build the plugin using the DPF Makefile Action
+      # 6. Build the plugin using the DPF Makefile Action
       - name: Build Plugin
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
@@ -178,14 +230,14 @@ jobs:
             make TARGET=lv2_sep
           fi
 
-      # 5a. Check Mac binary with lipo
+      # 6a. Check Mac binary with lipo
       - name: Check Mac binary
         if: matrix.platform == 'macos'
         run: |
           lipo -info bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
           otool -L bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
 
-      # 6.1: Add lv2 presets to Linux bundle
+      # 7.1: Add lv2 presets to Linux bundle
       - name: Add LV2 presets to Linux bundle
         if: matrix.platform == 'linux'
         run: |
@@ -195,7 +247,7 @@ jobs:
           # Fetch the manual
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
-      # 6.2: Create VST3 preset files
+      # 7.2: Create VST3 preset files
       - name: Create VST3 presets
         run: |
           # Create VST3 presets
@@ -215,7 +267,7 @@ jobs:
           mv Vstpresets ../..
           # To clean up, remove Vstpresets
 
-      # 7: Build MacOS .pkg installer
+      # 8: Build MacOS .pkg installer
       - name: Create MacOS .pkg installer
         if: matrix.platform == 'macos'
         run: |
@@ -243,7 +295,7 @@ jobs:
             # and the manual
             cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
 
-      # 8. Bundle your compiled binary assets
+      # 9. Bundle your compiled binary assets
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
         with:
