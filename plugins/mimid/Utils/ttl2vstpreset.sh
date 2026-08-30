@@ -33,7 +33,15 @@
 # IComponent::getState()/setState() round-trip always produces.
 #
 # Usage:
-#   ttl2vstpreset.sh <presets-dir> <output-dir> [<param-map-file>]
+#   ttl2vstpreset.sh [options] <presets-dir> <output-dir> [<param-map-file>]
+#
+# Options:
+#   --fuid FUID        Component FUID to embed in the .vstpreset header
+#                       (see the COMPONENT_FUID comment below for what
+#                       this must be). Overrides the coded default.
+#   --name NAME         Plugin name. Overrides the coded default.
+#   --vendor VENDOR      Plugin vendor. Overrides the coded default.
+#   --category CATEGORY  Plugin category. Overrides the coded default.
 #
 # <param-map-file> format: see gen-param-map.sh.
 # (Tab separated lv2 parameter name, source code symbol, default value)
@@ -50,20 +58,98 @@ WRITER="$SELF_DIR/vstpreset_writer.py"
 # preset file format, a .vstpreset's header classID is always the
 # *component* FUID, never the controller's, even though both are
 # compiled into the plugin.
+#
+# These are the coded defaults; each can be overridden on the command
+# line (--fuid, --name, --vendor, --category) without editing the
+# script, e.g. when reusing it for a different DPF plugin build.
 COMPONENT_FUID="2046504473616C63644D694D00000000"
 
 PLUGIN_NAME="MiMi-d"
 PLUGIN_VENDOR="Pollux"
 PLUGIN_CATEGORY="Instrument"
 
-if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-    echo "Usage: $0 <presets-dir> <output-dir> [param-map-file]" >&2
+usage() {
+    echo "Usage: $0 [options] <presets-dir> <output-dir> [param-map-file]" >&2
+    echo "Options:" >&2
+    echo "  --fuid FUID          component FUID (default: $COMPONENT_FUID)" >&2
+    echo "  --name NAME          plugin name (default: $PLUGIN_NAME)" >&2
+    echo "  --vendor VENDOR      plugin vendor (default: $PLUGIN_VENDOR)" >&2
+    echo "  --category CATEGORY  plugin category (default: $PLUGIN_CATEGORY)" >&2
+}
+
+# --- parse options, then positional args ---
+#
+# Manual parsing rather than getopts, since getopts (per POSIX) only
+# handles single-character options and these are long options.
+
+POSITIONAL=""
+npos=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --fuid)
+            [ $# -ge 2 ] || { echo "error: --fuid requires an argument" >&2; exit 1; }
+            COMPONENT_FUID=$2
+            shift 2
+            ;;
+        --name)
+            [ $# -ge 2 ] || { echo "error: --name requires an argument" >&2; exit 1; }
+            PLUGIN_NAME=$2
+            shift 2
+            ;;
+        --vendor)
+            [ $# -ge 2 ] || { echo "error: --vendor requires an argument" >&2; exit 1; }
+            PLUGIN_VENDOR=$2
+            shift 2
+            ;;
+        --category)
+            [ $# -ge 2 ] || { echo "error: --category requires an argument" >&2; exit 1; }
+            PLUGIN_CATEGORY=$2
+            shift 2
+            ;;
+        --fuid=*|--name=*|--vendor=*|--category=*)
+            opt=${1%%=*}
+            val=${1#*=}
+            case "$opt" in
+                --fuid) COMPONENT_FUID=$val ;;
+                --name) PLUGIN_NAME=$val ;;
+                --vendor) PLUGIN_VENDOR=$val ;;
+                --category) PLUGIN_CATEGORY=$val ;;
+            esac
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            while [ $# -gt 0 ]; do
+                npos=$((npos + 1))
+                eval "POS_$npos=\$1"
+                shift
+            done
+            ;;
+        -*)
+            echo "error: unknown option: $1" >&2
+            usage
+            exit 1
+            ;;
+        *)
+            npos=$((npos + 1))
+            eval "POS_$npos=\$1"
+            shift
+            ;;
+    esac
+done
+
+if [ "$npos" -lt 2 ] || [ "$npos" -gt 3 ]; then
+    usage
     exit 1
 fi
 
-PRESET_DIR=$1
-OUT_DIR=$2
-PARAM_MAP=${3:-}
+PRESET_DIR=$POS_1
+OUT_DIR=$POS_2
+PARAM_MAP=${POS_3:-}
 
 if [ ! -d "$PRESET_DIR" ]; then
     echo "error: not a directory: $PRESET_DIR" >&2
