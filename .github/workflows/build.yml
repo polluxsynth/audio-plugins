@@ -228,6 +228,7 @@ jobs:
             done
           else
             make TARGET=lv2_sep
+            make TARGET=vst3
           fi
 
       # 6a. Check Mac binary with lipo
