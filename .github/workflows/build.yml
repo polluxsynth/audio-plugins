@@ -48,7 +48,13 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # Fetch all history for version tagging
 
-      # 2. Determine version
+      # 2. Set up Python so we get a well-defined version
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      # 3. Determine version
       - name: Determine version
         id: version
         run: |
@@ -69,7 +75,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $VERSION"
 
-      # 3. Install dependencies for freetype and cairo
+      # 4. Install dependencies for freetype and cairo
       - name: Install Linux GUI dependencies
         if: matrix.platform == 'linux'
         run: |
@@ -97,7 +103,7 @@ jobs:
           arch -x86_64 /usr/local/bin/brew install cairo freetype pkg-config
           arch -x86_64 /usr/local/bin/brew install dylibbundler
 
-      # 3a. Print out pkg-config results for cairo
+      # 4a. Print out pkg-config results for cairo
       - name: Debug pkg-config
         run: |
           echo "--- Checking base cairo ---"
@@ -105,7 +111,7 @@ jobs:
           echo "--- Checking cairo-xlib ---"
           pkg-config --exists cairo-xlib && echo "Exists" || echo "Missing"
 
-      # 3b. Verify paths
+      # 4b. Verify paths
       - name: Verify paths
         run: |
           cairo_cflags=$(pkg-config --cflags cairo)
@@ -114,7 +120,7 @@ jobs:
             ls /opt/homebrew/include
           fi
 
-      # 4. Build the plugin using the DPF Makefile Action
+      # 5. Build the plugin using the DPF Makefile Action
       - name: Build Plugin
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
@@ -172,14 +178,14 @@ jobs:
             make TARGET=lv2_sep
           fi
 
-      # 4a. Check Mac binary with lipo
+      # 5a. Check Mac binary with lipo
       - name: Check Mac binary
         if: matrix.platform == 'macos'
         run: |
           lipo -info bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
           otool -L bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
 
-      # 5.1: Add lv2 presets to Linux bundle
+      # 6.1: Add lv2 presets to Linux bundle
       - name: Add LV2 presets to Linux bundle
         if: matrix.platform == 'linux'
         run: |
@@ -189,15 +195,28 @@ jobs:
           # Fetch the manual
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
-      # 5.2: Add .vstpresets to Mac bundle
+      # 6.2: Add .vstpresets to Mac bundle
       - name: Add VST3 presets to Mac bundle
         if: matrix.platform == 'macos'
         run: |
           # Create VST3 presets
-          sh plugins/$PLUGIN_SLUG/Utils/ttl2vstpreset.sh plugins/$PLUGIN_SLUG/Presets Vstpresets
+          cd plugins/$PLUGIN_SLUG
+          # First determine Component FUID
+          fuid=$(python Utils/dpf_vst3_fuid.py \
+            --oneline --platform linux DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
+          echo "Using (Component) FUID $fuid"
+          # Then read all .ttl preset files creating .vstpreset files
+          sh Utils/ttl2vstpreset.sh \
+            --name $PLUGIN_NAME \
+            --vendor $VENDOR_NAME \
+            --fuid $fuid \
+            --category "Instrument" \
+            Presets Vstpresets
+          # Easier to access later:
+          mv Vstpresets ../../
           # To clean up, remove Vstpresets
 
-      # 6: Build MacOS .pkg installer
+      # 7: Build MacOS .pkg installer
       - name: Create MacOS .pkg installer
         if: matrix.platform == 'macos'
         run: |
@@ -225,7 +244,7 @@ jobs:
             # and the manual
             cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
 
-      # 7. Bundle your compiled binary assets
+      # 8. Bundle your compiled binary assets
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
         with:
