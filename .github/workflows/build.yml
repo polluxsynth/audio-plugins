@@ -268,7 +268,7 @@ jobs:
           mv Vstpresets ../..
           # To clean up, remove Vstpresets
 
-      # 8: Build MacOS .pkg installer
+      # 8a: Build MacOS .pkg installer
       - name: Create MacOS .pkg installer
         if: matrix.platform == 'macos'
         run: |
@@ -281,7 +281,7 @@ jobs:
             [ -d "bin/$PLUGIN_NAME.clap" ] && cp -R bin/$PLUGIN_NAME.clap pkg_root/Library/Audio/Plug-Ins/CLAP/
             [ -d "bin/$PLUGIN_NAME.lv2" ]  && cp -R bin/$PLUGIN_NAME.lv2  pkg_root/Library/Audio/Plug-Ins/LV2/
             [ -d "bin/$PLUGIN_NAME.vst3" ] && cp -R bin/$PLUGIN_NAME.vst3 pkg_root/Library/Audio/Plug-Ins/VST3/
-            [ -d "Vstpresets" ] && cp -R Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+            [ -d "bin/Vstpresets" ] && cp -R bin/Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
 
             pkgbuild --root pkg_root \
                      --install-location / \
@@ -295,6 +295,68 @@ jobs:
             cp macos/mimid-mac-install.txt "bin/Installation README"
             # and the manual
             cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
+
+      # 8b: Build Linux .deb / .rpm installers
+      - name: Create Linux installers
+        if: matrix.platform == 'linux'
+        run: |
+          # Install nfpm (single static binary, no Ruby/Docker needed).
+          # Pin a version and grab the prebuilt archive straight from GitHub
+          # releases; nfpm doesn't ship a curl|sh installer, and the runner
+          # has no Go toolchain for `go install`.
+          NFPM_VERSION=2.47.0
+          case "${{ matrix.arch }}" in
+            x86_64) NFPM_ARCH=x86_64; DEB_ARCH=amd64;  RPM_ARCH=x86_64  ;;
+            arm64)  NFPM_ARCH=arm64;  DEB_ARCH=arm64;  RPM_ARCH=aarch64 ;;
+            *) echo "::error::Unknown arch ${{ matrix.arch }}"; exit 1 ;;
+          esac
+          curl -sfL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_${NFPM_ARCH}.tar.gz" \
+            | tar -xz -C /usr/local/bin nfpm
+          chmod +x /usr/local/bin/nfpm
+          nfpm --version
+
+          cat > nfpm.yaml << EOF
+          name: "$PLUGIN_SLUG"
+          arch: "$DEB_ARCH"
+          platform: "linux"
+          version: "${{ steps.version.outputs.version }}"
+          maintainer: "$VENDOR_NAME"
+          vendor: "$VENDOR_NAME"
+          description: "$PLUGIN_NAME audio plugin"
+          contents:
+            - src: bin/$PLUGIN_NAME.lv2
+              dst: /usr/lib/lv2/$PLUGIN_NAME.lv2
+            - src: bin/$PLUGIN_NAME.presets.lv2
+              dst: /usr/lib/lv2/$PLUGIN_NAME.presets.lv2
+            - src: bin/$PLUGIN_NAME.vst3
+              dst: /usr/lib/vst3/$PLUGIN_NAME.vst3
+            - src: Vstpresets
+              dst: /usr/share/vst3/presets/$VENDOR_NAME/$PLUGIN_NAME
+          # Runtime shared-library deps mirroring the -dev packages installed
+          # for the build (libcairo2-dev, libx11-dev, libxext-dev,
+          # libfreetype-dev), minus the -dev/headers. Package names differ
+          # between deb and rpm ecosystems, so they're specified per format.
+          overrides:
+            deb:
+              depends:
+                - libcairo2
+                - libx11-6
+                - libxext6
+                - libfreetype6
+            rpm:
+              depends:
+                - cairo
+                - libX11
+                - libXext
+                - freetype
+          EOF
+
+          nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.deb" --packager deb
+
+          # rpmbuild expects its own arch naming, so patch the config rather
+          # than regenerate it from scratch.
+          sed -i "s/^arch: .*/arch: \"$RPM_ARCH\"/" nfpm.yaml
+          nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.rpm" --packager rpm
 
       # 9. Bundle your compiled binary assets
       - name: Upload Build Artifacts
