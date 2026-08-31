@@ -84,7 +84,8 @@ private:
 
 	// State variables for various single pole filters
 	float oschpfst; // 12 Hz oscillator HPF
-	float prtst; // portamento
+	float prtst; // exponential portamento LPF state
+	float linst; // linear portamento state
 	float hpfst; // HPF between filter and VCA
 
 	// offset to get apparent zero cutoff frequency shift with oscmod
@@ -151,6 +152,8 @@ public:
 	float oschpflpc;
 
 	int midiIndx;
+	float ptTarget; // Note value before portamento
+	float ptNote; // Note value after portamento
 
 	bool Active; // = Gate, set on at Note On, off at Note Off
 	bool shouldProcess; // Lenv is not off, i.e. DSP should be run
@@ -161,8 +164,12 @@ public:
 
 	float fltKF;
 
+	// Exponential portamento
 	float portaSaved, portalpc, portalpcSaved, portalpcMax;
+	// LCR portamento
+	float portaRate, portaRateSaved, portaLinScale;
 	bool portaEnable;
+	int portaMode; // 0: exp (LPF), 1: LCT, 2: LCR
 
 	float pitchWheel, pitchWheelAmt;
 
@@ -215,7 +222,10 @@ public:
 		FltSpreadAmt = 0;
 		levelSpreadAmt = 1;
 		portaSaved = 0;
+		portaRateSaved = portaRate = 0;
+		portaLinScale = 1.0f;
 		portaEnable = false;
+		portaMode = 0;
 		oschpfst = hpfst = prtst = 0;
 		fltKF = false;
 		cutoff = 0;
@@ -225,6 +235,7 @@ public:
 		detunePosition = 0;
 		Active = false;
 		midiIndx = 30;
+		ptTarget = ptNote = midiIndx - 93;
 		levelSpread = SRandom::globalRandom().nextFloat()-0.5;
 		EnvSpread = SRandom::globalRandom().nextFloat()-0.5;
 		FenvSpread = SRandom::globalRandom().nextFloat()-0.5;
@@ -286,8 +297,27 @@ public:
 		// osc pitch is 24 (semitones), resulting in
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
-		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpc(prtst, midiIndx - 93, portalpc);
+		// Portamento on osc input voltage.
+		// Exp mode (default): one-pole LPF => exponential/RC-style
+		// slew, glide time independent of interval.
+		// LCR mode: linear slew at constant rate (semitones/sec) =>
+		// glide time proportional to interval, like in Minimoog et al.
+		// linst holds the current glided note; at a note boundary the
+		// previous glide has settled, so the linear slew starts correctly.
+		if (portaMode == 0) { // Exp
+			// Portamento on osc input voltage using LPF
+			ptNote = tptlpc(prtst, ptTarget, portalpc);
+		} else { // Lin (LCT and LCR)
+			float step = portaLinScale * portaRate * PortaSpreadAmt * modRateInv;
+			float diff = ptTarget - ptNote;
+			float clamped = maxf(-step, minf(step, diff));
+			ptNote += clamped;
+			// While in linear mode, prime the Exp LP state
+			// to avoid jumps if the mode is changed while a
+			// portamento sweep is taking place
+			prtst = ptNote;
+		}
+
 		osc.notePlaying = ptNote;
 
 		// Filter cutoff and resonance
@@ -574,6 +604,12 @@ public:
 		portaSaved = newPorta;
 		setPorta();
 	}
+	void setPortaRate(float newRate)
+	{
+		portaRateSaved = newRate;
+		if (portaEnable)
+			portaRate = portaRateSaved;
+	}
 	void setSampleRate(float sr, int oversamplingRatio, int modulationRatio)
 	{
 		modulationRatio += (modulationRatio == 0); // avoid div by 0
@@ -643,7 +679,17 @@ public:
 			// Scale velocity according to velscale [ 8..1..1/8 ]
 			// range is same (0..1 -> 0..1), but scale changes
 			velocityValue = powf(velocity, velscale);
-		midiIndx = mididx;
+		midiIndx = mididx; // midiIndx is read by key assigner
+		ptTarget = midiIndx - 93; // actual target note before porta
+		if (portaMode == 1) { // LCT
+			// Diff from where we are now to new note
+			float ptDiff = fabsf(ptTarget - ptNote);
+			// At one octave, LCT time == LCR time
+			portaLinScale = ptDiff * (1.0f / 12.0f);
+		} else { // LCR (mode 2)
+			portaLinScale = 1.0f;
+		}
+
 		if (!Active || multiTrig) {
 			if (envRst) {
 				ResetEnvelopes();
@@ -662,7 +708,13 @@ public:
 			osc.keyReset = true;
 		Active = true;
 		portaEnable = doPorta;
+		// Exponential portamento
 		portalpc = portaEnable ? portalpcSaved : portalpcMax;
+		// LCR portamento
+		portaRate = portaEnable ? portaRateSaved :
+					  // 4 ms / octave minimum rate
+					  // (Disregard spread here)
+					  (12.0f / 4.0e-3f) * modRateInv;
 	}
 	void NoteOff()
 	{

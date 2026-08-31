@@ -47,7 +47,7 @@
 	PARAMGROUP(PG_MAIN, "Main", "g101_main")
 	PARAMGROUP(PG_VOICING, "Voicing", "g102_voicing")
 	PARAMGROUP(PG_KEYASGN, "Key Assign ", "g103_keyassign")
-	PARAMGROUP(PG_ENVMODES, "Env Ctrl", "g104_envctrl")
+	PARAMGROUP(PG_ENVPORTAMODES, "Env and Porta Ctrl", "g104_envportactrl")
 	PARAMGROUP(PG_BEND, "Bend", "g303_bend")
 	PARAMGROUP(PG_CONTR, "Controllers", "g304_controllers")
 	PARAMGROUP(PG_LFO1, "Modulation 1", "g301_mod_lfo1")
@@ -90,6 +90,7 @@
 	PARAMPOINTS(SP_KEYSYNC, 0, "FreeRun", "KeySync")
 	PARAMPOINTS(SP_OSC3WAVE, 0, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
 	PARAMPOINTS(SP_ENVMODE, 0, "Exp/Lin ", "Lin/Lin", "Lin/Exp")
+	PARAMPOINTS(SP_PORTAMODE, 0, " Exp ", "LCTime", "LCRate")
 
 	PARAMHINTS(SP_INTS, kParameterIsInteger)
 
@@ -121,11 +122,13 @@
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", SP_MIN, SP_MAX, 0, setKeyAsgnRes)
 
-	// Key assignment #3 (Envelope reset and single trig)
+	// Key assignment #3 (Envelope reset, single trig and portamento mode)
 	// Envelope reset
-	PARAM(ENV_RST, PG_ENVMODES, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
+	PARAM(ENV_RST, PG_ENVPORTAMODES, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_MTRG, PG_ENVMODES, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	PARAM(ASGN_MTRG, PG_ENVPORTAMODES, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	// Portamento mode: Exponential, Linear Constant Time, Linear Constant Rate
+        PARAM(PORTAMODE, PG_ENVPORTAMODES, SP_PORTAMODE, "Porta Mode", "portamode", SP_MIN, SP_MAX, 0, setPortaMode)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
