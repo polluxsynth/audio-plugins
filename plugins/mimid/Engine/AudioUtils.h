@@ -63,12 +63,12 @@ inline int roundToInt(float val)
 
 inline float minf(const float a, const float b) noexcept
 {
-	return (a < b) ? a : b;
+	return std::min(a, b);
 }
 
 inline float maxf(const float a, const float b) noexcept
 {
-	return (a > b) ? a : b;
+	return std::max(a, b);
 }
 
 inline float limitf(const float val, const float low, const float high) noexcept
