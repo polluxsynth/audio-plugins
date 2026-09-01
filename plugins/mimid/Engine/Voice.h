@@ -148,6 +148,7 @@ public:
 	float osc2FltMod;
 
 	float hpffreq, hpfcutoff;
+	float oschpflpc;
 
 	int midiIndx;
 
@@ -207,6 +208,7 @@ public:
 		envRst = false;
 		hpffreq = 4;
 		hpfcutoff = 0;
+		oschpflpc = 0;
 		osc2FltMod = 0;
 		pitchWheel = pitchWheelAmt = 0;
 		PortaSpreadAmt = 1;
@@ -401,7 +403,7 @@ public:
 		// HPF on oscillator output to get rid of any DC,
 		// simulating a fairly large coupling capacitor.
 		// TODO: filter oscmod as well to reduce aliasing?
-		oscps = oscps - tptlpupw(oschpfst, oscps, 12, audioRateInv);
+		oscps = oscps - tptlpc(oschpfst, oscps, oschpflpc);
 
 		// Filter exp cutoff calculation
 		// Needs to be done after we've gotten oscmod
@@ -584,6 +586,7 @@ public:
 		lfo3.setSampleRate(modRate);
 		afterTouchSmoother.setSampleRate(modRate);
 		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
+		oschpflpc = lpccalc(12.0f /* Hz */, audioRateInv);
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
 		// whichever is smaller.
