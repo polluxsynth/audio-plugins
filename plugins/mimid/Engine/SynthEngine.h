@@ -685,9 +685,11 @@ public:
 	void setPortamentoSpread(float param)
 	{
 		float PortaSpreadAmt = linsc(param, 0.0f, 0.75f);
-		for (int i = 0; i < synth.MAX_VOICES; i++)
+		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].PortaSpreadAmt =
 				1 + PortaSpreadAmt * synth.voices[i].PortaSpread;
+			synth.voices[i].setPorta();
+		}
 	}
 	void setLoudnessSpread(float param)
 	{
