@@ -161,7 +161,7 @@ public:
 
 	float fltKF;
 
-	float porta, portaSaved;
+	float portaSaved, portalpc, portalpcSaved, portalpcMax;
 	bool portaEnable;
 
 	float pitchWheel, pitchWheelAmt;
@@ -214,7 +214,7 @@ public:
 		PortaSpreadAmt = 1;
 		FltSpreadAmt = 0;
 		levelSpreadAmt = 1;
-		portaSaved = porta = 0;
+		portaSaved = 0;
 		portaEnable = false;
 		oschpfst = hpfst = prtst = 0;
 		fltKF = false;
@@ -287,7 +287,7 @@ public:
 		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
 		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
 		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpupw(prtst, midiIndx-93, porta * PortaSpreadAmt, modRateInv);
+		float ptNote = tptlpc(prtst, midiIndx - 93, portalpc);
 		osc.notePlaying = ptNote;
 
 		// Filter cutoff and resonance
@@ -563,11 +563,16 @@ public:
 		else
 			osc.removeDecimation();
 	}
+	void setPorta()
+	{
+		portalpcSaved = lpccalc(portaSaved * PortaSpreadAmt, modRateInv);
+		if (portaEnable)
+			portalpc = portalpcSaved;
+	}
 	void setPorta(float newPorta)
 	{
 		portaSaved = newPorta;
-		if (portaEnable)
-			porta = portaSaved;
+		setPorta();
 	}
 	void setSampleRate(float sr, int oversamplingRatio, int modulationRatio)
 	{
@@ -587,6 +592,8 @@ public:
 		afterTouchSmoother.setSampleRate(modRate);
 		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
 		oschpflpc = lpccalc(12.0f /* Hz */, audioRateInv);
+		portalpcMax = lpccalc(250, audioRateInv);
+		setPorta();
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
 		// whichever is smaller.
@@ -655,7 +662,7 @@ public:
 			osc.keyReset = true;
 		Active = true;
 		portaEnable = doPorta;
-		porta = portaEnable ? portaSaved : 250;
+		portalpc = portaEnable ? portalpcSaved : portalpcMax;
 	}
 	void NoteOff()
 	{
