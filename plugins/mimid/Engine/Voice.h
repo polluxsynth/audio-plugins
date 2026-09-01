@@ -293,7 +293,7 @@ public:
 		cutoffnote =
 			cutoff +
 			FltSpreadAmt +
-                        fenvamt * envm +
+			fenvamt * envm +
 			-54 + (fltKF * (ptNote + filtertune + 54));
 
 		rescalc = res;
@@ -598,7 +598,7 @@ public:
 		// oscillator class, so we need to adjust the length
 		// depending on the oversampling ratio so the delay
 		// lines have the same length in units of time.
-		int delayLineLength = 2 * Samples / oversamplingRatio  / modulationRatio;
+		int delayLineLength = 2 * Samples / oversamplingRatio / modulationRatio;
 		// If length is 1 we get no delay at all, so minimize at 2
 		if (delayLineLength < 2) delayLineLength = 2;
 		lenvd.setLength(delayLineLength);
