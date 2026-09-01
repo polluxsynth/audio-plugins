@@ -147,7 +147,7 @@ public:
 
 	float osc2FltMod;
 
-	float hpffreq, hpfcutoff;
+	float hpffreq, hpflpc;
 	float oschpflpc;
 
 	int midiIndx;
@@ -207,7 +207,7 @@ public:
 		oscKeySync = false;
 		envRst = false;
 		hpffreq = 4;
-		hpfcutoff = 0;
+		hpflpc = 0;
 		oschpflpc = 0;
 		osc2FltMod = 0;
 		pitchWheel = pitchWheelAmt = 0;
@@ -417,7 +417,7 @@ public:
 		float x1 = flt.Apply4Pole(oscps, cutoffcalc, rescalc);
 
 		// HPF
-		x1 -= tptpc(hpfst, x1, hpfcutoff);
+		x1 -= tptlpc(hpfst, x1, hpflpc);
 
 		// Distortion/overdrive
 		x1 = sqdist.Apply(x1);
@@ -461,7 +461,7 @@ public:
 	void setHPFfreq(float val)
 	{
 		hpffreq = val;
-		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
+		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
 	}
 	void setEnvSpreadAmt(float d)
 	{
@@ -585,7 +585,7 @@ public:
 		lfo2.setSampleRate(modRate);
 		lfo3.setSampleRate(modRate);
 		afterTouchSmoother.setSampleRate(modRate);
-		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
+		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
 		oschpflpc = lpccalc(12.0f /* Hz */, audioRateInv);
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
