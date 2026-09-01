@@ -113,7 +113,7 @@ inline static float tptlpupw(float & state , float inp , float cutoff , float sr
 // TPT LPF w/ cutoff pre-warping
 inline static float tptlp(float& state, float inp, float cutoff, float srInv)
 {
-	cutoff = tan(cutoff * srInv * pi) ;
+	cutoff = tanf(cutoff * srInv * pi) ;
 	float v = (inp - state) * cutoff / (1 + cutoff);
 	float res = v + state;
 	state = res + v;
