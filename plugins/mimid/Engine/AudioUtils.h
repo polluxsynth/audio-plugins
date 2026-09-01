@@ -100,6 +100,13 @@ inline static float getNote(float freq)
 	return log(freq / 440) / log(2) * 12;
 }
 
+// Pre-calculate 'lpc' ('g') value for tptlpc from cutoff in Hz, no prewarp
+inline static float lpccalc(float cutoff, float srInv)
+{
+	cutoff = cutoff * srInv * pi;
+	return cutoff / (1 + cutoff);
+}
+
 // TPT LPF w/ cutoff supplied in Hz, but no pre-warping
 inline static float tptlpupw(float & state , float inp , float cutoff , float srInv)
 {
