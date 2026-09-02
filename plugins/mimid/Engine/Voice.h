@@ -256,6 +256,34 @@ public:
 	~Voice()
 	{
 	}
+	inline void processPortamento()
+	{
+		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
+		// Pitch calc base frequency is 440 Hz, but the default
+		// osc pitch is 24 (semitones), resulting in
+		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
+		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
+		// Portamento on osc input voltage.
+		// Exp mode (default): one-pole LPF => exponential/RC-style
+		// slew, glide time independent of interval.
+		// LCR mode: linear slew at constant rate (semitones/sec) =>
+		// glide time proportional to interval, like in Minimoog et al.
+		// linst holds the current glided note; at a note boundary the
+		// previous glide has settled, so the linear slew starts correctly.
+		if (portaMode == 0) { // Exp
+			// Portamento on osc input voltage using LPF
+			ptNote = tptlpc(prtst, ptTarget, portalpc);
+		} else { // Lin (LCT and LCR)
+			float step = portaLinScale * portaRate * PortaSpreadAmt * modRateInv;
+			float diff = ptTarget - ptNote;
+			float clamped = maxf(-step, minf(step, diff));
+			ptNote += clamped;
+			// While in linear mode, prime the Exp LP state
+			// to avoid jumps if the mode is changed while a
+			// portamento sweep is taking place
+			prtst = ptNote;
+		}
+	}
 	inline void processModulation()
 	{
 		// LFOs
@@ -292,33 +320,7 @@ public:
 		osc.oscmodulation.pto1 = 0;
 		osc.oscmodulation.pto2 = 0;
 
-		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
-		// Pitch calc base frequency is 440 Hz, but the default
-		// osc pitch is 24 (semitones), resulting in
-		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
-		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
-		// Portamento on osc input voltage.
-		// Exp mode (default): one-pole LPF => exponential/RC-style
-		// slew, glide time independent of interval.
-		// LCR mode: linear slew at constant rate (semitones/sec) =>
-		// glide time proportional to interval, like in Minimoog et al.
-		// linst holds the current glided note; at a note boundary the
-		// previous glide has settled, so the linear slew starts correctly.
-		if (portaMode == 0) { // Exp
-			// Portamento on osc input voltage using LPF
-			ptNote = tptlpc(prtst, ptTarget, portalpc);
-		} else { // Lin (LCT and LCR)
-			float step = portaLinScale * portaRate * PortaSpreadAmt * modRateInv;
-			float diff = ptTarget - ptNote;
-			float clamped = maxf(-step, minf(step, diff));
-			ptNote += clamped;
-			// While in linear mode, prime the Exp LP state
-			// to avoid jumps if the mode is changed while a
-			// portamento sweep is taking place
-			prtst = ptNote;
-		}
-
-		osc.notePlaying = ptNote;
+		osc.notePlaying = ptNote; // from processPortamento
 
 		// Filter cutoff and resonance
 		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking

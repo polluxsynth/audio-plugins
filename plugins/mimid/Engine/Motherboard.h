@@ -135,6 +135,7 @@ public:
 			voice.lfo1.update();
 			voice.lfo2.update();
 			voice.lfo3.update();
+			voice.processPortamento();
 			voice.aftert = voice.afterTouchSmoother.smoothStep();
 		}
 		if (voice.shouldProcess || !economyMode) {
