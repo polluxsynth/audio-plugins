@@ -170,6 +170,7 @@ public:
 	float portaRate, portaRateSaved, portaLinScale;
 	bool portaEnable;
 	int portaMode; // 0: exp (LPF), 1: LCT, 2: LCR
+	bool portaLastNote; // start at pitch of last voice played
 
 	float pitchWheel, pitchWheelAmt;
 
@@ -663,7 +664,7 @@ public:
 		env.ResetEnvelopeState();
 		fenv.ResetEnvelopeState();
 	}
-	void NoteOn(int mididx, float velocity, bool multiTrig, bool doPorta = true)
+	void NoteOn(int mididx, float velocity, Voice *lastAllocatedVoice, bool multiTrig, bool doPorta = true)
 	{
 		if (!shouldProcess)
 		{
@@ -683,6 +684,12 @@ public:
 			velocityValue = powf(velocity, velscale);
 		midiIndx = mididx; // midiIndx is read by key assigner
 		ptTarget = midiIndx - 93; // actual target note before porta
+		if (portaLastNote && lastAllocatedVoice) {
+			// Jump directly to current pitch of last allocated
+			// voice.
+			prtst = ptNote = lastAllocatedVoice->ptNote;
+		}
+			
 		if (portaMode == 1) { // LCT
 			// Diff from where we are now to new note
 			float ptDiff = fabsf(ptTarget - ptNote);
@@ -717,6 +724,7 @@ public:
 					  // 4 ms / octave minimum rate
 					  // (Disregard spread here)
 					  (12.0f / 4.0e-3f) * modRateInv;
+
 	}
 	void NoteOff()
 	{
