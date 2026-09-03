@@ -385,6 +385,11 @@ public:
 		int intval = roundToInt(param);
 		ForEachVoice(portaMode = intval);
 	}
+	void setPortaStartLastNote(float param)
+	{
+		int intval = roundToInt(param);
+		ForEachVoice(portaLastNote = !!intval);
+	}
 	void setVolume(float param)
 	{
 		synth.volume = linsc(param, 0, 0.30f);

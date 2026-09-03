@@ -91,6 +91,7 @@
 	PARAMPOINTS(SP_OSC3WAVE, 0, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
 	PARAMPOINTS(SP_ENVMODE, 0, "Exp/Lin ", "Lin/Lin", "Lin/Exp")
 	PARAMPOINTS(SP_PORTAMODE, 0, " Exp ", "LCTime", "LCRate")
+	PARAMPOINTS(SP_PORTANOTE, 0, "Voice", "Track")
 
 	PARAMHINTS(SP_INTS, kParameterIsInteger)
 
@@ -122,13 +123,16 @@
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", SP_MIN, SP_MAX, 0, setKeyAsgnRes)
 
-	// Key assignment #3 (Envelope reset, single trig and portamento mode)
+	// Key assignment #3 (Envelope reset, single trig and portamento modes)
 	// Envelope reset
 	PARAM(ENV_RST, PG_ENVPORTAMODES, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
         // Single trig: behavior during rob and restore
 	PARAM(ASGN_MTRG, PG_ENVPORTAMODES, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
 	// Portamento mode: Exponential, Linear Constant Time, Linear Constant Rate
         PARAM(PORTAMODE, PG_ENVPORTAMODES, SP_PORTAMODE, "Porta Mode", "portamode", SP_MIN, SP_MAX, 0, setPortaMode)
+	// Portamento start pitch: by default start where voice happens to be,
+	// alternatively where previously triggered voice is.
+	PARAM(PORTANOTE, PG_ENVPORTAMODES, SP_PORTANOTE, "Porta Start", "portanote", SP_MIN, SP_MAX, 0, setPortaStartLastNote)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)

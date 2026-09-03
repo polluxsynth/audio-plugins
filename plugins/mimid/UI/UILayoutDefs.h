@@ -296,8 +296,9 @@ UILAYOUT_MODULE(2, PG_DSP, HORIZ, 8, 2)
     UILAYOUT_PARAM(ECONOMY_MODE, "Economy")
 UILAYOUT_MODULE_END
 
-UILAYOUT_MODULE(2, PG_ENVPORTAMODES, HORIZ, 1, 3, "Portam")
+UILAYOUT_MODULE(2, PG_ENVPORTAMODES, HORIZ, 1, 3, "Portamento")
     UILAYOUT_PARAM(PORTAMODE, "Mode")
+    UILAYOUT_PARAM(PORTANOTE, "Source")
 UILAYOUT_MODULE_END
 
 // -- Clean up --------------------------------------------------------------
