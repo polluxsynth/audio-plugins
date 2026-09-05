@@ -1,56 +1,118 @@
 diff --git a/distrho/DistrhoPlugin.hpp b/distrho/DistrhoPlugin.hpp
-index 8570f9e..ae6cd2e 100644
+index 8570f9e..c42e0ac 100644
 --- a/distrho/DistrhoPlugin.hpp
 +++ b/distrho/DistrhoPlugin.hpp
-@@ -339,8 +339,13 @@ protected:
-       Load a program.@n
-       The host may call this function from any context, including realtime processing.@n
-       Must be implemented by your plugin class only if DISTRHO_PLUGIN_WANT_PROGRAMS is enabled.
+@@ -51,6 +51,20 @@ START_NAMESPACE_DISTRHO
+    DISTRHO_PLUGIN_WANT_PROGRAMS activates program related features.@n
+    When enabled you need to implement initProgramName() and loadProgram().
+ 
++   DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE makes full-state restore (as
++   used by e.g. a saved VST3/CLAP preset file) deterministic regardless of
++   the plugin's prior runtime state: any parameter not covered by the
++   incoming state is reset to its coded default, rather than being left at
++   whatever value the plugin instance happened to already have. This holds
++   whether or not DISTRHO_PLUGIN_WANT_PROGRAMS is also enabled. When it is,
++   this flag additionally changes loadProgram()'s signature to accept an
++   optional bool* parametersSet out-parameter (see loadProgram()'s own
++   documentation for its contract), so that a parameter already covered by a
++   restored program is not needlessly reset a second time, nor incorrectly
++   overwritten if the program left it at a value other than its coded
++   default. Existing loadProgram() overrides need updating to populate
++   parametersSet when this flag is turned on.
++
+    DISTRHO_PLUGIN_WANT_STATE activates internal state features.@n
+    When enabled you need to implement initState() and setState().
+ 
+@@ -335,12 +349,30 @@ protected:
+     virtual void setParameterValue(uint32_t index, float value);
+ 
+ #if DISTRHO_PLUGIN_WANT_PROGRAMS
++ #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
++   /**
++      Load a program.@n
++      The host may call this function from any context, including realtime processing.@n
++      Must be implemented by your plugin class only if DISTRHO_PLUGIN_WANT_PROGRAMS is enabled.
 +      @param parametersSet Optional pointer to a caller-allocated, zero-initialized
 +             bool array of size getParameterCount(). If non-null, implementations
 +             must set parametersSet[i] = true for every parameter index i whose
 +             value this call assigns. Callers that don't need this information
 +             (e.g. a plain host-triggered program change) may omit it.
-     */
--    virtual void loadProgram(uint32_t index);
++      @note This extra parameter only exists because
++            DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE is enabled; see its
++            description above for why, and update any existing loadProgram()
++            override to match when turning this flag on.
++    */
 +    virtual void loadProgram(uint32_t index, bool* parametersSet = nullptr);
++ #else
+    /**
+       Load a program.@n
+       The host may call this function from any context, including realtime processing.@n
+       Must be implemented by your plugin class only if DISTRHO_PLUGIN_WANT_PROGRAMS is enabled.
+     */
+     virtual void loadProgram(uint32_t index);
++ #endif
  #endif
  
  #if DISTRHO_PLUGIN_WANT_FULL_STATE
 diff --git a/distrho/src/DistrhoPlugin.cpp b/distrho/src/DistrhoPlugin.cpp
-index e2ffadb..b763614 100644
+index e2ffadb..e87c481 100644
 --- a/distrho/src/DistrhoPlugin.cpp
 +++ b/distrho/src/DistrhoPlugin.cpp
-@@ -230,7 +230,7 @@ float Plugin::getParameterValue(uint32_t) const { return 0.0f; }
+@@ -230,7 +230,11 @@ float Plugin::getParameterValue(uint32_t) const { return 0.0f; }
  void Plugin::setParameterValue(uint32_t, float) {}
  
  #if DISTRHO_PLUGIN_WANT_PROGRAMS
--void Plugin::loadProgram(uint32_t) {}
++ #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +void Plugin::loadProgram(uint32_t, bool*) {}
++ #else
+ void Plugin::loadProgram(uint32_t) {}
++ #endif
  #endif
  
  #if DISTRHO_PLUGIN_WANT_FULL_STATE
+diff --git a/distrho/src/DistrhoPluginChecks.h b/distrho/src/DistrhoPluginChecks.h
+index 52dc9d7..70a250a 100644
+--- a/distrho/src/DistrhoPluginChecks.h
++++ b/distrho/src/DistrhoPluginChecks.h
+@@ -81,6 +81,10 @@
+ # define DISTRHO_PLUGIN_WANT_PROGRAMS 0
+ #endif
+ 
++#ifndef DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
++# define DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE 0
++#endif
++
+ #ifndef DISTRHO_PLUGIN_WANT_STATE
+ # define DISTRHO_PLUGIN_WANT_STATE 0
+ #endif
 diff --git a/distrho/src/DistrhoPluginInternal.hpp b/distrho/src/DistrhoPluginInternal.hpp
-index d0bef80..ff37edf 100644
+index d0bef80..212e5cb 100644
 --- a/distrho/src/DistrhoPluginInternal.hpp
 +++ b/distrho/src/DistrhoPluginInternal.hpp
-@@ -841,12 +841,12 @@ public:
+@@ -841,12 +841,20 @@ public:
          return fData->programNames[index];
      }
  
 -    void loadProgram(const uint32_t index)
-+    void loadProgram(const uint32_t index, bool* const parametersSet = nullptr)
++    void loadProgram(const uint32_t index
++                     #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
++                      , bool* const parametersSet = nullptr
++                     #endif
++                     )
      {
          DISTRHO_SAFE_ASSERT_RETURN(fPlugin != nullptr,);
          DISTRHO_SAFE_ASSERT_RETURN(fData != nullptr && index < fData->programCount,);
  
--        fPlugin->loadProgram(index);
++       #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +        fPlugin->loadProgram(index, parametersSet);
++       #else
+         fPlugin->loadProgram(index);
++       #endif
      }
  #endif
  
 diff --git a/distrho/src/DistrhoPluginVST3.cpp b/distrho/src/DistrhoPluginVST3.cpp
-index 7295c89..7d3e398 100644
+index 7295c89..c3b2059 100644
 --- a/distrho/src/DistrhoPluginVST3.cpp
 +++ b/distrho/src/DistrhoPluginVST3.cpp
 @@ -55,6 +55,7 @@
@@ -61,57 +123,65 @@ index 7295c89..7d3e398 100644
  #include <string>
  #include <vector>
  
-@@ -954,6 +955,19 @@ public:
+@@ -954,6 +955,20 @@ public:
          bool fillingKey = true; // if filling key or value
          char queryingType = 'i'; // can be 'n', 's' or 'p' (none, states, parameters)
  
++       #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +        // Tracks which parameters this call actually assigned a value to,
 +        // whether via a loaded program or an explicit "__dpf_parameters_begin__"
 +        // entry, so that anything left untouched can be backfilled with its
 +        // coded default below instead of silently keeping whatever value the
-+        // plugin instance happened to have before this call (see the
-+        // discussion around ttl2vstpreset.sh for why that backfill matters).
++        // plugin instance happened to have before this call.
 +        // A plain new[]/delete[] pair would leak on the early-return paths
 +        // below (several of which are inside the read loop), so this needs
 +        // to be RAII; std::vector<bool> is NOT usable here since its
 +        // bit-packed specialization can't hand back a real bool* for
 +        // loadProgram()'s out-parameter.
 +        const std::unique_ptr<bool[]> paramsSet(new bool[fParameterCount]());
++       #endif
 +
          char buffer[512], orig;
          buffer[sizeof(buffer)-1] = '\xff';
          v3_result res;
-@@ -1063,7 +1077,7 @@ public:
+@@ -1063,7 +1078,11 @@ public:
                          DISTRHO_SAFE_ASSERT_CONTINUE(program >= 0);
  
                          fCurrentProgram = static_cast<uint32_t>(program);
--                        fPlugin.loadProgram(fCurrentProgram);
++                       #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +                        fPlugin.loadProgram(fCurrentProgram, paramsSet.get());
++                       #else
+                         fPlugin.loadProgram(fCurrentProgram);
++                       #endif
  
                         #if DISTRHO_PLUGIN_HAS_UI
                          if (connectedToUI)
-@@ -1135,6 +1149,7 @@ public:
+@@ -1135,6 +1154,9 @@ public:
                              }
                             #endif
                              fPlugin.setParameterValue(j, fvalue);
++                           #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +                            paramsSet[j] = true;
++                           #endif
                              break;
                          }
                      }
-@@ -1146,6 +1161,47 @@ public:
+@@ -1146,6 +1168,50 @@ public:
              }
          }
  
++       #if DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +        // Anything not explicitly touched above -- whether because it was
-+        // never mentioned by the incoming state at all, or because a
-+        // requested program index turned out to be invalid and
-+        // fPlugin.loadProgram() silently no-op'd -- is reset to its coded
-+        // default here, rather than being left at whatever value this
-+        // plugin instance happened to have before this call. This is what
-+        // makes a (possibly partial) state restore deterministic regardless
-+        // of the plugin's prior runtime state. Each parameter is still only
-+        // ever assigned once per call: this loop is disjoint from both the
-+        // program-load and explicit-parameter-list assignments above.
++        // never mentioned by the incoming state at all, or (when
++        // DISTRHO_PLUGIN_WANT_PROGRAMS is also enabled) because a requested
++        // program index turned out to be invalid and fPlugin.loadProgram()
++        // silently no-op'd -- is reset to its coded default here, rather
++        // than being left at whatever value this plugin instance happened
++        // to have before this call. This is what makes a (possibly
++        // partial) state restore deterministic regardless of the plugin's
++        // prior runtime state. Each parameter is still only ever assigned
++        // once per call: this loop is disjoint from both the program-load
++        // and explicit-parameter-list assignments above.
 +        for (uint32_t j = 0; j < fParameterCount; ++j)
 +        {
 +            if (paramsSet[j] || fPlugin.isParameterOutputOrTrigger(j))
@@ -142,6 +212,7 @@ index 7295c89..7d3e398 100644
 +
 +            fPlugin.setParameterValue(j, fvalue);
 +        }
++       #endif // DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE
 +
          if (fComponentHandler != nullptr && componentValuesChanged)
              v3_cpp_obj(fComponentHandler)->restart_component(fComponentHandler, V3_RESTART_PARAM_VALUES_CHANGED);
