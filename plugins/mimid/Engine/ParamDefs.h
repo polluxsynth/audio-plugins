@@ -45,7 +45,9 @@
 
 	// Parameter groups
 	PARAMGROUP(PG_MAIN, "Main", "g101_main")
-	PARAMGROUP(PG_KEYASGN, "Key Assign", "g102_keyassign")
+	PARAMGROUP(PG_VOICING, "Voicing", "g102_voicing")
+	PARAMGROUP(PG_KEYASGN, "Key Assign ", "g103_keyassign")
+	PARAMGROUP(PG_ENVMODES, "Env Ctrl", "g104_envctrl")
 	PARAMGROUP(PG_BEND, "Bend", "g303_bend")
 	PARAMGROUP(PG_CONTR, "Controllers", "g304_controllers")
 	PARAMGROUP(PG_LFO1, "Modulation 1", "g301_mod_lfo1")
@@ -101,14 +103,14 @@
 	PARAM(TUNE, PG_MAIN, SP_NONE, "Tune", "tune", -1.0, 1.0, 0.0, setTune)
 	PARAM(OCTAVE, PG_MAIN, SP_INTS, "Octave", "octave", -2, 2, 0, setOctave)
 
-	// Key assignment #1 (general)
-	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 32, 12, setVoiceCount)
-	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", SP_MIN, SP_MAX, 0, setKeyAsgnMode)
+	// Key assignment #1 - Voicing (voice count and mode)
+	PARAM(VOICE_COUNT, PG_VOICING, SP_INTS, "VoiceCount", "voicecount", 1, 32, 12, setVoiceCount)
+	PARAM(ASGN_MODE, PG_VOICING, SP_ASGNMODE, "Assign Mode", "keyasgnmode", SP_MIN, SP_MAX, 0, setKeyAsgnMode)
 	// Unison
-	PARAM(UNISON_PAN, PG_KEYASGN, SP_NONE, "Dual Width", "unisonwidth", 0, 10, 10, setUnisonPanAmt)
-	PARAM(UNISON_DETUNE, PG_KEYASGN, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
+	PARAM(UNISON_PAN, PG_VOICING, SP_NONE, "Dual Width", "unisonwidth", 0, 10, 10, setUnisonPanAmt)
+	PARAM(UNISON_DETUNE, PG_VOICING, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
 
-	// Key assignment #2 (modes)
+	// Key assignment #2 (key assign modes)
         // ReSet to Zero (lowest) voice (default cyclic)
 	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "Assign Order", "keyassignrsz", SP_MIN, SP_MAX, 0, setKeyAsgnRsz)
         // Prefer assign to voice previously with same note
@@ -121,9 +123,9 @@
 
 	// Key assignment #3 (Envelope reset and single trig)
 	// Envelope reset
-	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
+	PARAM(ENV_RST, PG_ENVMODES, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	PARAM(ASGN_MTRG, PG_ENVMODES, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)
