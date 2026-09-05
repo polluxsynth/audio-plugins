@@ -19,12 +19,25 @@ NOOPT=false
 
 include dpf/Makefile.base.mk
 
-all: dgl plugins gen # fixup not used in mainstream version
+all: apply-patch dgl plugins gen # fixup not used in mainstream version
 
 # --------------------------------------------------------------
 
 PREFIX ?= /usr/local
 DESTDIR ?=
+
+# --------------------------------------------------------------
+
+# Patch DPF for loading defaults when parameters missing from patch file
+
+DPF_PATCH=vst3_loadprogram_backfill.patch
+apply-patch:
+	@cd dpf; if patch -p 1 --dry-run --reverse -s -f < ../$(DPF_PATCH) > /dev/null 2>&1; then \
+		echo "Patch already applied! Skipping."; \
+	else \
+		echo "Patch not found. Applying now..."; \
+		patch -p 1 < ../$(DPF_PATCH); \
+	fi
 
 # --------------------------------------------------------------
 

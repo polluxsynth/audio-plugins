@@ -1,0 +1,148 @@
+diff --git a/distrho/DistrhoPlugin.hpp b/distrho/DistrhoPlugin.hpp
+index 8570f9e..ae6cd2e 100644
+--- a/distrho/DistrhoPlugin.hpp
++++ b/distrho/DistrhoPlugin.hpp
+@@ -339,8 +339,13 @@ protected:
+       Load a program.@n
+       The host may call this function from any context, including realtime processing.@n
+       Must be implemented by your plugin class only if DISTRHO_PLUGIN_WANT_PROGRAMS is enabled.
++      @param parametersSet Optional pointer to a caller-allocated, zero-initialized
++             bool array of size getParameterCount(). If non-null, implementations
++             must set parametersSet[i] = true for every parameter index i whose
++             value this call assigns. Callers that don't need this information
++             (e.g. a plain host-triggered program change) may omit it.
+     */
+-    virtual void loadProgram(uint32_t index);
++    virtual void loadProgram(uint32_t index, bool* parametersSet = nullptr);
+ #endif
+ 
+ #if DISTRHO_PLUGIN_WANT_FULL_STATE
+diff --git a/distrho/src/DistrhoPlugin.cpp b/distrho/src/DistrhoPlugin.cpp
+index e2ffadb..b763614 100644
+--- a/distrho/src/DistrhoPlugin.cpp
++++ b/distrho/src/DistrhoPlugin.cpp
+@@ -230,7 +230,7 @@ float Plugin::getParameterValue(uint32_t) const { return 0.0f; }
+ void Plugin::setParameterValue(uint32_t, float) {}
+ 
+ #if DISTRHO_PLUGIN_WANT_PROGRAMS
+-void Plugin::loadProgram(uint32_t) {}
++void Plugin::loadProgram(uint32_t, bool*) {}
+ #endif
+ 
+ #if DISTRHO_PLUGIN_WANT_FULL_STATE
+diff --git a/distrho/src/DistrhoPluginInternal.hpp b/distrho/src/DistrhoPluginInternal.hpp
+index d0bef80..ff37edf 100644
+--- a/distrho/src/DistrhoPluginInternal.hpp
++++ b/distrho/src/DistrhoPluginInternal.hpp
+@@ -841,12 +841,12 @@ public:
+         return fData->programNames[index];
+     }
+ 
+-    void loadProgram(const uint32_t index)
++    void loadProgram(const uint32_t index, bool* const parametersSet = nullptr)
+     {
+         DISTRHO_SAFE_ASSERT_RETURN(fPlugin != nullptr,);
+         DISTRHO_SAFE_ASSERT_RETURN(fData != nullptr && index < fData->programCount,);
+ 
+-        fPlugin->loadProgram(index);
++        fPlugin->loadProgram(index, parametersSet);
+     }
+ #endif
+ 
+diff --git a/distrho/src/DistrhoPluginVST3.cpp b/distrho/src/DistrhoPluginVST3.cpp
+index 7295c89..7d3e398 100644
+--- a/distrho/src/DistrhoPluginVST3.cpp
++++ b/distrho/src/DistrhoPluginVST3.cpp
+@@ -55,6 +55,7 @@
+ #include "travesty/host.h"
+ 
+ #include <map>
++#include <memory>
+ #include <string>
+ #include <vector>
+ 
+@@ -954,6 +955,19 @@ public:
+         bool fillingKey = true; // if filling key or value
+         char queryingType = 'i'; // can be 'n', 's' or 'p' (none, states, parameters)
+ 
++        // Tracks which parameters this call actually assigned a value to,
++        // whether via a loaded program or an explicit "__dpf_parameters_begin__"
++        // entry, so that anything left untouched can be backfilled with its
++        // coded default below instead of silently keeping whatever value the
++        // plugin instance happened to have before this call (see the
++        // discussion around ttl2vstpreset.sh for why that backfill matters).
++        // A plain new[]/delete[] pair would leak on the early-return paths
++        // below (several of which are inside the read loop), so this needs
++        // to be RAII; std::vector<bool> is NOT usable here since its
++        // bit-packed specialization can't hand back a real bool* for
++        // loadProgram()'s out-parameter.
++        const std::unique_ptr<bool[]> paramsSet(new bool[fParameterCount]());
++
+         char buffer[512], orig;
+         buffer[sizeof(buffer)-1] = '\xff';
+         v3_result res;
+@@ -1063,7 +1077,7 @@ public:
+                         DISTRHO_SAFE_ASSERT_CONTINUE(program >= 0);
+ 
+                         fCurrentProgram = static_cast<uint32_t>(program);
+-                        fPlugin.loadProgram(fCurrentProgram);
++                        fPlugin.loadProgram(fCurrentProgram, paramsSet.get());
+ 
+                        #if DISTRHO_PLUGIN_HAS_UI
+                         if (connectedToUI)
+@@ -1135,6 +1149,7 @@ public:
+                             }
+                            #endif
+                             fPlugin.setParameterValue(j, fvalue);
++                            paramsSet[j] = true;
+                             break;
+                         }
+                     }
+@@ -1146,6 +1161,47 @@ public:
+             }
+         }
+ 
++        // Anything not explicitly touched above -- whether because it was
++        // never mentioned by the incoming state at all, or because a
++        // requested program index turned out to be invalid and
++        // fPlugin.loadProgram() silently no-op'd -- is reset to its coded
++        // default here, rather than being left at whatever value this
++        // plugin instance happened to have before this call. This is what
++        // makes a (possibly partial) state restore deterministic regardless
++        // of the plugin's prior runtime state. Each parameter is still only
++        // ever assigned once per call: this loop is disjoint from both the
++        // program-load and explicit-parameter-list assignments above.
++        for (uint32_t j = 0; j < fParameterCount; ++j)
++        {
++            if (paramsSet[j] || fPlugin.isParameterOutputOrTrigger(j))
++                continue;
++
++            const float fvalue = fPlugin.getParameterRanges(j).def;
++
++            fCachedParameterValues[kVst3InternalParameterBaseCount + j] = fvalue;
++
++           #if DPF_VST3_USES_SEPARATE_CONTROLLER
++            // If this is the component make sure the controller also knows about the state change
++            if (fIsComponent)
++            {
++                componentValuesChanged = true;
++                fParameterValuesChangedDuringProcessing[kVst3InternalParameterBaseCount + j] = true;
++            }
++           #else
++            componentValuesChanged = true;
++           #endif
++
++           #if DISTRHO_PLUGIN_HAS_UI
++            if (connectedToUI)
++            {
++                // UI parameter updates are handled outside the read loop (after host param restart)
++                fParameterValueChangesForUI[kVst3InternalParameterBaseCount + j] = true;
++            }
++           #endif
++
++            fPlugin.setParameterValue(j, fvalue);
++        }
++
+         if (fComponentHandler != nullptr && componentValuesChanged)
+             v3_cpp_obj(fComponentHandler)->restart_component(fComponentHandler, V3_RESTART_PARAM_VALUES_CHANGED);
+ 
