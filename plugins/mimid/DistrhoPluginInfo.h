@@ -26,6 +26,7 @@
 #define DISTRHO_PLUGIN_BRAND_ID Pllx
 #define DISTRHO_PLUGIN_NAME  "MiMi-d"
 #define DISTRHO_PLUGIN_URI   "https://butoba.net/homepage/mimid.html"
+#define DISTRHO_PLUGIN_CLAP_ID "com.polluxsynth.mimid"
 
 #define PLUGIN_VERSION_MAJOR 2
 #define PLUGIN_VERSION_MINOR 3
