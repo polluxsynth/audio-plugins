@@ -47,3 +47,6 @@ add_param "\"lfo3polarity\"" "\"lfo3dest\"" 0.0 $1
 add_param "\"lfo3rate\"" "\"lfo3polarity\"" 6.0 $1
 add_param "\"lfo3shape\"" "\"lfo3rate\"" 2.5 $1
 add_param "\"lfo3sync\"" "\"lfo3shape\"" 0.0 $1
+
+add_param "\"portamode\"" "\"portamentospread\"" 0.0 $1
+add_param "\"portastart\"" "\"portamode\"" 0.0 $1
