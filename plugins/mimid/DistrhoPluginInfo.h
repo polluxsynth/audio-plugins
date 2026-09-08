@@ -29,8 +29,8 @@
 #define DISTRHO_PLUGIN_CLAP_ID "com.polluxsynth.mimid"
 
 #define PLUGIN_VERSION_MAJOR 2
-#define PLUGIN_VERSION_MINOR 3
-#define PLUGIN_VERSION_MICRO 6
+#define PLUGIN_VERSION_MINOR 4
+#define PLUGIN_VERSION_MICRO 0
 
 #define DISTRHO_PLUGIN_NUM_INPUTS                    0
 #define DISTRHO_PLUGIN_NUM_OUTPUTS                   2
