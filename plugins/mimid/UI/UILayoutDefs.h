@@ -76,6 +76,11 @@ static constexpr const char *SPLASH_TEXT[] = {
     "- falkTX (Filipe Coelho) for the Distrho Plugin Framework.",
     nullptr
 };
+static constexpr const char *SPLASH_DONATE_TEXT[] = {
+    "If you find MiMi-d useful, consider supporting development",
+    "by donating via Paypal to polluxsynth@butoba.net",
+    nullptr,
+};
 #define SPLASH_CLOSE_HINT_TEXT "Click or press Escape to close"
 
 // Button strip label strings
@@ -115,7 +120,7 @@ UILAYOUT_MODULE(0, PG_MAIN, VERT, 0, 0)
     UILAYOUT_PARAM(VOLUME)
     UILAYOUT_PARAM(TUNE)
     UILAYOUT_PARAM(OCTAVE)
-    UILAYOUT_PARAM(PORTAMENTO, "Portam")
+    UILAYOUT_PARAM(PORTAMENTO, "Porta Time")
 UILAYOUT_MODULE_END
 
 // ===========================================================================
@@ -245,15 +250,19 @@ UILAYOUT_MODULE_END
 // PAGE 2  -  Assign / Controllers / Misc
 // ===========================================================================
 
-UILAYOUT_MODULE(2, PG_KEYASGN, HORIZ, 1, 0)
+UILAYOUT_MODULE(2, PG_VOICING, HORIZ, 1, 0, "Voicing")
     UILAYOUT_PARAM(VOICE_COUNT)
     UILAYOUT_PARAM(ASGN_MODE, "Mode")
     UILAYOUT_PARAM(UNISON_PAN)
     UILAYOUT_PARAM(UNISON_DETUNE)
+UILAYOUT_MODULE_END
+UILAYOUT_MODULE(2, PG_KEYASGN, HORIZ, 5, 0, "Key assign")
     UILAYOUT_PARAM(ASGN_RSZ, "Allocation")
     UILAYOUT_PARAM(ASGN_MEM, "Memory")
-    UILAYOUT_PARAM(ASGN_ROB)
-    UILAYOUT_PARAM(ASGN_RES)
+    UILAYOUT_PARAM(ASGN_ROB, "Rob")
+    UILAYOUT_PARAM(ASGN_RES, "Restore")
+UILAYOUT_MODULE_END
+UILAYOUT_MODULE(2, PG_ENVPORTAMODES, HORIZ, 9, 0, "Env mode")
     UILAYOUT_PARAM(ASGN_MTRG)
     UILAYOUT_PARAM(ENV_RST, "Env Attack")
 UILAYOUT_MODULE_END
@@ -290,6 +299,11 @@ UILAYOUT_MODULE_END
 UILAYOUT_MODULE(2, PG_DSP, HORIZ, 8, 2)
     UILAYOUT_PARAM(OVERSAMPLE, "Ovrsample")
     UILAYOUT_PARAM(ECONOMY_MODE, "Economy")
+UILAYOUT_MODULE_END
+
+UILAYOUT_MODULE(2, PG_ENVPORTAMODES, HORIZ, 1, 3, "Portamento")
+    UILAYOUT_PARAM(PORTAMODE, "Mode")
+    UILAYOUT_PARAM(PORTASTART, "Start")
 UILAYOUT_MODULE_END
 
 // -- Clean up --------------------------------------------------------------

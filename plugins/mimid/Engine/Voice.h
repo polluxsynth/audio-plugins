@@ -84,7 +84,8 @@ private:
 
 	// State variables for various single pole filters
 	float oschpfst; // 12 Hz oscillator HPF
-	float prtst; // portamento
+	float prtst; // exponential portamento LPF state
+	float linst; // linear portamento state
 	float hpfst; // HPF between filter and VCA
 
 	// offset to get apparent zero cutoff frequency shift with oscmod
@@ -147,9 +148,12 @@ public:
 
 	float osc2FltMod;
 
-	float hpffreq, hpfcutoff;
+	float hpffreq, hpflpc;
+	float oschpflpc;
 
 	int midiIndx;
+	float ptTarget; // Note value before portamento
+	float ptNote; // Note value after portamento
 
 	bool Active; // = Gate, set on at Note On, off at Note Off
 	bool shouldProcess; // Lenv is not off, i.e. DSP should be run
@@ -160,8 +164,13 @@ public:
 
 	float fltKF;
 
-	float porta, portaSaved;
+	// Exponential portamento
+	float portaSaved, portalpc, portalpcSaved, portalpcMax;
+	// LCR portamento
+	float portaRate, portaRateSaved, portaLinScale;
 	bool portaEnable;
+	int portaMode; // 0: exp (LPF), 1: LCT, 2: LCR
+	bool portaLastNote; // start at pitch of last voice played
 
 	float pitchWheel, pitchWheelAmt;
 
@@ -206,14 +215,18 @@ public:
 		oscKeySync = false;
 		envRst = false;
 		hpffreq = 4;
-		hpfcutoff = 0;
+		hpflpc = 0;
+		oschpflpc = 0;
 		osc2FltMod = 0;
 		pitchWheel = pitchWheelAmt = 0;
 		PortaSpreadAmt = 1;
 		FltSpreadAmt = 0;
 		levelSpreadAmt = 1;
-		portaSaved = porta = 0;
+		portaSaved = 0;
+		portaRateSaved = portaRate = 0;
+		portaLinScale = 1.0f;
 		portaEnable = false;
+		portaMode = 0;
 		oschpfst = hpfst = prtst = 0;
 		fltKF = false;
 		cutoff = 0;
@@ -223,6 +236,7 @@ public:
 		detunePosition = 0;
 		Active = false;
 		midiIndx = 30;
+		ptTarget = ptNote = midiIndx - 93;
 		levelSpread = SRandom::globalRandom().nextFloat()-0.5;
 		EnvSpread = SRandom::globalRandom().nextFloat()-0.5;
 		FenvSpread = SRandom::globalRandom().nextFloat()-0.5;
@@ -242,6 +256,34 @@ public:
 	}
 	~Voice()
 	{
+	}
+	inline void processPortamento()
+	{
+		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
+		// Pitch calc base frequency is 440 Hz, but the default
+		// osc pitch is 24 (semitones), resulting in
+		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
+		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
+		// Portamento on osc input voltage.
+		// Exp mode (default): one-pole LPF => exponential/RC-style
+		// slew, glide time independent of interval.
+		// LCR mode: linear slew at constant rate (semitones/sec) =>
+		// glide time proportional to interval, like in Minimoog et al.
+		// linst holds the current glided note; at a note boundary the
+		// previous glide has settled, so the linear slew starts correctly.
+		if (portaMode == 0) { // Exp
+			// Portamento on osc input voltage using LPF
+			ptNote = tptlpc(prtst, ptTarget, portalpc);
+		} else { // Lin (LCT and LCR)
+			float step = portaLinScale * portaRate * PortaSpreadAmt * modRateInv;
+			float diff = ptTarget - ptNote;
+			float clamped = maxf(-step, minf(step, diff));
+			ptNote += clamped;
+			// While in linear mode, prime the Exp LP state
+			// to avoid jumps if the mode is changed while a
+			// portamento sweep is taking place
+			prtst = ptNote;
+		}
 	}
 	inline void processModulation()
 	{
@@ -279,21 +321,14 @@ public:
 		osc.oscmodulation.pto1 = 0;
 		osc.oscmodulation.pto2 = 0;
 
-		// Midi note 93 is A6 (1760 Hz), so ptNote == 0 => 1760 Hz
-		// Pitch calc base frequency is 440 Hz, but the default
-		// osc pitch is 24 (semitones), resulting in
-		// 440 Hz + 2 octaves = 440 * 2 * 2 = 1760 Hz.
-		// (Default osc tuning at midi 60 is middle C = C4 = 261.63 Hz)
-		// Portamento on osc input voltage using LPF
-		float ptNote = tptlpupw(prtst, midiIndx-93, porta * PortaSpreadAmt, modRateInv);
-		osc.notePlaying = ptNote;
+		osc.notePlaying = ptNote; // from processPortamento
 
 		// Filter cutoff and resonance
 		// ptNote+54 => Eb2 = 77.78 Hz is base note for filter tracking
 		cutoffnote =
 			cutoff +
 			FltSpreadAmt +
-                        fenvamt * envm +
+			fenvamt * envm +
 			-54 + (fltKF * (ptNote + filtertune + 54));
 
 		rescalc = res;
@@ -401,7 +436,7 @@ public:
 		// HPF on oscillator output to get rid of any DC,
 		// simulating a fairly large coupling capacitor.
 		// TODO: filter oscmod as well to reduce aliasing?
-		oscps = oscps - tptlpupw(oschpfst, oscps, 12, audioRateInv);
+		oscps = oscps - tptlpc(oschpfst, oscps, oschpflpc);
 
 		// Filter exp cutoff calculation
 		// Needs to be done after we've gotten oscmod
@@ -415,7 +450,7 @@ public:
 		float x1 = flt.Apply4Pole(oscps, cutoffcalc, rescalc);
 
 		// HPF
-		x1 -= tptpc(hpfst, x1, hpfcutoff);
+		x1 -= tptlpc(hpfst, x1, hpflpc);
 
 		// Distortion/overdrive
 		x1 = sqdist.Apply(x1);
@@ -459,7 +494,7 @@ public:
 	void setHPFfreq(float val)
 	{
 		hpffreq = val;
-		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
+		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
 	}
 	void setEnvSpreadAmt(float d)
 	{
@@ -561,11 +596,22 @@ public:
 		else
 			osc.removeDecimation();
 	}
+	void setPorta()
+	{
+		portalpcSaved = lpccalc(portaSaved * PortaSpreadAmt, modRateInv);
+		if (portaEnable)
+			portalpc = portalpcSaved;
+	}
 	void setPorta(float newPorta)
 	{
 		portaSaved = newPorta;
+		setPorta();
+	}
+	void setPortaRate(float newRate)
+	{
+		portaRateSaved = newRate;
 		if (portaEnable)
-			porta = portaSaved;
+			portaRate = portaRateSaved;
 	}
 	void setSampleRate(float sr, int oversamplingRatio, int modulationRatio)
 	{
@@ -583,7 +629,10 @@ public:
 		lfo2.setSampleRate(modRate);
 		lfo3.setSampleRate(modRate);
 		afterTouchSmoother.setSampleRate(modRate);
-		hpfcutoff = tanf(hpffreq * audioRateInv * pi);
+		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
+		oschpflpc = lpccalc(12.0f /* Hz */, audioRateInv);
+		portalpcMax = lpccalc(250, audioRateInv);
+		setPorta();
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
 		// whichever is smaller.
@@ -598,7 +647,7 @@ public:
 		// oscillator class, so we need to adjust the length
 		// depending on the oversampling ratio so the delay
 		// lines have the same length in units of time.
-		int delayLineLength = 2 * Samples / oversamplingRatio  / modulationRatio;
+		int delayLineLength = 2 * Samples / oversamplingRatio / modulationRatio;
 		// If length is 1 we get no delay at all, so minimize at 2
 		if (delayLineLength < 2) delayLineLength = 2;
 		lenvd.setLength(delayLineLength);
@@ -615,7 +664,7 @@ public:
 		env.ResetEnvelopeState();
 		fenv.ResetEnvelopeState();
 	}
-	void NoteOn(int mididx, float velocity, bool multiTrig, bool doPorta = true)
+	void NoteOn(int mididx, float velocity, Voice *lastAllocatedVoice, bool multiTrig, bool doPorta = true)
 	{
 		if (!shouldProcess)
 		{
@@ -633,7 +682,23 @@ public:
 			// Scale velocity according to velscale [ 8..1..1/8 ]
 			// range is same (0..1 -> 0..1), but scale changes
 			velocityValue = powf(velocity, velscale);
-		midiIndx = mididx;
+		midiIndx = mididx; // midiIndx is read by key assigner
+		ptTarget = midiIndx - 93; // actual target note before porta
+		if (portaLastNote && lastAllocatedVoice) {
+			// Jump directly to current pitch of last allocated
+			// voice.
+			prtst = ptNote = lastAllocatedVoice->ptNote;
+		}
+			
+		if (portaMode == 1) { // LCT
+			// Diff from where we are now to new note
+			float ptDiff = fabsf(ptTarget - ptNote);
+			// At one octave, LCT time == LCR time
+			portaLinScale = ptDiff * (1.0f / 12.0f);
+		} else { // LCR (mode 2)
+			portaLinScale = 1.0f;
+		}
+
 		if (!Active || multiTrig) {
 			if (envRst) {
 				ResetEnvelopes();
@@ -652,7 +717,14 @@ public:
 			osc.keyReset = true;
 		Active = true;
 		portaEnable = doPorta;
-		porta = portaEnable ? portaSaved : 250;
+		// Exponential portamento
+		portalpc = portaEnable ? portalpcSaved : portalpcMax;
+		// LCR portamento
+		portaRate = portaEnable ? portaRateSaved :
+					  // 4 ms / octave minimum rate
+					  // (Disregard spread here)
+					  (12.0f / 4.0e-3f) * modRateInv;
+
 	}
 	void NoteOff()
 	{

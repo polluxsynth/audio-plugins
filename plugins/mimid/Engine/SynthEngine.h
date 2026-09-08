@@ -361,9 +361,34 @@ public:
 	}
 	void setPortamento(float param)
 	{
-		float porta = timesc(10 - param, 0.14f, 250);
+		// Exp mode: one-pole LPF cutoff (0.14 .. 250 Hz).
+		float portaFc = timesc(10 - param, 0.14f, 250);
 
-		ForEachVoice(setPorta(porta));
+		ForEachVoice(setPorta(portaFc));
+
+		// Linear Constant Rate mode: constant glide rate in
+		// semitones/sec, expressed as time to traverse one octave
+		// (~4 ms fast .. 4 s slow).
+		// Rationale: At max portamento, the exponential portamento
+		// has a time constant of 1.14 s (equivalent to 0.14 Hz)
+		// 3xT (equivalent to 95% of asymptote => 3.42 s, so we round
+		// to 4 s.
+		// For Linear Constant Time, scale the LCR rate relative
+		// to one octave (at note on time).
+		float octaveTime = timesc(param, 0.004f, 4.0f);
+		float portaRate = 12.0f / octaveTime;
+
+		ForEachVoice(setPortaRate(portaRate));
+	}
+	void setPortaMode(float param)
+	{
+		int intval = roundToInt(param);
+		ForEachVoice(portaMode = intval);
+	}
+	void setPortaStartLastNote(float param)
+	{
+		int intval = roundToInt(param);
+		ForEachVoice(portaLastNote = !!intval);
 	}
 	void setVolume(float param)
 	{
@@ -685,9 +710,11 @@ public:
 	void setPortamentoSpread(float param)
 	{
 		float PortaSpreadAmt = linsc(param, 0.0f, 0.75f);
-		for (int i = 0; i < synth.MAX_VOICES; i++)
+		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].PortaSpreadAmt =
 				1 + PortaSpreadAmt * synth.voices[i].PortaSpread;
+			synth.voices[i].setPorta();
+		}
 	}
 	void setLoudnessSpread(float param)
 	{

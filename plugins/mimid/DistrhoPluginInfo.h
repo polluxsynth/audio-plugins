@@ -23,19 +23,22 @@
 #define _DISTRHO_PLUGIN_INFO_H_
 
 #define DISTRHO_PLUGIN_BRAND "Pollux"
+#define DISTRHO_PLUGIN_BRAND_ID Pllx
 #define DISTRHO_PLUGIN_NAME  "MiMi-d"
 #define DISTRHO_PLUGIN_URI   "https://butoba.net/homepage/mimid.html"
+#define DISTRHO_PLUGIN_CLAP_ID "com.polluxsynth.mimid"
 
 #define PLUGIN_VERSION_MAJOR 2
-#define PLUGIN_VERSION_MINOR 3
-#define PLUGIN_VERSION_MICRO 2
+#define PLUGIN_VERSION_MINOR 4
+#define PLUGIN_VERSION_MICRO 0
 
-#define DISTRHO_PLUGIN_NUM_INPUTS   0
-#define DISTRHO_PLUGIN_NUM_OUTPUTS  2
-#define DISTRHO_PLUGIN_IS_SYNTH     1
-#define DISTRHO_PLUGIN_HAS_UI       1
-#define DISTRHO_PLUGIN_IS_RT_SAFE   1
-#define DISTRHO_PLUGIN_WANT_TIMEPOS 1
+#define DISTRHO_PLUGIN_NUM_INPUTS                    0
+#define DISTRHO_PLUGIN_NUM_OUTPUTS                   2
+#define DISTRHO_PLUGIN_IS_SYNTH                      1
+#define DISTRHO_PLUGIN_HAS_UI                        1
+#define DISTRHO_PLUGIN_IS_RT_SAFE                    1
+#define DISTRHO_PLUGIN_WANT_TIMEPOS                  1
+#define DISTRHO_PLUGIN_WANT_STRICT_PARAMETER_RESTORE 1
 
 #define DISTRHO_UI_USE_CAIRO        1
 

@@ -11,6 +11,7 @@
 # makefile statement with haphazard results.
 $(shell [ -f dpf/Makefile.base.mk ] || git submodule update --init --recursive dpf 1>&2)
 
+TARGET=all
 PLUGIN=mimid
 PLUGIN_NAME=MiMi-d
 WITH_LTO=true
@@ -18,12 +19,25 @@ NOOPT=false
 
 include dpf/Makefile.base.mk
 
-all: dgl plugins gen fixup
+all: apply-patch dgl plugins gen fixup
 
 # --------------------------------------------------------------
 
 PREFIX ?= /usr/local
 DESTDIR ?=
+
+# --------------------------------------------------------------
+
+# Patch DPF for loading defaults when parameters missing from patch file
+
+DPF_PATCH=vst3_clap_loadprogram_backfill.patch
+apply-patch:
+	@cd dpf; if patch -p 1 --dry-run --reverse -s -f < ../$(DPF_PATCH) > /dev/null 2>&1; then \
+		echo "Patch already applied! Skipping."; \
+	else \
+		echo "Patch not found. Applying now..."; \
+		patch -p 1 < ../$(DPF_PATCH); \
+	fi
 
 # --------------------------------------------------------------
 
@@ -33,7 +47,8 @@ ifeq ($(HAVE_OPENGL),true)
 endif
 
 plugins: dgl
-	$(MAKE) WITH_LTO=$(WITH_LTO) NOOPT=$(NOOPT) all -C plugins/$(PLUGIN)
+	@echo "Making $(TARGET)"
+	$(MAKE) WITH_LTO=$(WITH_LTO) NOOPT=$(NOOPT) -C plugins/$(PLUGIN) $(TARGET)
 
 ifneq ($(CROSS_COMPILING),true)
 gen: plugins dpf/utils/lv2_ttl_generator

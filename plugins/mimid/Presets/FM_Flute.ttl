@@ -243,6 +243,12 @@
 		lv2:symbol "portamentospread" ;
 		pset:value 0.0
 	] , [
+		lv2:symbol "portamode" ;
+		pset:value 0.0
+	] , [
+		lv2:symbol "portastart" ;
+		pset:value 0.0
+	] , [
 		lv2:symbol "release" ;
 		pset:value 1.62
 	] , [
@@ -268,9 +274,6 @@
 		pset:value 0.01
 	] , [
 		lv2:symbol "unisonwidth" ;
-		pset:value 10.0
-	] , [
-		lv2:symbol "unisonpan" ;
 		pset:value 10.0
 	] , [
 		lv2:symbol "unused_1" ;

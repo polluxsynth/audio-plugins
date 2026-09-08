@@ -176,6 +176,7 @@ private:
 	float velsave[128]; // one per note number
 	float atsave[128]; // poly aftertouch
 	bool usingPolyAfterTouch;
+	Voice *lastAllocatedVoice;
 
 	// Unison mode
 	int uniNote;
@@ -194,7 +195,8 @@ public:
 
 	VoiceAllocator(Voice (&initVoices)[S], Pannings<S> &initPannings):
 		offpri(initVoices), onpri(), restore_stack(),
-		voices(initVoices), pannings(initPannings)
+		voices(initVoices), pannings(initPannings),
+		lastAllocatedVoice(NULL)
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
@@ -417,7 +419,8 @@ private:
 		setVoiceAfterTouch(voice, noteNo);
 		pannings.setPosition(voice->voiceNumber, position);
 		voice->setDetunePosition(position);
-		voice->NoteOn(noteNo, velocity, multitrig, porta);
+		voice->NoteOn(noteNo, velocity, lastAllocatedVoice, multitrig, porta);
+		lastAllocatedVoice = voice;
 	}
 public:
 	void setNoteOn(int noteNo, float velocity)

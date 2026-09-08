@@ -63,12 +63,12 @@ inline int roundToInt(float val)
 
 inline float minf(const float a, const float b) noexcept
 {
-	return (a < b) ? a : b;
+	return std::min(a, b);
 }
 
 inline float maxf(const float a, const float b) noexcept
 {
-	return (a > b) ? a : b;
+	return std::max(a, b);
 }
 
 inline float limitf(const float val, const float low, const float high) noexcept
@@ -100,10 +100,24 @@ inline static float getNote(float freq)
 	return log(freq / 440) / log(2) * 12;
 }
 
+// Pre-calculate 'lpc' ('g') value for tptlpc from cutoff in Hz, no prewarp
+inline static float lpccalc(float cutoff, float srInv)
+{
+	cutoff = cutoff * srInv * pi;
+	return cutoff / (1 + cutoff);
+}
+
+// Pre-calculate 'lpc' ('g') value for tptlpc from cutoff in Hz, with prewarp
+inline static float lpcpwcalc(float cutoff, float srInv)
+{
+	cutoff = tanf(cutoff  * srInv * pi);
+	return cutoff / (1 + cutoff);
+}
+
 // TPT LPF w/ cutoff supplied in Hz, but no pre-warping
 inline static float tptlpupw(float & state , float inp , float cutoff , float srInv)
 {
-	cutoff = (cutoff * srInv)*pi;
+	cutoff = cutoff * srInv * pi;
 	float v = (inp - state) * cutoff / (1 + cutoff);
 	float res = v + state;
 	state = res + v;
@@ -111,9 +125,9 @@ inline static float tptlpupw(float & state , float inp , float cutoff , float sr
 }
 
 // TPT LPF w/ cutoff pre-warping
-inline static float tptlp(float& state,float inp,float cutoff,float srInv)
+inline static float tptlp(float& state, float inp, float cutoff, float srInv)
 {
-	cutoff = tan(cutoff * (srInv)* pi) ;
+	cutoff = tanf(cutoff * srInv * pi) ;
 	float v = (inp - state) * cutoff / (1 + cutoff);
 	float res = v + state;
 	state = res + v;

@@ -45,7 +45,9 @@
 
 	// Parameter groups
 	PARAMGROUP(PG_MAIN, "Main", "g101_main")
-	PARAMGROUP(PG_KEYASGN, "Key Assign", "g102_keyassign")
+	PARAMGROUP(PG_VOICING, "Voicing", "g102_voicing")
+	PARAMGROUP(PG_KEYASGN, "Key Assign ", "g103_keyassign")
+	PARAMGROUP(PG_ENVPORTAMODES, "Env and Porta Ctrl", "g104_envportactrl")
 	PARAMGROUP(PG_BEND, "Bend", "g303_bend")
 	PARAMGROUP(PG_CONTR, "Controllers", "g304_controllers")
 	PARAMGROUP(PG_LFO1, "Modulation 1", "g301_mod_lfo1")
@@ -87,6 +89,8 @@
 	PARAMPOINTS(SP_KEYSYNC, 0, "FreeRun", "KeySync")
 	PARAMPOINTS(SP_OSC3WAVE, 0, " Off ", "-1 Squ", "-2 Squ", "-2 Pul", "Noise")
 	PARAMPOINTS(SP_ENVMODE, 0, "Exp/Lin ", "Lin/Lin", "Lin/Exp")
+	PARAMPOINTS(SP_PORTAMODE, 0, " Exp ", "LCTime", "LCRate")
+	PARAMPOINTS(SP_PORTASTART, 0, "Voice", "Track")
 
 	PARAMHINTS(SP_INTS, kParameterIsInteger)
 
@@ -100,14 +104,14 @@
 	PARAM(TUNE, PG_MAIN, SP_NONE, "Tune", "tune", -1.0, 1.0, 0.0, setTune)
 	PARAM(OCTAVE, PG_MAIN, SP_INTS, "Octave", "octave", -2, 2, 0, setOctave)
 
-	// Key assignment #1 (general)
-	PARAM(VOICE_COUNT, PG_KEYASGN, SP_INTS, "VoiceCount", "voicecount", 1, 32, 12, setVoiceCount)
-	PARAM(ASGN_MODE, PG_KEYASGN, SP_ASGNMODE, "Assign Mode", "keyasgnmode", SP_MIN, SP_MAX, 0, setKeyAsgnMode)
+	// Key assignment #1 - Voicing (voice count and mode)
+	PARAM(VOICE_COUNT, PG_VOICING, SP_INTS, "VoiceCount", "voicecount", 1, 32, 12, setVoiceCount)
+	PARAM(ASGN_MODE, PG_VOICING, SP_ASGNMODE, "Assign Mode", "keyasgnmode", SP_MIN, SP_MAX, 0, setKeyAsgnMode)
 	// Unison
-	PARAM(UNISON_PAN, PG_KEYASGN, SP_NONE, "Dual Width", "unisonwidth", 0, 10, 10, setUnisonPanAmt)
-	PARAM(UNISON_DETUNE, PG_KEYASGN, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
+	PARAM(UNISON_PAN, PG_VOICING, SP_NONE, "Dual Width", "unisonwidth", 0, 10, 10, setUnisonPanAmt)
+	PARAM(UNISON_DETUNE, PG_VOICING, SP_NONE, "Dual Detune", "unisondet", 0, 1, 0, setUnisonDetune)
 
-	// Key assignment #2 (modes)
+	// Key assignment #2 (key assign modes)
         // ReSet to Zero (lowest) voice (default cyclic)
 	PARAM(ASGN_RSZ, PG_KEYASGN, SP_CYCRSZ, "Assign Order", "keyassignrsz", SP_MIN, SP_MAX, 0, setKeyAsgnRsz)
         // Prefer assign to voice previously with same note
@@ -118,11 +122,16 @@
         // Restore mode: Store notes until voice available
 	PARAM(ASGN_RES, PG_KEYASGN, SP_ASGNRES, "Voice Restore", "keyassignres", SP_MIN, SP_MAX, 0, setKeyAsgnRes)
 
-	// Key assignment #3 (Envelope reset and single trig)
+	// Key assignment #3 (Envelope reset, single trig and portamento modes)
 	// Envelope reset
-	PARAM(ENV_RST, PG_KEYASGN, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
+	PARAM(ENV_RST, PG_ENVPORTAMODES, SP_ENVRST, "Envelope Attack", "envrst", 0, SP_MAX, 0, setEnvRst)
         // Single trig: behavior during rob and restore
-	PARAM(ASGN_MTRG, PG_KEYASGN, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	PARAM(ASGN_MTRG, PG_ENVPORTAMODES, SP_ASGNMTRG, "Env Retrig", "keyassignmtrg", 0, SP_MAX, 0, setKeyAsgnStrg)
+	// Portamento mode: Exponential, Linear Constant Time, Linear Constant Rate
+        PARAM(PORTAMODE, PG_ENVPORTAMODES, SP_PORTAMODE, "Porta Mode", "portamode", SP_MIN, SP_MAX, 0, setPortaMode)
+	// Portamento start pitch: by default start where voice happens to be,
+	// alternatively where previously triggered voice is.
+	PARAM(PORTASTART, PG_ENVPORTAMODES, SP_PORTASTART, "Porta Start", "portastart", SP_MIN, SP_MAX, 0, setPortaStartLastNote)
 
 	// Bend
 	PARAM(BENDRANGE, PG_BEND, SP_INTS, "Range", "bendrange", 0, 12, 0, setPitchWheelAmount)

@@ -1,0 +1,366 @@
+name: Build DPF Plugin
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+#    tags:
+#      - 'v*' # Trigger on version tags (e.g., v1.0.0) for releases
+  pull_request:
+    branches:
+      - master
+      - dev
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+env:
+  # Plugin to build, matched against the DISTRHO_PLUGIN_NAME macro in
+  # DistrhoPluginInfo.h for the plugin. VENDOR_NAME and both slugs are then
+  # derived at build time (see "Extract plugin metadata" below).
+  # Limitation: only a single name is supported for now.
+
+  PLUGIN_NAME: MiMi-d
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            artifact_suffix: linux-x86_64
+          - os: ubuntu-22.04-arm
+            platform: linux
+            arch: arm64
+            artifact_suffix: linux-arm64
+          - os: macos-14
+            platform: macos
+            artifact_suffix: macos
+          #- os: windows-latest
+          #  target: windows
+
+    steps:
+      # 1. Checkout the repository and its submodules (DPF is usually a submodule)
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0 # Fetch all history for version tagging
+
+      # 2. Locate the DistrhoPluginInfo.h for $PLUGIN_NAME, then derive
+      #    VENDOR_NAME and both slugs from it, so only PLUGIN_NAME (above)
+      #    ever needs to be maintained by hand.
+      - name: Extract plugin metadata
+        id: meta
+        run: |
+          # Find whichever DistrhoPluginInfo.h under plugins/*/ declares this
+          # Slightly complex search method (more complex than a simple grep)
+          # in order to avoid issues if PLUGIN_NAME contains characters which
+          # would not be interpreted literally in a regexp.
+          #   1st grep: isolate DISTRHO_PLUGIN_NAME definition lines (with
+          #             filenames) across all headers.
+          #   2nd grep: -F (fixed-string) literal match of "$PLUGIN_NAME" on
+          #             those lines, so PLUGIN_NAME is never interpreted as
+          #             regex even if it contains characters like . or +.
+          #             Including both quote characters in the pattern also
+          #             stops "MiMi-d" from matching a value like "MiMi-d2".
+          # NOTE: -E (extended regex) is used throughout, with plain "+"
+          #       rather than the GNU-only "\+", so this behaves the same
+          #       under BSD grep/sed (macOS runners) and GNU grep/sed
+          #       (Linux runners).
+          HEADER=$(grep -Ern "^#define[[:space:]]+DISTRHO_PLUGIN_NAME" plugins --include=DistrhoPluginInfo.h \
+            | grep -F "\"${PLUGIN_NAME}\"" | head -n1 | cut -d: -f1)
+
+          if [ -z "$HEADER" ]; then
+            echo "::error::No DistrhoPluginInfo.h under plugins/ declares DISTRHO_PLUGIN_NAME \"$PLUGIN_NAME\""
+            exit 1
+          fi
+          echo "Using $HEADER"
+
+          VENDOR_NAME=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_BRAND[[:space:]]+"(.*)"/\1/p' "$HEADER")
+          if [ -z "$VENDOR_NAME" ]; then
+            echo "::error::Failed to extract DISTRHO_PLUGIN_BRAND from $HEADER"
+            exit 1
+          fi
+
+          # Slug = lowercase, alphanumeric only (e.g. "MiMi-d" -> "mimid")
+          PLUGIN_SLUG=$(echo "$PLUGIN_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+          VENDOR_SLUG=$(echo "$VENDOR_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+
+          echo "VENDOR_NAME=$VENDOR_NAME"
+          echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+          echo "VENDOR_SLUG=$VENDOR_SLUG"
+
+          {
+            echo "VENDOR_NAME=$VENDOR_NAME"
+            echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+            echo "VENDOR_SLUG=$VENDOR_SLUG"
+          } >> "$GITHUB_ENV"
+
+      # 3. Set up Python so we get a well-defined version
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      # 4. Determine version
+      - name: Determine version
+        id: version
+        run: |
+          RAW_TAG=$(git describe --tags --always --long --match "[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "0.0.0-0-g0000000")
+          if [[ "$RAW_TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)$ ]]; then
+            TAG="${BASH_REMATCH[1]}"
+            DISTANCE="${BASH_REMATCH[2]}"
+            SHA="${BASH_REMATCH[3]}"
+            if [ "$DISTANCE" = "0" ]; then
+              VERSION="$TAG"
+            else
+              VERSION="${TAG}-${SHA}"
+            fi
+          else
+            # No matching tag found at all; fall back to the raw ref (e.g. short sha)
+            VERSION=$(echo "$RAW_TAG" | sed -E 's/^v//')
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      # 5. Install dependencies for freetype and cairo
+      - name: Install Linux GUI dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libcairo2-dev libx11-dev libxext-dev libfreetype-dev
+
+      - name: Install macOS GUI Dependencies
+        if: matrix.platform == 'macos'
+        run: |
+          # Native arm64 Homebrew packages
+          # (already present at /opt/homebrew on macos-14 runners)
+          #brew install cairo freetype pkg-config
+          #brew install dylibbundler
+
+          # The x86_64 side (needed to link the x86_64 half of the universal
+          # binary) is NOT preinstalled, so it has to be installed explicitly
+          # via the Rosetta/x86_64 Homebrew at /usr/local.
+          softwareupdate --install-rosetta --agree-to-license || true
+
+          # macos-14 runners ship a second, x86_64 Homebrew at /usr/local.
+          # Bootstrap it if it's ever missing.
+          if [ ! -x /usr/local/bin/brew ]; then
+            arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          arch -x86_64 /usr/local/bin/brew install cairo freetype pkg-config
+          arch -x86_64 /usr/local/bin/brew install dylibbundler
+
+      # 5a. Print out pkg-config results for cairo
+      - name: Debug pkg-config
+        run: |
+          echo "--- Checking base cairo ---"
+          pkg-config --exists cairo && echo "Exists" || echo "Missing"
+          echo "--- Checking cairo-xlib ---"
+          pkg-config --exists cairo-xlib && echo "Exists" || echo "Missing"
+
+      # 5b. Verify paths
+      - name: Verify paths
+        run: |
+          cairo_cflags=$(pkg-config --cflags cairo)
+          echo "Cairo cflags are $cairo_cflags"
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            ls /opt/homebrew/include
+          fi
+
+      # 6. Build the plugin using the DPF Makefile Action
+      - name: Build Plugin
+        run: |
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            export CC=clang
+            export CXX=clang++
+
+            # Homebrew only ships single-arch libs (arm64 at /opt/homebrew,
+            # x86_64 at /usr/local), so a fat binary can't be produced in one
+            # clang invocation. Build each arch separately against its own
+            # libs, then lipo-merge the two bundles into a universal one.
+            build_arch () {
+              local arch="$1"
+              local prefix="$2"
+              local mac_min="12.0"
+              echo "=== Building macOS $arch (prefix: $prefix, min OS: $mac_min) ==="
+              export PKG_CONFIG_PATH="$prefix/opt/cairo/lib/pkgconfig:$prefix/opt/freetype/lib/pkgconfig"
+              export MACOSX_DEPLOYMENT_TARGET="$mac_min"
+              export CFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
+              export CXXFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
+              export LDFLAGS="-arch $arch -mmacosx-version-min=$mac_min -L$prefix/lib"
+              make TARGET=vst3 clean
+              make TARGET=vst3
+              # Bundle non-system dylibs into the .vst3 and rewrite install
+              # names. This is needed because otherwise it is required for the
+              # user to have them installed separately on their machine.
+              dylibbundler -od -b \
+                -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+                -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
+                -p "@loader_path/../Frameworks/"
+
+              rm -rf "bin-$arch"
+              mv bin "bin-$arch"
+            }
+
+            build_arch arm64  /opt/homebrew
+            build_arch x86_64 /usr/local
+
+            # Merge into a single universal (fat) bundle
+            mkdir -p bin
+            cp -R "bin-arm64/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.vst3"
+            lipo -create \
+              "bin-arm64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+              "bin-x86_64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+              -output "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
+
+            for dylib in bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/*.dylib; do
+              name=$(basename "$dylib")
+              echo "Adding dylib $dylib"
+              lipo -create \
+                "bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
+                "bin-x86_64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
+                -output "bin/$PLUGIN_NAME.vst3/Contents/Frameworks/$name"
+            done
+          else
+            make TARGET=lv2_sep
+            make TARGET=vst3
+          fi
+
+      # 6a. Check Mac binary with lipo
+      - name: Check Mac binary
+        if: matrix.platform == 'macos'
+        run: |
+          lipo -info bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
+          otool -L bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
+
+      # 7.1: Add lv2 presets to Linux bundle
+      - name: Add LV2 presets to Linux bundle
+        if: matrix.platform == 'linux'
+        run: |
+          mkdir bin/$PLUGIN_NAME.presets.lv2
+          # Fetch the presets, including the manifest
+          cp -r plugins/$PLUGIN_SLUG/Presets/* bin/$PLUGIN_NAME.presets.lv2
+          # Fetch the manual
+          cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
+
+      # 7.2: Create VST3 preset files
+      - name: Create VST3 presets
+        run: |
+          # Create VST3 presets
+          cd plugins/$PLUGIN_SLUG
+          # First determine Component FUID
+          fuid=$(python Utils/dpf_vst3_fuid.py \
+            --oneline --platform linux DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
+          echo "Using (Component) FUID $fuid"
+          # Then read all .ttl preset files creating .vstpreset files
+          sh Utils/ttl2vstpreset.sh \
+            --name $PLUGIN_NAME \
+            --vendor $VENDOR_NAME \
+            --fuid $fuid \
+            --category "Instrument" \
+            Presets Vstpresets
+          # Easier to access later:
+          mv Vstpresets ../..
+          # To clean up, remove Vstpresets
+
+      # 8a: Build MacOS .pkg installer
+      - name: Create MacOS .pkg installer
+        if: matrix.platform == 'macos'
+        run: |
+            mkdir pkg_root
+            mkdir -p pkg_root/Library/Audio/Plug-Ins/CLAP
+            mkdir -p pkg_root/Library/Audio/Plug-Ins/LV2
+            mkdir -p pkg_root/Library/Audio/Plug-Ins/VST3
+            mkdir -p pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+
+            [ -d "bin/$PLUGIN_NAME.clap" ] && cp -R bin/$PLUGIN_NAME.clap pkg_root/Library/Audio/Plug-Ins/CLAP/
+            [ -d "bin/$PLUGIN_NAME.lv2" ]  && cp -R bin/$PLUGIN_NAME.lv2  pkg_root/Library/Audio/Plug-Ins/LV2/
+            [ -d "bin/$PLUGIN_NAME.vst3" ] && cp -R bin/$PLUGIN_NAME.vst3 pkg_root/Library/Audio/Plug-Ins/VST3/
+            [ -d "bin/Vstpresets" ] && cp -R bin/Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+
+            pkgbuild --root pkg_root \
+                     --install-location / \
+                     --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
+                     --version "${{ steps.version.outputs.version }}" \
+                     bin/$PLUGIN_NAME.pkg
+            # We don't need the vst3 bundle anymore now, so remove it or
+            # it will explicitly be part of the bundle.
+            rm -r bin/$PLUGIN_NAME.vst3
+            # But it's handy to have the installation instructions at hand
+            cp macos/mimid-mac-install.txt "bin/Installation README"
+            # and the manual
+            cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
+
+      # 8b: Build Linux .deb / .rpm installers
+      - name: Create Linux installers
+        if: matrix.platform == 'linux'
+        run: |
+          # Install nfpm (single static binary, no Ruby/Docker needed).
+          # Pin a version and grab the prebuilt archive straight from GitHub
+          # releases; nfpm doesn't ship a curl|sh installer, and the runner
+          # has no Go toolchain for `go install`.
+          NFPM_VERSION=2.47.0
+          case "${{ matrix.arch }}" in
+            x86_64) NFPM_ARCH=x86_64; DEB_ARCH=amd64;  RPM_ARCH=x86_64  ;;
+            arm64)  NFPM_ARCH=arm64;  DEB_ARCH=arm64;  RPM_ARCH=aarch64 ;;
+            *) echo "::error::Unknown arch ${{ matrix.arch }}"; exit 1 ;;
+          esac
+          curl -sfL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_${NFPM_ARCH}.tar.gz" \
+            | tar -xz -C /usr/local/bin nfpm
+          chmod +x /usr/local/bin/nfpm
+          nfpm --version
+
+          cat > nfpm.yaml << EOF
+          name: "$PLUGIN_SLUG"
+          arch: "$DEB_ARCH"
+          platform: "linux"
+          version: "${{ steps.version.outputs.version }}"
+          maintainer: "$VENDOR_NAME"
+          vendor: "$VENDOR_NAME"
+          description: "$PLUGIN_NAME audio plugin"
+          contents:
+            - src: bin/$PLUGIN_NAME.lv2
+              dst: /usr/lib/lv2/$PLUGIN_NAME.lv2
+            - src: bin/$PLUGIN_NAME.presets.lv2
+              dst: /usr/lib/lv2/$PLUGIN_NAME.presets.lv2
+            - src: bin/$PLUGIN_NAME.vst3
+              dst: /usr/lib/vst3/$PLUGIN_NAME.vst3
+            - src: Vstpresets
+              dst: /usr/share/vst3/presets/$VENDOR_NAME/$PLUGIN_NAME
+          # Runtime shared-library deps mirroring the -dev packages installed
+          # for the build (libcairo2-dev, libx11-dev, libxext-dev,
+          # libfreetype-dev), minus the -dev/headers. Package names differ
+          # between deb and rpm ecosystems, so they're specified per format.
+          overrides:
+            deb:
+              depends:
+                - libcairo2
+                - libx11-6
+                - libxext6
+                - libfreetype6
+            rpm:
+              depends:
+                - cairo
+                - libX11
+                - libXext
+                - freetype
+          EOF
+
+          nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.deb" --packager deb
+
+          # rpmbuild expects its own arch naming, so patch the config rather
+          # than regenerate it from scratch.
+          sed -i "s/^arch: .*/arch: \"$RPM_ARCH\"/" nfpm.yaml
+          nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.rpm" --packager rpm
+
+      # 9. Bundle your compiled binary assets
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
+          path: bin/

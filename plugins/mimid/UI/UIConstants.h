@@ -287,7 +287,7 @@ struct RGBA { float r, g, b, a; };
 
 // -- Background ------------------------------------------------------------
 // RAL 5015 Sky Blue
-static constexpr RGBA COL_BACKGROUND       = { 0.000f, 0.475f, 0.671f, 1.0f };
+static constexpr RGBA COL_BACKGROUND       = { 0.000f, 0.486f, 0.690f, 1.0f };
 
 // -- Knob ------------------------------------------------------------------
 // #404040
@@ -463,7 +463,7 @@ static constexpr float SYM_Y_NUDGE = 1.0f;
 
 // Splash screen
 static constexpr float SPLASH_W           = 560.0f;
-static constexpr float SPLASH_H           = 288.0f;
+static constexpr float SPLASH_H           = 335.0f;
 // background dimmer opacity
 static constexpr float SPLASH_DIM_ALPHA   =  0.22f;
 // plugin name text y (relative to splash top)
@@ -474,6 +474,8 @@ static constexpr float SPLASH_DESC_Y      =  62.0f;
 static constexpr float SPLASH_SEP_Y       =  98.0f;
 // first splash text line y
 static constexpr float SPLASH_TEXT_Y      = 114.0f;
+// first donate line y
+static constexpr float SPLASH_DONATE_TEXT_Y = 256.0f;
 // vertical step between text lines
 static constexpr float SPLASH_TEXT_LINE_H =  18.0f;
 // gap from last text line to second separator
