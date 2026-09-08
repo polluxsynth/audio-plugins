@@ -657,10 +657,28 @@ private:
         cairo_set_line_width(cr, MENU_BORDER_W);
         cairo_stroke(cr);
 
+        // Donate text lines
+        wc.setFont(FONT_NAME_REGULAR, MENU_HINT_SIZE);
+        wc.setFillColor(COL_MENU_HEADER);
+        textY = sy + SPLASH_DONATE_TEXT_Y;
+        for (const char * const *line = SPLASH_DONATE_TEXT; *line; ++line) {
+            wc.textCentred(sx + sw / 2.0f, textY, *line);
+            textY += SPLASH_TEXT_LINE_H;
+        }
+
+        // Third separator, after donation text
+        const float sep3Y = textY + SPLASH_SEP2_PAD;
+        cairo_new_path(cr);
+        cairo_move_to(cr, sx + MENU_PAD_X,      sep3Y);
+        cairo_line_to(cr, sx + sw - MENU_PAD_X, sep3Y);
+        wc.setStrokeColor(COL_MENU_SEP);
+        cairo_set_line_width(cr, MENU_BORDER_W);
+        cairo_stroke(cr);
+
         // Close hint
         wc.setFont(FONT_NAME_REGULAR, MENU_HINT_SIZE);
         wc.setFillColor(COL_MENU_INFO);
-        wc.textCentred(sx + sw / 2.0f, sep2Y + SPLASH_CLOSE_PAD,
+        wc.textCentred(sx + sw / 2.0f, sep3Y + SPLASH_CLOSE_PAD,
                        SPLASH_CLOSE_HINT_TEXT);
     }
 };

@@ -76,6 +76,11 @@ static constexpr const char *SPLASH_TEXT[] = {
     "- falkTX (Filipe Coelho) for the Distrho Plugin Framework.",
     nullptr
 };
+static constexpr const char *SPLASH_DONATE_TEXT[] = {
+    "If you find MiMi-d useful, consider supporting development",
+    "by donating via Paypal to polluxsynth@butoba.net",
+    nullptr,
+};
 #define SPLASH_CLOSE_HINT_TEXT "Click or press Escape to close"
 
 // Button strip label strings
