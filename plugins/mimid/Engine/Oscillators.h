@@ -193,10 +193,8 @@ public:
 		sampleRateInv = 1.0f / SampleRate;
 		SawMaxGrad = 1.0f / (SawMinSlope_s * sr);
 	}
-	void setOscSpread(float param)
+	void setOscSpread(float totalSpread)
 	{
-		float totalSpread = logsc(param, 0.001f, 0.90f);
-
 		osc1Factor = osc1Random * totalSpread;
 		osc2Factor = osc2Random * totalSpread;
 	}
