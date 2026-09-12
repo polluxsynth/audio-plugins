@@ -85,7 +85,6 @@ private:
 	// State variables for various single pole filters
 	float oschpfst; // 12 Hz oscillator HPF
 	float prtst; // exponential portamento LPF state
-	float linst; // linear portamento state
 	float hpfst; // HPF between filter and VCA
 
 	// offset to get apparent zero cutoff frequency shift with oscmod
