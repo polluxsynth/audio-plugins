@@ -19,7 +19,7 @@ NOOPT=false
 
 include dpf/Makefile.base.mk
 
-all: apply-patch dgl plugins gen # fixup not used in mainstream version
+all: dgl plugins gen # fixup not used in mainstream version
 
 # --------------------------------------------------------------
 
@@ -41,7 +41,7 @@ apply-patch:
 
 # --------------------------------------------------------------
 
-dgl:
+dgl: apply-patch
 ifeq ($(HAVE_OPENGL),true)
 	$(MAKE) -C dpf/dgl opengl
 endif
@@ -63,7 +63,7 @@ else
 gen:
 endif
 
-fixup: plugins/$(PLUGIN)/Utils/add-designation-params.sh bin/$(PLUGIN_NAME).lv2/$(PLUGIN_NAME)_dsp.ttl
+fixup: gen plugins/$(PLUGIN)/Utils/add-designation-params.sh
 	sh plugins/$(PLUGIN)/Utils/add-designation-params.sh bin/$(PLUGIN_NAME).lv2/$(PLUGIN_NAME)_dsp.ttl
 
 # --------------------------------------------------------------
