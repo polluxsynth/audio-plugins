@@ -166,7 +166,7 @@ public:
 	// Exponential portamento
 	float portaSaved, portalpc, portalpcSaved, portalpcMax;
 	// LCR portamento
-	float portaRate, portaRateSaved, portaLinScale;
+	float portaRateSaved, portaLinScale, portalsp, portalspSaved, portalspMax;
 	bool portaEnable;
 	int portaMode; // 0: exp (LPF), 1: LCT, 2: LCR
 	bool portaLastNote; // start at pitch of last voice played
@@ -222,7 +222,7 @@ public:
 		FltSpreadAmt = 0;
 		levelSpreadAmt = 1;
 		portaSaved = 0;
-		portaRateSaved = portaRate = 0;
+		portaRateSaved = 0;
 		portaLinScale = 1.0f;
 		portaEnable = false;
 		portaMode = 0;
@@ -274,9 +274,8 @@ public:
 			// Portamento on osc input voltage using LPF
 			ptNote = tptlpc(prtst, ptTarget, portalpc);
 		} else { // Lin (LCT and LCR)
-			float step = portaLinScale * portaRate * PortaSpreadAmt * modRateInv;
 			float diff = ptTarget - ptNote;
-			float clamped = maxf(-step, minf(step, diff));
+			float clamped = maxf(-portalsp, minf(portalsp, diff));
 			ptNote += clamped;
 			// While in linear mode, prime the Exp LP state
 			// to avoid jumps if the mode is changed while a
@@ -606,11 +605,16 @@ public:
 		portaSaved = newPorta;
 		setPorta();
 	}
+	inline void setPortaRate()
+	{
+		portalspSaved = portaLinScale * portaRateSaved * PortaSpreadAmt * modRateInv;
+		if (portaEnable)
+			portalsp = portalspSaved;
+	}
 	void setPortaRate(float newRate)
 	{
 		portaRateSaved = newRate;
-		if (portaEnable)
-			portaRate = portaRateSaved;
+		setPortaRate();
 	}
 	void setSampleRate(float sr, int oversamplingRatio, int modulationRatio)
 	{
@@ -631,6 +635,8 @@ public:
 		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
 		oschpflpc = lpccalc(12.0f /* Hz */, audioRateInv);
 		portalpcMax = lpccalc(250, audioRateInv);
+		// 4 ms / octave maximum rate (disregard spread here)
+		portalspMax = (12.0f / 4.0e-3f) * modRateInv;
 		setPorta();
 		// Limit filter freq to nyquist frequency minus a small
 		// margin (for numerical stability reasons), or 22 kHz,
@@ -697,6 +703,11 @@ public:
 		} else { // LCR (mode 2)
 			portaLinScale = 1.0f;
 		}
+		// Since we've potentially changed portaLinScale, we need
+		// to recalculate the linear glide step size. We do this
+		// unconditionally so that we can cleanly handle changing the
+		// portamento mode after a note has been triggered.
+		setPortaRate();
 
 		if (!Active || multiTrig) {
 			if (envRst) {
@@ -719,11 +730,7 @@ public:
 		// Exponential portamento
 		portalpc = portaEnable ? portalpcSaved : portalpcMax;
 		// LCR portamento
-		portaRate = portaEnable ? portaRateSaved :
-					  // 4 ms / octave minimum rate
-					  // (Disregard spread here)
-					  (12.0f / 4.0e-3f) * modRateInv;
-
+		portalsp = portaEnable ? portalspSaved : portalspMax;
 	}
 	void NoteOff()
 	{
