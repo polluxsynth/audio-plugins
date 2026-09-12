@@ -261,6 +261,11 @@
 	a pset:Preset ;
 	rdfs:seeAlso <Jazz_Guitar.ttl> .
 
+<Lucky_Man.ttl>
+	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
+	a pset:Preset ;
+	rdfs:seeAlso <Lucky_Man.ttl> .
+
 <MiMistrings.ttl>
 	lv2:appliesTo <https://butoba.net/homepage/mimid.html> ;
 	a pset:Preset ;
