@@ -37,9 +37,14 @@ jobs:
             platform: linux
             arch: arm64
             artifact_suffix: linux-arm64
-          - os: macos-14
+          - os: macos-15
             platform: macos
-            artifact_suffix: macos
+            arch: arm64
+            artifact_suffix: macos-arm64
+          - os: macos-15-intel
+            platform: macos
+            arch: x86_64
+            artifact_suffix: macos-x86_64
           #- os: windows-latest
           #  target: windows
 
@@ -128,6 +133,21 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $VERSION"
 
+      # 4a. Stash the metadata/version derived above to a file so it can be
+      #     bundled into the merge-support artifact later (step 7.3), once
+      #     Vstpresets/README/manual are also ready. Only needs to happen
+      #     once, so it's pinned to a single, specific leg of the matrix.
+      - name: Write build metadata for MacOS build
+        if: matrix.os == 'macos-15'
+        run: |
+          mkdir -p meta
+          {
+            echo "VENDOR_NAME=$VENDOR_NAME"
+            echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+            echo "VENDOR_SLUG=$VENDOR_SLUG"
+            echo "VERSION=${{ steps.version.outputs.version }}"
+          } > meta/build-metadata.env
+
       # 5. Install dependencies for freetype and cairo
       - name: Install Linux GUI dependencies
         if: matrix.platform == 'linux'
@@ -138,40 +158,15 @@ jobs:
       - name: Install macOS GUI Dependencies
         if: matrix.platform == 'macos'
         run: |
-          # Native arm64 Homebrew packages
-          # (already present at /opt/homebrew on macos-14 runners)
-          #brew install cairo freetype pkg-config
-          #brew install dylibbundler
-
-          # The x86_64 side (needed to link the x86_64 half of the universal
-          # binary) is NOT preinstalled, so it has to be installed explicitly
-          # via the Rosetta/x86_64 Homebrew at /usr/local.
-          softwareupdate --install-rosetta --agree-to-license || true
-
-          # macos-14 runners ship a second, x86_64 Homebrew at /usr/local.
-          # Bootstrap it if it's ever missing.
-          if [ ! -x /usr/local/bin/brew ]; then
-            arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          fi
-          arch -x86_64 /usr/local/bin/brew install cairo freetype pkg-config
-          arch -x86_64 /usr/local/bin/brew install dylibbundler
-
-      # 5a. Print out pkg-config results for cairo
-      - name: Debug pkg-config
-        run: |
-          echo "--- Checking base cairo ---"
-          pkg-config --exists cairo && echo "Exists" || echo "Missing"
-          echo "--- Checking cairo-xlib ---"
-          pkg-config --exists cairo-xlib && echo "Exists" || echo "Missing"
-
-      # 5b. Verify paths
-      - name: Verify paths
-        run: |
-          cairo_cflags=$(pkg-config --cflags cairo)
-          echo "Cairo cflags are $cairo_cflags"
-          if [ "${{ matrix.platform }}" = "macos" ]; then
-            ls /opt/homebrew/include
-          fi
+          # Each macos leg of the matrix runs on its own native
+          # architecture (arm64 on macos-15, x86_64 on macos-15-intel).
+          # Homebrew stopped building new bottles for Intel macOS as of
+          # Sept 2026 (Tier 3), (and also refuses to run on arm64 hardware
+          # which is why we no longer build 'fat' binaries, as it is too
+          # cumbersome to piece together; few machines are Intel these days
+          # so the benefit is minimal) so this leg tends to build some of
+          # these from source and take noticeably longer.
+          brew install cairo freetype pkg-config dylibbundler
 
       # 6. Build the plugin using the DPF Makefile Action
       - name: Build Plugin
@@ -180,64 +175,48 @@ jobs:
             export CC=clang
             export CXX=clang++
 
-            # Homebrew only ships single-arch libs (arm64 at /opt/homebrew,
-            # x86_64 at /usr/local), so a fat binary can't be produced in one
-            # clang invocation. Build each arch separately against its own
-            # libs, then lipo-merge the two bundles into a universal one.
-            build_arch () {
-              local arch="$1"
-              local prefix="$2"
-              local mac_min="12.0"
-              echo "=== Building macOS $arch (prefix: $prefix, min OS: $mac_min) ==="
-              export PKG_CONFIG_PATH="$prefix/opt/cairo/lib/pkgconfig:$prefix/opt/freetype/lib/pkgconfig"
-              export MACOSX_DEPLOYMENT_TARGET="$mac_min"
-              export CFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
-              export CXXFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
-              export LDFLAGS="-arch $arch -mmacosx-version-min=$mac_min -L$prefix/lib"
-              make TARGET=vst3 clean
-              make TARGET=vst3
-              # Bundle non-system dylibs into the .vst3 and rewrite install
-              # names. This is needed because otherwise it is required for the
-              # user to have them installed separately on their machine.
-              dylibbundler -od -b \
-                -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-                -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
-                -p "@loader_path/../Frameworks/"
-
-              rm -rf "bin-$arch"
-              mv bin "bin-$arch"
-            }
-
-            build_arch arm64  /opt/homebrew
-            build_arch x86_64 /usr/local
-
-            # Merge into a single universal (fat) bundle
-            mkdir -p bin
-            cp -R "bin-arm64/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.vst3"
-            lipo -create \
-              "bin-arm64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-              "bin-x86_64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-              -output "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
-
-            for dylib in bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/*.dylib; do
-              name=$(basename "$dylib")
-              echo "Adding dylib $dylib"
-              lipo -create \
-                "bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
-                "bin-x86_64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
-                -output "bin/$PLUGIN_NAME.vst3/Contents/Frameworks/$name"
-            done
+            # Each matrix macos leg runs natively on its own architecture
+            # (arm64 on macos-15, x86_64 on macos-15-intel), so no lipo merge
+            # attempting to build a fat binary.
+            BREW_PREFIX=$(brew --prefix)
+            mac_min="12.0"
+            echo "=== Building macOS ${{ matrix.arch }} (prefix: $BREW_PREFIX, min OS: $mac_min) ==="
+            export PKG_CONFIG_PATH="$BREW_PREFIX/opt/cairo/lib/pkgconfig:$BREW_PREFIX/opt/freetype/lib/pkgconfig"
+            export MACOSX_DEPLOYMENT_TARGET="$mac_min"
+            export CFLAGS="-mmacosx-version-min=$mac_min -I$BREW_PREFIX/include"
+            export CXXFLAGS="-mmacosx-version-min=$mac_min -I$BREW_PREFIX/include"
+            export LDFLAGS="-mmacosx-version-min=$mac_min -L$BREW_PREFIX/lib"
+            make TARGET=vst3
+            # Bundle non-system dylibs into the .vst3 and rewrite install
+            # names. This is needed because otherwise it is required for the
+            # user to have them installed separately on their machine.
+            dylibbundler -od -b \
+              -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+              -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
+              -p "@loader_path/../Frameworks/"
           else
             make TARGET=lv2_sep
             make TARGET=vst3
           fi
 
-      # 6a. Check Mac binary with lipo
-      - name: Check Mac binary
+      # 6a. Log contents of Mac binary using lipo and otool
+      - name: Log contents of Mac binary
         if: matrix.platform == 'macos'
         run: |
           lipo -info bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
           otool -L bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
+
+      # 6b. Upload the raw (pre-packaging, single-arch) .vst3 bundle so the
+      #     merge-macos-universal job below can lipo it together with the
+      #     other architecture.
+      #     Upload the parent bin/ instead of the .vst folder itself, as
+      #     otherwise the folder name gets left out.
+      - name: Upload raw VST3 bundle (for MacOS universal merge)
+        if: matrix.platform == 'macos'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-vst3-raw-${{ matrix.arch }}
+          path: bin
 
       # 7.1: Add lv2 presets to Linux bundle
       - name: Add LV2 presets to Linux bundle
@@ -269,8 +248,28 @@ jobs:
           mv Vstpresets ../..
           # To clean up, remove Vstpresets
 
-      # 8a: Build MacOS .pkg installer
-      - name: Create MacOS .pkg installer
+      # 7.3: Package everything the merge-macos-universal job needs, other
+      #      than the two raw .vst3 bundles themselves, into one artifact:
+      #      the metadata file from step 4a, the Vstpresets just generated,
+      #      and mimid-mac-install.txt and the pdf manual.
+      - name: Package merge-support artifact for MacOS
+        if: matrix.os == 'macos-15'
+        run: |
+          mkdir -p merge-support
+          cp meta/build-metadata.env merge-support/
+          cp -R Vstpresets merge-support/Vstpresets
+          cp macos/mimid-mac-install.txt "merge-support/Installation README"
+          cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf merge-support/$PLUGIN_NAME.pdf
+
+      - name: Upload merge-support artifact for MacOS
+        if: matrix.os == 'macos-15'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-merge-support
+          path: merge-support
+
+      # 8a: Build per-architecture MacOS .pkg installer
+      - name: Create per-architecture MacOS .pkg installer
         if: matrix.platform == 'macos'
         run: |
             mkdir pkg_root
@@ -288,7 +287,7 @@ jobs:
                      --install-location / \
                      --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
                      --version "${{ steps.version.outputs.version }}" \
-                     bin/$PLUGIN_NAME.pkg
+                     "bin/$PLUGIN_NAME-${{ matrix.arch }}.pkg"
             # We don't need the vst3 bundle anymore now, so remove it or
             # it will explicitly be part of the bundle.
             rm -r bin/$PLUGIN_NAME.vst3
@@ -359,9 +358,144 @@ jobs:
           sed -i "s/^arch: .*/arch: \"$RPM_ARCH\"/" nfpm.yaml
           nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.rpm" --packager rpm
 
-      # 9. Bundle your compiled binary assets
+      # 9. Bundle the compiled binary assets
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
           path: bin/
+
+  # Create fat bundle for MacOS. Although a large part of the world is
+  # arm64 now, in some cases Cubase still runs under Rosetta, which means
+  # that an x86_64 binary is required even on an arm64 host. To avoid users
+  # having to keep track of what architecture is actually used, we crate
+  # a universal (fat) package.
+  merge-macos-universal:
+    name: Cread universal (fat) MacOS bundle (arm64 + x86_64)
+    needs: build
+    runs-on: macos-15
+    steps:
+      # Download installation readme and manual together with the .vst3
+      # build and Vstpresets from the earlier build stage.
+      - name: Download merge-support artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-merge-support
+          path: support
+
+      - name: Load build metadata
+        run: cat support/build-metadata.env >> "$GITHUB_ENV"
+
+      - name: Download arm64 raw VST3
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-vst3-raw-arm64
+          path: raw-arm64
+
+      - name: Download x86_64 raw VST3
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-vst3-raw-x86_64
+          path: raw-x86_64
+
+      # Start from the arm64 bundle as the directory skeleton (Info.plist,
+      # resources, etc. should be identical between archs), then overwrite
+      # every Mach-O inside - the main binary plus any dylibs dylibbundler
+      # embedded - with a lipo'd universal copy. Homebrew dylibs are
+      # single-arch, matching whichever runner built them, so the
+      # Frameworks folder needs merging too, not just the plugin binary.
+      - name: Merge into universal (fat) VST3
+        run: |
+          set -euo pipefail
+          ARM_BUNDLE="raw-arm64/$PLUGIN_NAME.vst3"
+          X86_BUNDLE="raw-x86_64/$PLUGIN_NAME.vst3"
+          OUT_BUNDLE="bin/$PLUGIN_NAME.vst3"
+
+          mkdir -p bin
+          cp -R "$ARM_BUNDLE" "$OUT_BUNDLE"
+
+          make_fat() {
+            local rel="$1"
+            lipo -create \
+              "$ARM_BUNDLE/$rel" \
+              "$X86_BUNDLE/$rel" \
+              -output "$OUT_BUNDLE/$rel"
+          }
+
+          # Main plugin binary
+          make_fat "Contents/MacOS/$PLUGIN_NAME"
+
+          # Any bundled Homebrew dylibs (cairo, freetype, etc.). Both arch
+          # bundles should contain the same dylib names, just single-arch.
+          if [ -d "$ARM_BUNDLE/Contents/Frameworks" ]; then
+            find "$ARM_BUNDLE/Contents/Frameworks" -type f -name '*.dylib' | while read -r f; do
+              rel="${f#$ARM_BUNDLE/}"
+              if [ -f "$X86_BUNDLE/$rel" ]; then
+                make_fat "$rel"
+              else
+                echo "::error::No x86_64 counterpart for $rel, dylib sets differ between architectures"
+                # Use file rather than variable because of subshell
+                touch /tmp/dylib_mismatch
+              fi
+            done
+          fi
+          [ ! -f /tmp/dylib_mismatch ] || exit 1
+
+      - name: Log contents of universal (fat) binary
+        run: |
+          lipo -info "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
+          otool -L "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
+
+      - name: Create universal (fat) MacOS .pkg installer
+        run: |
+          mkdir pkg_root
+          mkdir -p pkg_root/Library/Audio/Plug-Ins/VST3
+          mkdir -p pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+
+          cp -R "bin/$PLUGIN_NAME.vst3" pkg_root/Library/Audio/Plug-Ins/VST3/
+          [ -d "support/Vstpresets" ] && cp -R support/Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+
+          pkgbuild --root pkg_root \
+                   --install-location / \
+                   --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
+                   --version "$VERSION" \
+                   "bin/$PLUGIN_NAME-universal.pkg"
+
+          rm -r "bin/$PLUGIN_NAME.vst3"
+          cp "support/Installation README" "bin/Installation README"
+          cp "support/$PLUGIN_NAME.pdf" "bin/$PLUGIN_NAME.pdf"
+
+      - name: Upload universal build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-macos-universal-${{ env.VERSION }}
+          path: bin/
+
+  # Remove the three intermediate artifacts consumed by merge-macos-universal
+  # above (vst3-raw-arm64, vst3-raw-x86_64, merge-support).
+  cleanup-intermediate-artifacts:
+    name: Delete intermediate merge artifacts
+    # Only run if the merge stage succeeded, otherwise keeping the artifacts
+    # for debug
+    needs: merge-macos-universal
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete MacOS raw VST3 + merge-support artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for NAME in \
+            "${PLUGIN_NAME}-vst3-raw-arm64" \
+            "${PLUGIN_NAME}-vst3-raw-x86_64" \
+            "${PLUGIN_NAME}-merge-support"; do
+            ID=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+              --jq ".artifacts[] | select(.name == \"$NAME\") | .id")
+            if [ -n "$ID" ]; then
+              echo "Deleting artifact $NAME (id $ID)"
+              gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$ID"
+            else
+              echo "::warning::Artifact $NAME not found for this run, skipping"
+            fi
+          done
