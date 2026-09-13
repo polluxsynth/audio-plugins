@@ -250,7 +250,7 @@ jobs:
             [ -d "bin/$PLUGIN_NAME.clap" ] && cp -R bin/$PLUGIN_NAME.clap pkg_root/Library/Audio/Plug-Ins/CLAP/
             [ -d "bin/$PLUGIN_NAME.lv2" ]  && cp -R bin/$PLUGIN_NAME.lv2  pkg_root/Library/Audio/Plug-Ins/LV2/
             [ -d "bin/$PLUGIN_NAME.vst3" ] && cp -R bin/$PLUGIN_NAME.vst3 pkg_root/Library/Audio/Plug-Ins/VST3/
-            [ -d "bin/Vstpresets" ] && cp -R bin/Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+            [ -d "Vstpresets" ] && cp -R Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
 
             pkgbuild --root pkg_root \
                      --install-location / \
