@@ -36,9 +36,14 @@ jobs:
             platform: linux
             arch: arm64
             artifact_suffix: linux-arm64
-          - os: macos-14
+          - os: macos-15
             platform: macos
-            artifact_suffix: macos
+            arch: arm64
+            artifact_suffix: macos-arm64
+          - os: macos-15-intel
+            platform: macos
+            arch: x86_64
+            artifact_suffix: macos-x86_64
           #- os: windows-latest
           #  target: windows
 
@@ -137,23 +142,15 @@ jobs:
       - name: Install macOS GUI Dependencies
         if: matrix.platform == 'macos'
         run: |
-          # Native arm64 Homebrew packages
-          # (already present at /opt/homebrew on macos-14 runners)
-          #brew install cairo freetype pkg-config
-          #brew install dylibbundler
-
-          # The x86_64 side (needed to link the x86_64 half of the universal
-          # binary) is NOT preinstalled, so it has to be installed explicitly
-          # via the Rosetta/x86_64 Homebrew at /usr/local.
-          softwareupdate --install-rosetta --agree-to-license || true
-
-          # macos-14 runners ship a second, x86_64 Homebrew at /usr/local.
-          # Bootstrap it if it's ever missing.
-          if [ ! -x /usr/local/bin/brew ]; then
-            arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          fi
-          arch -x86_64 /usr/local/bin/brew install cairo freetype pkg-config
-          arch -x86_64 /usr/local/bin/brew install dylibbundler
+          # Each macos leg of the matrix runs on its own native
+          # architecture (arm64 on macos-15, x86_64 on macos-15-intel).
+          # Homebrew stopped building new bottles for Intel macOS as of
+          # Sept 2026 (Tier 3), (and also refuses to run on arm64 hardware
+          # which is why we no longer build 'fat' binaries, as it is too
+          # cumbersome to piece together; few machines are Intel these days
+          # so the benefit is minimal) so this leg tends to build some of
+          # these from source and take noticeably longer.
+          brew install cairo freetype pkg-config dylibbundler
 
       # 5a. Print out pkg-config results for cairo
       - name: Debug pkg-config
@@ -169,7 +166,7 @@ jobs:
           cairo_cflags=$(pkg-config --cflags cairo)
           echo "Cairo cflags are $cairo_cflags"
           if [ "${{ matrix.platform }}" = "macos" ]; then
-            ls /opt/homebrew/include
+            ls "$(brew --prefix)/include"
           fi
 
       # 6. Build the plugin using the DPF Makefile Action
@@ -179,53 +176,25 @@ jobs:
             export CC=clang
             export CXX=clang++
 
-            # Homebrew only ships single-arch libs (arm64 at /opt/homebrew,
-            # x86_64 at /usr/local), so a fat binary can't be produced in one
-            # clang invocation. Build each arch separately against its own
-            # libs, then lipo-merge the two bundles into a universal one.
-            build_arch () {
-              local arch="$1"
-              local prefix="$2"
-              local mac_min="12.0"
-              echo "=== Building macOS $arch (prefix: $prefix, min OS: $mac_min) ==="
-              export PKG_CONFIG_PATH="$prefix/opt/cairo/lib/pkgconfig:$prefix/opt/freetype/lib/pkgconfig"
-              export MACOSX_DEPLOYMENT_TARGET="$mac_min"
-              export CFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
-              export CXXFLAGS="-arch $arch -mmacosx-version-min=$mac_min -I$prefix/include"
-              export LDFLAGS="-arch $arch -mmacosx-version-min=$mac_min -L$prefix/lib"
-              make TARGET=vst3 clean
-              make TARGET=vst3
-              # Bundle non-system dylibs into the .vst3 and rewrite install
-              # names. This is needed because otherwise it is required for the
-              # user to have them installed separately on their machine.
-              dylibbundler -od -b \
-                -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-                -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
-                -p "@loader_path/../Frameworks/"
-
-              rm -rf "bin-$arch"
-              mv bin "bin-$arch"
-            }
-
-            build_arch arm64  /opt/homebrew
-            build_arch x86_64 /usr/local
-
-            # Merge into a single universal (fat) bundle
-            mkdir -p bin
-            cp -R "bin-arm64/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.vst3"
-            lipo -create \
-              "bin-arm64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-              "bin-x86_64/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-              -output "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
-
-            for dylib in bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/*.dylib; do
-              name=$(basename "$dylib")
-              echo "Adding dylib $dylib"
-              lipo -create \
-                "bin-arm64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
-                "bin-x86_64/$PLUGIN_NAME.vst3/Contents/Frameworks/$name" \
-                -output "bin/$PLUGIN_NAME.vst3/Contents/Frameworks/$name"
-            done
+            # Each matrix macos leg runs natively on its own architecture
+            # (arm64 on macos-15, x86_64 on macos-15-intel), so no lipo merge
+            # attempting to build a fat binary.
+            BREW_PREFIX=$(brew --prefix)
+            mac_min="12.0"
+            echo "=== Building macOS ${{ matrix.arch }} (prefix: $BREW_PREFIX, min OS: $mac_min) ==="
+            export PKG_CONFIG_PATH="$BREW_PREFIX/opt/cairo/lib/pkgconfig:$BREW_PREFIX/opt/freetype/lib/pkgconfig"
+            export MACOSX_DEPLOYMENT_TARGET="$mac_min"
+            export CFLAGS="-mmacosx-version-min=$mac_min -I$BREW_PREFIX/include"
+            export CXXFLAGS="-mmacosx-version-min=$mac_min -I$BREW_PREFIX/include"
+            export LDFLAGS="-mmacosx-version-min=$mac_min -L$BREW_PREFIX/lib"
+            make TARGET=vst3
+            # Bundle non-system dylibs into the .vst3 and rewrite install
+            # names. This is needed because otherwise it is required for the
+            # user to have them installed separately on their machine.
+            dylibbundler -od -b \
+              -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
+              -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
+              -p "@loader_path/../Frameworks/"
           else
             make TARGET=lv2_sep
             make TARGET=vst3
@@ -287,7 +256,7 @@ jobs:
                      --install-location / \
                      --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
                      --version "${{ steps.version.outputs.version }}" \
-                     bin/$PLUGIN_NAME.pkg
+                     "bin/$PLUGIN_NAME-${{ matrix.arch }}.pkg"
             # We don't need the vst3 bundle anymore now, so remove it or
             # it will explicitly be part of the bundle.
             rm -r bin/$PLUGIN_NAME.vst3
