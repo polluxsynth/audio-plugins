@@ -1,0 +1,25 @@
+Version 2.4.1 is a small update to the previous version, fixing a bug
+in the rendering of the OscSpread parameter, parallel builds,
+as well the MacOS Github workflow.
+
+Fixes:
+- The OscSpread parameter had a much smaller effect than intended,
+  since version 2.2.0 . It has now been fixed so it has the same range as
+  before. Apologies for any user patches made than now have too much
+  oscillator spread.
+- Parallel builds (make -j 3 is used by Zynthian upstream builds) failed
+  (only the DPF framework was built) due to incorrect dependencies.
+  This has been corrected.
+- Github updated their MacOS build support, causing the upstream build to
+  fail. This has been rectified. This doesn't affect the plugin itself nor
+  the Linux builds.
+
+Other changes:
+- Minor optimization in the LCT/LCR portamento code to bring the CPU load
+  down to the same level as for exponential portamento. The difference is
+  very small (about 0.5% CPU with 32 voices playing, oversampling enabled,
+  on an RPi5).
+
+As usual, a companion version 2.4.1z has been tagged on the Zynthian branch,
+which supports the graphic envelope and filter display features in the Zynthian
+UI.
