@@ -3,11 +3,11 @@ name: Build DPF Plugin
 on:
   push:
     branches:
+      - dev
       - master
       - zynthian
-      - dev
-    tags:
-      - '*' # Trigger on any tag (for releases)
+#    tags:
+#      - '*' # Trigger on any tag (for releases)
   pull_request:
     branches:
       - master
