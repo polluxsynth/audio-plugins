@@ -30,7 +30,7 @@
 
 #define PLUGIN_VERSION_MAJOR 2
 #define PLUGIN_VERSION_MINOR 4
-#define PLUGIN_VERSION_MICRO 0
+#define PLUGIN_VERSION_MICRO 1
 
 #define DISTRHO_PLUGIN_NUM_INPUTS                    0
 #define DISTRHO_PLUGIN_NUM_OUTPUTS                   2
