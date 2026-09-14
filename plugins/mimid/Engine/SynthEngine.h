@@ -713,7 +713,9 @@ public:
 		for (int i = 0; i < synth.MAX_VOICES; i++) {
 			synth.voices[i].PortaSpreadAmt =
 				1 + PortaSpreadAmt * synth.voices[i].PortaSpread;
+			/* Update ongoing portamento */
 			synth.voices[i].setPorta();
+			synth.voices[i].setPortaRate();
 		}
 	}
 	void setLoudnessSpread(float param)
