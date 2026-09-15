@@ -1,0 +1,85 @@
+Version 2.2.0 brings a couple of new features and some minor bugfixes
+and improvements.
+
+Features:
+- New 'PolyD' key assignment mode, which is a Poly mode where two
+  voices are allocated at each note on.
+  - The new mode integrates seamlessly with the existing modes,
+    meaning that as before changing the key assignment parameter
+    won't result in any difference to the allocation of voices
+    until new voices are allocated.
+  - Two new parameters:
+    - Unison spread: Sets the spread of the two-voice unison
+      in the stereo image, from mono (0) to full L-R stereo (10).
+      The Pan Spread parameter still comes into play adding some
+      per-voice randomness to the pan position.
+    - Unison detune: Sets the pitch spread of the two-voice unison.
+      The left voice will be detuned down and the right voice detuned
+      up such that the difference between the voices in semitones
+      corresponds to the parameter setting (range: 0..1).
+    - In conjunction with this, the key assignment parameters have
+      moved around, so that the Dual Spread and Dual Detune parameters
+      are page #1, and the often little used envelope and retrigger
+      parameters have been relegated to the new page #3. Page #2 is
+      unchanged.
+  - Note that in PolyD mode, each new note uses two voices, which
+    effectively halves the voice count in terms of polyphony.
+    - A special case is when the Voice Count parameter has an odd value.
+      In this case, the key assignment algorithm tries to play as many
+      doubled-up voices as possible, while still retaining maximum
+      polyphony. This means that there will be notes played which only
+      have one voice playing. While slightly quirky, this allows for
+      maximum polyphony on resource starved systems (such as the Raspberry
+      Pi 3, which allows a maximum of 5 voices in practice (with oversampling
+      enabled). It can be alleviated simply by setting the Voice Count to
+      an even value.
+- Additional LFO: Modulator #3. Identical to modulators 1 and 2, except
+  that the Wave parameter has been replaced with a Shape control,
+  allowing fine-grained control over the waveform:
+  - Parameter values 0..5 offer continuous sweeping from sawtooth (0)
+    to triangle (2.5) to reverse sawtooth (5).
+  - Parameter values 5..10 offer continuous sweeping from narrow pulse
+    (just over 5) to square (7.5) to inverted narrow pulse (10). At
+    the extremes (5 and 10), the output flatlines.
+  - There is no S/H waveform.
+- New Controller menu, allowing direct control for the same modulation
+  destinations used for the LFOs from Mod Wheel and After Touch.
+  - New parameters: Amount and Destination, for both sources.
+    - The Amount parameter is bipolar so that either an increase or
+      decrease of the destination can be set.
+
+Bugfixes:
+- The limiting function shape control for the sawtooth didn't work
+  properly, not capping the width of the resulting sawtooth when
+  it got narrow enough at high shape settings. This would lead
+  to the oscillator output decreasing more than intended, and for
+  oscillator 2, severe digital artifacts in the form of aliasing
+  and clicking could occur at high shape settings.
+- Under specific conditions, when switching between Poly and Mono modes
+  with notes held, notes could hang. This has been fixed.
+
+Improvements:
+- Clean up code in some places, removing unused code sections
+  and variables.
+- Minor CPU improvements in the TPT filter implementation
+  (doubles were used where there were no advantages compared to floats).
+  This results in a minor decrease in CPU load in this version compared to
+  earlier versions, despite the addition of another LFO.
+
+Presets:
+- Several new presets have been added, some being general additions,
+  and some showcasing the new features introduced in this version.
+- A couple of presets have been improved.
+- Inadvertent underlines have been removed from the preset names of a
+  couple of presets.
+- The Voice Count for all factory parameters has been increased from 6
+  to 12, in the interest of supporting the new PolyD (Dual) mode without
+  the polyphony dropping to 3, while at the same time keeping the required DSP
+  resources within the empirical limit of 19 voices (with oversampling) on a
+  Raspberry Pi4 Zynthian. (For older Raspberry Pi3 based Zynthians, the limit
+  is around 5 voices (with oversampling), so we were already over that limit
+  with the old default of 6 voices.)
+
+As usual, a companion version 2.2.0z has been tagged on the Zynthian branch,
+which supports the graphic envelope and filter display features in the Zynthian
+UI.

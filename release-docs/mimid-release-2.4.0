@@ -1,0 +1,52 @@
+Version 2.4.0 brings support for properly building the plugin under MacOS
+(as a VST3), new portamento modes, together with a couple of minor fixes
+and cleanups.
+
+Fixes:
+- The RAL 5015 UI background color was incorrectly specified, resulting
+  in the color being a bit darker than intended. The color now more closely
+  matches the 'Sky Blue' description, but the difference is minor.
+- When running on MacOS, the UI and credits splash screen were incorrectly
+  rendered just as a grey window with no content. This has been fixed.
+- A couple of minor optimizations in the Portamento function to slightly
+  decrease DSP usage.
+
+Features:
+- New portamento modes: The classic exponentially asymptotical portamento
+  (still default) has been supplemented with two linear modes: Linear Constant
+  Rate (emulating the behavior on many Moog synthesizers such as the Minimoog),
+  where the glide rate is constant regardless of the interval, which has the
+  consequence that long intervals take longer to traverse than short ones.
+  Finally, there is Linear Constant Time, where the rate is adjusted
+  so that the time to traverse all intervals is the same. In this sense it
+  mimics the classic mode, but with a linear ramp. The Constant Time mode
+  takes the same time as the Constant Rate mode when the interval is
+  one octave.
+- Portamento start point: Traditionally on a polyphonic analog synthesizer,
+  the voices start their portamento travel from the previously held pitch
+  of the voice. This can result in a chaotic portamento experience (which
+  can be useful in its own right). When the new Portamento Start parameter 
+  is set to Track, the starting point for the portamento will be set to the
+  pitch of the previously triggered voice, which gives a much more consistent
+  and predictable portamento behavior in polyphonic modes.
+- Added Github Action workfile to produce installation bundles for
+  Mac (.pkg, VST3) and Linux (.deb and .rpm, LV2 and VST3).
+- The DPF framework has been patched so that loading a preset in a VST
+  or CLAP host which doesn't contain values for all parameters will result
+  in the unspecified parameters to be set to their default values, rather
+  than being left at their previous value, which is the default behavior.
+- Added support for CLAP build; note that CLAP functionality has not been
+  tested at this time.
+
+Other changes:
+- The Key Assign parameter group has been split into three separate
+  groups for easier navigation and recognition. The actual parameters
+  in the groups have not changed nor their order. This affects both the
+  .ttl file specifying the groups (which is used for the parameter pages
+  on the Zynthian platform) and the graphic UI. Note that in the graphic UI,
+  the new Portamento mode parameters are in their own parameter group,
+  beside the Portamento Time parameter.
+
+As usual, a companion version 2.4.0z has been tagged on the Zynthian branch,
+which supports the graphic envelope and filter display features in the Zynthian
+UI.

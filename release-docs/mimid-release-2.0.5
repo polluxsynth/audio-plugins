@@ -1,0 +1,39 @@
+MiMi-d release 2.0.5
+
+This release brings no major surprises. A new addition is the appearance
+of a 'zynthian' branch, which adds features to support the new graphic
+envelope editor in upcoming the vangelis release. The version numbers on the
+zynthian branch track the main versions, with the addition of a 'z'. So
+the corresponding zynthian version is 2.0.5z .
+
+- Envelope code clean up.
+- A hold phase for the envelope was added but considered out of scope
+  for the upstream MiMi-d . It remains in the code, including the
+  parameter settings callback, for future use, or if someone wants
+  to fork the code effortlessly.
+- Minor optimizations to the oscillator code (BLEP/BLAMP tables
+  optimized for insertion into the waveform, keep sizes of delay
+  lines to a minimum, remove delay lines and use BLEP/BLAMP buffer
+  directly, speed up exponentiation function).
+- Minor fixes in the manual (description of LFO DC mode, improve description
+  of oversampling parameter).
+- The maxmum voice count has been increased from 8 to 32, to take
+  advantage of the arrival of the arrival of RPi 5 based Zynthian v5.1 .
+  An RPi 4 based Zynthian will play about 15 MiMi-d voices with
+  oversampling enabled; an RPi 3 Zynthian about 7.
+- A number of new Factory presets have been added. In addition,
+  a number of the already existing Factory presets have been updated.
+- A new Default preset sets all parameters to their defaults, and can
+  be used as a 'clean slate' from which to start.
+
+For 2.0.5z (zynthian branch) additionally:
+- The envelope parameters have additional "lv2:designation param <param>"
+  tags so that the corresponding parameters can be identified by the Zynthian
+  graphic envelope editor.
+- For the graphic envelope editor to behave consistently, all envelope
+  parameters need to be in the same page group. Since this breaks the
+  mainstream MiMi-d feature of having the release parameters for both 
+  the filter and loudness envelope on the same page, on the zynthian
+  branch, a separate page is used for each release parameter, which
+  then is part of the same parameter group as the rest of the parameters
+  for that envelope.

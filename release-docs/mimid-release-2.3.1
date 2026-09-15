@@ -1,0 +1,24 @@
+Version 2.3.1 brings a couple of GUI updates.
+
+Features
+- Switched from nanoVG to Cairo graphics backend. As it turns out,
+  on Zynthian, nanoVG turns out to be very CPU consuming, as the 
+  plugin UI screen is only accessible via VNC and hence completely in
+  software (rather than supported by a GPU). nanoVG then needs to resort
+  to Open GL emulation in software, which empirically seems to use a lot
+  more CPU than Cairo. That in itself might be manageable, but when used in
+  a snapshot together with certain other plugins, such as Osiris, the CPU
+  load spikes during redraws due to parameter updates cause clicks and pops
+  in the audio.
+- Optimize redrawing when UI menu is open. The goal here is really to
+  avoid all redrawing of parameters when the UI menu is open, as a workaround
+  to eliminate CPU load due to redraws, should this be a problem in any setup.
+- Added (small) waveform indicators around the Modulator 3 Shape
+  parameter (which is continuous, not stepped like the other two
+  modulators), and also infinity symbols at the top end of the
+  ADSSR Sustain Time parameter value range, indicating that the envelope
+  behaves like a standard ADSR when the Sustain Time is set to maximum.
+
+As usual, a companion version 2.3.1z has been tagged on the Zynthian branch,
+which supports the graphic envelope and filter display features in the Zynthian
+UI.
