@@ -200,6 +200,7 @@ public:
 	{
 		rsz = mem = rob_oldest = rob_next_to_lowest = false;
 		restore = strgNoteOn = strgNoteOff = false;
+		uni = dual = false;
 		uniPlaying = false;
 		alwaysPorta = false;
 		usingPolyAfterTouch = false;

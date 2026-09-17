@@ -35,7 +35,7 @@ private:
 	float R24;
 
 	//24 db variable cutoff slope
-	float mmt;
+	float mmt = 0.0f;
 	int mmch = 0;
 public:
 	float SampleRate;

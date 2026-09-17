@@ -48,6 +48,11 @@ public:
 	float rPanning;	// runtime pan value right ch
 	// panSpreadAmt is amount random spread
 	// unisonSpreadAmt is amount of spread in dual mode
+	Panning() :
+		position(PAN_CENTER), panSpread(0.0f),
+		lPanning(0.5f), rPanning(0.5f)
+	{
+	}
 	void setPanning(const PanningParams &params)
 	{
 		// pannings are 0..1, with 0.5 being center, whereas
