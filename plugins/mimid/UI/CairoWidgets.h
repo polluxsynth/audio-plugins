@@ -13,7 +13,6 @@
  *   - Fonts are owned by CairoWidgets; FreeType state is initialised
  *     in the constructor from the embedded NotoSans header arrays.
  *   - Knob face uses a radial gradient with flat-zone + bevel.
- *   - Knob shadow is rendered as a squashed filled ellipse.
  *   - Knob dome adds a centre-bright radial white gloss overlay.
  *   - Cairo renders directly to a cairo_surface_t every frame.
  *
@@ -377,19 +376,10 @@ public:
         const float       tw  = g.tw;
         const float       angle = g.valueToAngle(norm);
 
-        // -- Shadow ----------------------------------------------------------
-        // Filled circle drawn behind the knob face, offset by the same
-        // amounts as the button drop shadow (BTN_SHADOW_OX/OY).  The knob
-        // face covers most of it; only a crescent at the bottom-right
-        // remains visible, giving the same "cylinder depth" look as the
-        // buttons without extending outside the knob clip area.
-        cairo_arc(fCR,
-                  cx + KNOB_SHADOW_OX,
-                  cy + KNOB_SHADOW_OY,
-                  r + KNOB_SHADOW_DEPTH,
-                  0, 2.0 * M_PI);
-        cairo_set_source_rgba(fCR, 0, 0, 0, KNOB_SHADOW_ALPHA);
-        cairo_fill(fCR);
+        // Ensure no stray current-point/path survives from whatever was
+        // drawn just before this (e.g. a text label), since cairo_arc()
+        // below would otherwise connect to it with a straight line.
+        cairo_new_path(fCR);
 
         // -- Track background ------------------------------------------------
         if (fSettings.showArc) {
