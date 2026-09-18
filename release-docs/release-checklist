@@ -1,0 +1,10 @@
+Release checklist for MiMi-d
+
+- Verify all patches present in Presets/manifest.ttl
+  (run ../Utils/find-missing-presets.sh)
+- Verify debug parameters are disabled in ParamDefs.h
+- Update version number in manual (manual version and plugin version)
+- Create .pdf of manual
+- Copy manual .pdf to butoba.net/downloads
+- Update version number in DistrhoPluginInfo.h (was MiMi-d.c:getVersion)
+- Set git tag and push to repo

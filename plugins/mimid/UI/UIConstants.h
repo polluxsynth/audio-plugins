@@ -73,14 +73,6 @@ static constexpr float KNOB_SPEC_FADE_Y  = 0.45f;
 // specular arc radius as fraction of knob radius
 static constexpr float KNOB_SPEC_RADIUS  = 0.98f;
 
-// Drop shadow: filled circle offset behind the knob face,
-// same technique as the button shadow (BTN_SHADOW_OX/OY).
-// Only a crescent at the lower-right edge stays visible.
-// X/Y offsets in pixels; DEPTH is extra radius beyond KNOB_R.
-static constexpr float KNOB_SHADOW_OX    =  1.0f;
-static constexpr float KNOB_SHADOW_OY    =  3.0f;
-static constexpr float KNOB_SHADOW_DEPTH =  1.5f;
-static constexpr float KNOB_SHADOW_ALPHA =  0.30f;
 
 // rim stroke width
 static constexpr float KNOB_RIM_W          =  3.0f;

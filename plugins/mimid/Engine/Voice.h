@@ -223,6 +223,7 @@ public:
 		levelSpreadAmt = 1;
 		portaSaved = 0;
 		portaRateSaved = 0;
+		portalpc = portalpcSaved = portalpcMax = lpccalc(250.0f, 1.0f / 48000.0f);
 		portalsp = portalspSaved = portalspMax = 0;
 		portaLinScale = 1.0f;
 		portaEnable = false;
@@ -635,7 +636,7 @@ public:
 		afterTouchSmoother.setSampleRate(modRate);
 		hpflpc = lpcpwcalc(hpffreq, audioRateInv);
 		oschpflpc = lpccalc(12.0f /* Hz */, audioRateInv);
-		portalpcMax = lpccalc(250, audioRateInv);
+		portalpcMax = lpccalc(250.0f, audioRateInv);
 		// 4 ms / octave maximum rate (disregard spread here)
 		portalspMax = (12.0f / 4.0e-3f) * modRateInv;
 		setPorta();

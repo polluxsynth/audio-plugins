@@ -1,0 +1,21 @@
+Version 2.3.0 brings one major feature: A graphic UI!
+
+Features:
+- nanoVG based graphicUI, with resizable UI surface.
+  - As a result, some parameter names have been changed:
+    Osc Common:
+      Xmod -> Mod 2>1
+      Osc2FilterMod ->Mod 2>Filter
+      Sync Level -> Sync 2>1
+      Waveform Reset -> Wave Mode
+  - The manual has been updated accordingly and also now includes a section
+    on the GUI.
+
+Bugfixes:
+- E Piano S and E Piano S Chorus were mistakingly assigned to the User
+  bank, which doesn't exist by default, causing them to appear strangely
+  in the preset list in Jalv (and likely other hosts as well).
+
+As usual, a companion version 2.3.0z has been tagged on the Zynthian branch,
+which supports the graphic envelope and filter display features in the Zynthian
+UI.

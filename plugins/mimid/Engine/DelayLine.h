@@ -138,7 +138,7 @@ public:
 	DelayLineInt()
 	{
 		iidx = 0;
-		zeromem(dl, sizeof(bool) * DM);
+		zeromem(dl, sizeof(int) * DM);
 		mask = DM - 1;
 	}
 	inline int feedReturn(int sm)

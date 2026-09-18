@@ -1,0 +1,25 @@
+MiMi-d release 2.0.6
+
+Probably the most boring release yet. There are no new features, but
+a couple of optimizations have been carried out which increase the
+number of playable voices (with oversampling enabled), from about 15
+on an RPi4 Zynthian to 20 or 21, while also preparing for future updates
+which introduce more modulation sources.
+
+Apart from that there are a handful of new presets and a couple of
+updated ones.
+
+As before, the version is also released on the 'zynthian' branch, which adds
+features to support the new graphic envelope editor in upcoming the vangelis
+release. The zynthian version is 2.0.6z .
+
+- General code cleanup.
+- LFO code optimization.
+- Restructuring of modulation routing, reducing CPU load and preparing
+  for future updates with more modulation sources.
+- Run modulation processing at the sample rate, regardless of oversampling,
+  in order to reduce the CPU load. Tests have shown that further reduction
+  is possible without audible artifacts, but more tests are needed to
+  determine exactly how much.
+- A few new Factory presets have been added.
+- A couple of Factory presets have neen updated.

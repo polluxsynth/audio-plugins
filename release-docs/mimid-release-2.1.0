@@ -1,0 +1,26 @@
+Finally, long overdue, version 2.1.0 has now been released, tagged on the
+master branch.
+
+Pending changes to jalv to set parameters that not described in a loaded .ttl
+file to their default values, I went ahead and implemented some changes that do
+not require new parameters. Originally I hadn’t planned on implementing the
+oscillator shape feature until later, not considering it important enough, and
+fearing that it would a bit of a rabbit hole - which it was. Especially the
+sawtooth shape took some time, and although it’s not as useful as the
+triangle-sawtoth morph, I wanted to include it as it is a feature of the
+original MiMi-a.
+
+There are essentially two changes in this release:
+
+- The Pulsewidth parameter has been renamed to Shape, since it now affects the
+  triangle and sawtooth oscillator waveshapes. For the triangle, the waveform
+  can be morphed from a classic triangle (parameter value 0) to sawtooth
+  (parameter value 10). For the sawtooth, it can be morphed from a classic
+  sawtooth (parameter value 0) to a very spiky sawtooth (parameter value 10).
+- Polyphonic aftertouch is now supported. There is no parameter to select
+  betwen channel and polyphonic aftertouch, the plugin simply reacts to
+  whatever arrives in terms of MIDI messages.
+
+There is also a bunch of new presets, a lot of them attempting to showcase the new shape parameter. The presets whose names start with “Trapezoid” morph the triangle waveform between sawtooth and (near) triangle, in effect emulating a low pass filter of sorts with the shape parameter.
+
+As usual, a companion version 2.1.0z has been tagged on the Zynthian branch, which supports the graphic envelope feature in the Zynthian UI.

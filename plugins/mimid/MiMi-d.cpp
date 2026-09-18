@@ -157,9 +157,6 @@ protected:
 				 PLUGIN_VERSION_MINOR,
 				 PLUGIN_VERSION_MICRO);
 	}
-	int64_t getUniqueId() const override {
-		return d_cconst('M','i','M','d');
-	}
 
 	// Doesn't seem to be necessary but just in case ...
 	void initAudioPort(bool input, uint32_t index, AudioPort &port) override

@@ -23,14 +23,15 @@
 #define _DISTRHO_PLUGIN_INFO_H_
 
 #define DISTRHO_PLUGIN_BRAND "Pollux"
-#define DISTRHO_PLUGIN_BRAND_ID Pllx
-#define DISTRHO_PLUGIN_NAME  "MiMi-d"
-#define DISTRHO_PLUGIN_URI   "https://butoba.net/homepage/mimid.html"
-#define DISTRHO_PLUGIN_CLAP_ID "com.polluxsynth.mimid"
+#define DISTRHO_PLUGIN_BRAND_ID   Pllx
+#define DISTRHO_PLUGIN_UNIQUE_ID  MiMd
+#define DISTRHO_PLUGIN_NAME       "MiMi-d"
+#define DISTRHO_PLUGIN_URI        "https://butoba.net/homepage/mimid.html"
+#define DISTRHO_PLUGIN_CLAP_ID    "com.polluxsynth.mimid"
 
 #define PLUGIN_VERSION_MAJOR 2
 #define PLUGIN_VERSION_MINOR 4
-#define PLUGIN_VERSION_MICRO 1
+#define PLUGIN_VERSION_MICRO 2
 
 #define DISTRHO_PLUGIN_NUM_INPUTS                    0
 #define DISTRHO_PLUGIN_NUM_OUTPUTS                   2
