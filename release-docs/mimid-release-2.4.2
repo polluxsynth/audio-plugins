@@ -1,0 +1,23 @@
+Version 2.4.2 is a very small update to the previous version, fixing a bug
+causing some voices to crash upon startup, which in practice only
+manifested itself when the plugin was build as a VST3 and no preset
+was loaded before playing the first note.
+
+Fixes:
+- An uninitialized value for the expoential portamento caused arbitrary
+  voices to crash, emitting a large DC value, in certain cases.
+  - More specifically, when a VST3 plugin was played without loading
+    a preset first. (Although there is actually no connection between the
+    bug and loading a preset, so this is just an observation, which seems to 
+    be consistent between Reaper and Cubase though).
+  - There have been no reports of this problem for LV2, but that would
+    seem to be more by chance than anything else, as the DSP code
+    is identical for all versions of the plugin.
+
+Other Changes:
+- Removed the knob drop shadow in the UI as it didn't really have the intended
+  visual impact and rather cluttered up the surrounding value arc.
+
+As usual, a companion version 2.4.2z has been tagged on the Zynthian branch,
+which supports the graphic envelope and filter display features in the Zynthian
+UI.
