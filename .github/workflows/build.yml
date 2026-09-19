@@ -238,7 +238,8 @@ jobs:
             --oneline --platform linux DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
           echo "Using (Component) FUID $fuid"
           # Then read all .ttl preset files creating .vstpreset files
-          sh Utils/ttl2vstpreset.sh \
+          sh Utils/ttl2preset.sh \
+            --format vst3 \
             --name $PLUGIN_NAME \
             --vendor $VENDOR_NAME \
             --fuid $fuid \

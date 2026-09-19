@@ -1,9 +1,11 @@
 #!/bin/sh
-# ttl2vstpreset.sh
+# ttl2preset.sh
 #
 # Converts a directory of LV2 preset .ttl files (one preset per file,
-# standard LV2 Presets extension layout) into binary Steinberg
-# .vstpreset files for the VST3 build of a DPF-based plugin.
+# standard LV2 Presets extension layout) into the native preset
+# format(s) of other plugin builds of the same DPF-based plugin:
+# binary Steinberg .vstpreset files for VST3, and/or .aupreset
+# CFPropertyList files for AU.
 #
 # Assumes each preset file contains blocks shaped like:
 #
@@ -30,29 +32,58 @@
 # Any parameter a given preset file doesn't specify is filled in from that
 # parameter's coded DEFAULT (taken from the param-map file, see below),
 # so every generated program is always complete, since that's what DPF's own
-# IComponent::getState()/setState() round-trip always produces.
+# state save/restore round-trip always produces for either format.
+#
+# This is a single driver over two independent writer scripts
+# (vstpreset_writer.py, aupreset_writer.py). Both consume the same
+# intermediate LABEL/PARAM representation of a preset (built once in
+# Pass 1 below, shared between formats) and each serializes it into
+# whatever its own target format needs -- a hand-packed binary blob
+# for .vstpreset, a CFPropertyList for .aupreset. Which formats get
+# written is controlled by --format; everything about *where* the
+# resulting files end up on disk (e.g. the .aupreset install path
+# convention) is intentionally left up to the caller/installer, not
+# handled here.
 #
 # Usage:
-#   ttl2vstpreset.sh [options] <presets-dir> <output-dir> [<param-map-file>]
+#   ttl2preset.sh [options] <presets-dir> <output-dir> [<param-map-file>]
 #
 # Options:
-#   --fuid FUID        Component FUID to embed in the .vstpreset header
-#                       (see the COMPONENT_FUID comment below for what
-#                       this must be). Overrides the coded default.
-#   --name NAME         Plugin name. Overrides the coded default.
-#   --vendor VENDOR      Plugin vendor. Overrides the coded default.
-#   --category CATEGORY  Plugin category. Overrides the coded default.
+#   --format FORMAT       vst3, au, or both (default: both)
+#   --fuid FUID           VST3 component FUID to embed in the header
+#                         (see the COMPONENT_FUID comment below for
+#                         what this must be). Overrides the coded
+#                         default. Ignored unless --format includes vst3.
+#   --name NAME           Plugin name (VST3 Info chunk only).
+#                         Overrides the coded default.
+#   --vendor VENDOR       Plugin vendor (VST3 Info chunk only).
+#                         Overrides the coded default.
+#   --category CATEGORY   Plugin category (VST3 Info chunk only).
+#                         Overrides the coded default.
+#   --au-type CODE         4-char AU type code (DISTRHO_PLUGIN_AU_TYPE).
+#                         Overrides the coded default. Ignored unless
+#                         --format includes au.
+#   --au-subtype CODE      4-char AU subtype code
+#                         (DISTRHO_PLUGIN_UNIQUE_ID). Overrides the
+#                         coded default. Ignored unless --format
+#                         includes au.
+#   --au-manufacturer CODE 4-char AU manufacturer code
+#                         (DISTRHO_PLUGIN_BRAND_ID). Overrides the
+#                         coded default. Ignored unless --format
+#                         includes au.
 #
 # <param-map-file> format: see gen-param-map.sh.
 # (Tab separated lv2 parameter name, source code symbol, default value)
 #
-# Requires python3 (only used for the binary chunk/header assembly;
-# see vstpreset_writer.py, which must be next to this script).
+# Requires python3 (only used for the binary/plist assembly; see
+# vstpreset_writer.py and aupreset_writer.py, which are independent
+# scripts and must both be next to this script).
 
 set -eu
 
 SELF_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-WRITER="$SELF_DIR/vstpreset_writer.py"
+VST3_WRITER="$SELF_DIR/vstpreset_writer.py"
+AU_WRITER="$SELF_DIR/aupreset_writer.py"
 
 # FUID of the Audio Module Class (processor/component). Per the VST3
 # preset file format, a .vstpreset's header classID is always the
@@ -60,21 +91,36 @@ WRITER="$SELF_DIR/vstpreset_writer.py"
 # compiled into the plugin.
 #
 # These are the coded defaults; each can be overridden on the command
-# line (--fuid, --name, --vendor, --category) without editing the
-# script, e.g. when reusing it for a different DPF plugin build.
+# line (--fuid, --name, --vendor, --category, --au-type, --au-subtype,
+# --au-manufacturer) without editing the script, e.g. when reusing it
+# for a different DPF plugin build.
 COMPONENT_FUID="2046504473616C63644D694D00000000"
 
 PLUGIN_NAME="MiMi-d"
 PLUGIN_VENDOR="Pollux"
 PLUGIN_CATEGORY="Instrument"
 
+# AU identity codes. These must match DISTRHO_PLUGIN_AU_TYPE,
+# DISTRHO_PLUGIN_UNIQUE_ID and DISTRHO_PLUGIN_BRAND_ID in
+# DistrhoPluginInfo.h exactly, or a host will not recognize the
+# preset as belonging to this plugin.
+AU_TYPE="aumu"
+AU_SUBTYPE="MiMd"
+AU_MANUFACTURER="Pllx"
+
+FORMAT="both"
+
 usage() {
     echo "Usage: $0 [options] <presets-dir> <output-dir> [param-map-file]" >&2
     echo "Options:" >&2
-    echo "  --fuid FUID          component FUID (default: $COMPONENT_FUID)" >&2
-    echo "  --name NAME          plugin name (default: $PLUGIN_NAME)" >&2
-    echo "  --vendor VENDOR      plugin vendor (default: $PLUGIN_VENDOR)" >&2
-    echo "  --category CATEGORY  plugin category (default: $PLUGIN_CATEGORY)" >&2
+    echo "  --format FORMAT         vst3, au, or both (default: $FORMAT)" >&2
+    echo "  --fuid FUID             VST3 component FUID (default: $COMPONENT_FUID)" >&2
+    echo "  --name NAME             plugin name, VST3 only (default: $PLUGIN_NAME)" >&2
+    echo "  --vendor VENDOR         plugin vendor, VST3 only (default: $PLUGIN_VENDOR)" >&2
+    echo "  --category CATEGORY     plugin category, VST3 only (default: $PLUGIN_CATEGORY)" >&2
+    echo "  --au-type CODE          AU type code (default: $AU_TYPE)" >&2
+    echo "  --au-subtype CODE       AU subtype code (default: $AU_SUBTYPE)" >&2
+    echo "  --au-manufacturer CODE  AU manufacturer code (default: $AU_MANUFACTURER)" >&2
 }
 
 # --- parse options, then positional args ---
@@ -86,6 +132,11 @@ POSITIONAL=""
 npos=0
 while [ $# -gt 0 ]; do
     case "$1" in
+        --format)
+            [ $# -ge 2 ] || { echo "error: --format requires an argument" >&2; exit 1; }
+            FORMAT=$2
+            shift 2
+            ;;
         --fuid)
             [ $# -ge 2 ] || { echo "error: --fuid requires an argument" >&2; exit 1; }
             COMPONENT_FUID=$2
@@ -106,14 +157,34 @@ while [ $# -gt 0 ]; do
             PLUGIN_CATEGORY=$2
             shift 2
             ;;
-        --fuid=*|--name=*|--vendor=*|--category=*)
+        --au-type)
+            [ $# -ge 2 ] || { echo "error: --au-type requires an argument" >&2; exit 1; }
+            AU_TYPE=$2
+            shift 2
+            ;;
+        --au-subtype)
+            [ $# -ge 2 ] || { echo "error: --au-subtype requires an argument" >&2; exit 1; }
+            AU_SUBTYPE=$2
+            shift 2
+            ;;
+        --au-manufacturer)
+            [ $# -ge 2 ] || { echo "error: --au-manufacturer requires an argument" >&2; exit 1; }
+            AU_MANUFACTURER=$2
+            shift 2
+            ;;
+        --format=*|--fuid=*|--name=*|--vendor=*|--category=*|\
+        --au-type=*|--au-subtype=*|--au-manufacturer=*)
             opt=${1%%=*}
             val=${1#*=}
             case "$opt" in
+                --format) FORMAT=$val ;;
                 --fuid) COMPONENT_FUID=$val ;;
                 --name) PLUGIN_NAME=$val ;;
                 --vendor) PLUGIN_VENDOR=$val ;;
                 --category) PLUGIN_CATEGORY=$val ;;
+                --au-type) AU_TYPE=$val ;;
+                --au-subtype) AU_SUBTYPE=$val ;;
+                --au-manufacturer) AU_MANUFACTURER=$val ;;
             esac
             shift
             ;;
@@ -147,6 +218,14 @@ if [ "$npos" -lt 2 ] || [ "$npos" -gt 3 ]; then
     exit 1
 fi
 
+case "$FORMAT" in
+    vst3|au|both) ;;
+    *)
+        echo "error: --format must be vst3, au, or both (got: $FORMAT)" >&2
+        exit 1
+        ;;
+esac
+
 PRESET_DIR=$POS_1
 OUT_DIR=$POS_2
 PARAM_MAP=${POS_3:-}
@@ -159,12 +238,20 @@ if [ -n "$PARAM_MAP" ] && [ ! -f "$PARAM_MAP" ]; then
     echo "error: param map not found: $PARAM_MAP" >&2
     exit 1
 fi
-if [ ! -f "$WRITER" ]; then
-    echo "error: helper not found next to this script: $WRITER" >&2
-    exit 1
+if [ "$FORMAT" = "vst3" ] || [ "$FORMAT" = "both" ]; then
+    if [ ! -f "$VST3_WRITER" ]; then
+        echo "error: helper not found next to this script: $VST3_WRITER" >&2
+        exit 1
+    fi
+fi
+if [ "$FORMAT" = "au" ] || [ "$FORMAT" = "both" ]; then
+    if [ ! -f "$AU_WRITER" ]; then
+        echo "error: helper not found next to this script: $AU_WRITER" >&2
+        exit 1
+    fi
 fi
 if ! command -v python3 >/dev/null 2>&1; then
-    echo "error: python3 is required (for binary .vstpreset assembly) but was not found" >&2
+    echo "error: python3 is required (for binary/plist assembly) but was not found" >&2
     exit 1
 fi
 
@@ -189,6 +276,10 @@ trap 'rm -rf "$WORKDIR"' EXIT INT TERM
 # pass 2 is easy to trace back to its source file. Each contains a
 # LABEL line followed by one PARAM line per (symbol, value) pair found
 # in the .ttl, in the order encountered.
+#
+# This pass is entirely format-agnostic -- it knows nothing about
+# .vstpreset or .aupreset -- so it is shared unchanged between both
+# output formats.
 
 echo "$FILELIST" | awk -v mapfile="$PARAM_MAP" -v workdir="$WORKDIR" '
 BEGIN {
@@ -257,6 +348,16 @@ function extract_quoted(s, from,    rest, q1, rest2, q2, val) {
         print "warning: no rdfs:label found in " path ", using filename" > "/dev/stderr"
     }
 
+    # The intermediate LABEL/PARAM format is tab-delimited with no
+    # escaping, so a literal tab embedded in a rdfs:label (unusual,
+    # but not forbidden by Turtle string syntax) would corrupt the
+    # line. Flatten any such tab to a space rather than adding an
+    # escaping scheme for what should be a one-in-a-million case.
+    if (label ~ /\t/) {
+        print "warning: rdfs:label in " path " contains a tab; replacing with a space" > "/dev/stderr"
+        gsub(/\t/, " ", label)
+    }
+
     # --- extract every (lv2:symbol "sym", pset:value NUM) pair, in order ---
     delete provided
     delete symOrder
@@ -316,7 +417,7 @@ function extract_quoted(s, from,    rest, q1, rest2, q2, val) {
 }
 '
 
-# --- Pass 2: turn each intermediate file into a .vstpreset ---
+# --- Pass 2: turn each intermediate file into one file per requested format ---
 
 count=0
 for f in "$WORKDIR"/*.params; do
@@ -333,27 +434,52 @@ for f in "$WORKDIR"/*.params; do
         safe="Untitled"
     fi
 
-    out="$OUT_DIR/$safe.vstpreset"
+    wrote_any=0
 
-    # Avoid clobbering same-named presets from different source files.
-    if [ -e "$out" ]; then
-        i=2
-        while [ -e "$OUT_DIR/$safe ($i).vstpreset" ]; do
-            i=$((i + 1))
-        done
-        out="$OUT_DIR/$safe ($i).vstpreset"
+    if [ "$FORMAT" = "vst3" ] || [ "$FORMAT" = "both" ]; then
+        out="$OUT_DIR/$safe.vstpreset"
+        if [ -e "$out" ]; then
+            i=2
+            while [ -e "$OUT_DIR/$safe ($i).vstpreset" ]; do
+                i=$((i + 1))
+            done
+            out="$OUT_DIR/$safe ($i).vstpreset"
+        fi
+
+        python3 "$VST3_WRITER" \
+            --component-fuid "$COMPONENT_FUID" \
+            --plugin-name "$PLUGIN_NAME" \
+            --vendor "$PLUGIN_VENDOR" \
+            --category "$PLUGIN_CATEGORY" \
+            --input "$f" \
+            --output "$out"
+
+        echo "wrote: $out" >&2
+        wrote_any=1
     fi
 
-    python3 "$WRITER" \
-        --component-fuid "$COMPONENT_FUID" \
-        --plugin-name "$PLUGIN_NAME" \
-        --vendor "$PLUGIN_VENDOR" \
-        --category "$PLUGIN_CATEGORY" \
-        --input "$f" \
-        --output "$out"
+    if [ "$FORMAT" = "au" ] || [ "$FORMAT" = "both" ]; then
+        out="$OUT_DIR/$safe.aupreset"
+        if [ -e "$out" ]; then
+            i=2
+            while [ -e "$OUT_DIR/$safe ($i).aupreset" ]; do
+                i=$((i + 1))
+            done
+            out="$OUT_DIR/$safe ($i).aupreset"
+        fi
 
-    echo "wrote: $out" >&2
-    count=$((count + 1))
+        python3 "$AU_WRITER" \
+            --au-type "$AU_TYPE" \
+            --au-subtype "$AU_SUBTYPE" \
+            --au-manufacturer "$AU_MANUFACTURER" \
+            --input "$f" \
+            --output "$out"
+
+        echo "wrote: $out" >&2
+        wrote_any=1
+    fi
+
+    [ "$wrote_any" -eq 1 ] && count=$((count + 1))
 done
 
 if [ "$count" -eq 0 ]; then
@@ -361,4 +487,4 @@ if [ "$count" -eq 0 ]; then
     exit 1
 fi
 
-echo "Converted $count preset(s) into $OUT_DIR" >&2
+echo "Converted $count preset(s) (format: $FORMAT) into $OUT_DIR" >&2

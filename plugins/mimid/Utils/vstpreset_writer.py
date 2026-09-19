@@ -156,12 +156,17 @@ def write_vstpreset(out_path, component_fuid_hex, params, program_index=0,
 
 
 def parse_intermediate(fh):
-    """Reads the simple intermediate format produced by ttl2vstpreset.sh:
+    """Reads the simple intermediate format produced by ttl2preset.sh:
 
          LABEL<TAB><preset label>
          PARAM<TAB><symbol><TAB><value>
          PARAM<TAB><symbol><TAB><value>
          ...
+
+    (Tabs can't appear within a field: the label has any literal tabs
+    stripped when it's written, and LV2 symbols are restricted by the
+    LV2 spec to [a-zA-Z_][a-zA-Z0-9_]*, which excludes tabs anyway --
+    so plain split("\t") is safe here without any escaping scheme.)
     """
     label = None
     params = []
