@@ -22,6 +22,10 @@ env:
 
   PLUGIN_NAME: MiMi-d
 
+  # AU component type: 'aumu' = instrument.
+
+  AU_TYPE: aumu
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -92,6 +96,19 @@ jobs:
             exit 1
           fi
 
+          # AU identifiers, needed for the .aupreset files and by auval. DPF
+          # calls them DISTRHO_PLUGIN_UNIQUE_ID (= AU subtype) and
+          # DISTRHO_PLUGIN_BRAND_ID (= AU manufacturer): 4-character tokens
+          # written without quotes. They must be exactly 4 characters (which
+          # also catches e.g. a d_cconst('M','i','m','d') style definition),
+          # but that is only enforced on macOS, the only place AU is built.
+          AU_SUBTYPE=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_UNIQUE_ID[[:space:]]+([^[:space:]/]+).*/\1/p' "$HEADER")
+          AU_MANUFACTURER=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_BRAND_ID[[:space:]]+([^[:space:]/]+).*/\1/p' "$HEADER")
+          if [ "${{ matrix.platform }}" = "macos" ] && { [ "${#AU_SUBTYPE}" -ne 4 ] || [ "${#AU_MANUFACTURER}" -ne 4 ]; }; then
+            echo "::error::AU subtype/manufacturer must be exactly 4 characters (DISTRHO_PLUGIN_UNIQUE_ID='$AU_SUBTYPE', DISTRHO_PLUGIN_BRAND_ID='$AU_MANUFACTURER') in $HEADER"
+            exit 1
+          fi
+
           # Slug = lowercase, alphanumeric only (e.g. "MiMi-d" -> "mimid")
           PLUGIN_SLUG=$(echo "$PLUGIN_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
           VENDOR_SLUG=$(echo "$VENDOR_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
@@ -99,11 +116,15 @@ jobs:
           echo "VENDOR_NAME=$VENDOR_NAME"
           echo "PLUGIN_SLUG=$PLUGIN_SLUG"
           echo "VENDOR_SLUG=$VENDOR_SLUG"
+          echo "AU_SUBTYPE=$AU_SUBTYPE"
+          echo "AU_MANUFACTURER=$AU_MANUFACTURER"
 
           {
             echo "VENDOR_NAME=$VENDOR_NAME"
             echo "PLUGIN_SLUG=$PLUGIN_SLUG"
             echo "VENDOR_SLUG=$VENDOR_SLUG"
+            echo "AU_SUBTYPE=$AU_SUBTYPE"
+            echo "AU_MANUFACTURER=$AU_MANUFACTURER"
           } >> "$GITHUB_ENV"
 
       # 3. Set up Python so we get a well-defined version
@@ -135,7 +156,7 @@ jobs:
 
       # 4a. Stash the metadata/version derived above to a file so it can be
       #     bundled into the merge-support artifact later (step 7.3), once
-      #     Vstpresets/README/manual are also ready. Only needs to happen
+      #     Vstpresets/Aupresets/README/manual are also ready. Only needs to happen
       #     once, so it's pinned to a single, specific leg of the matrix.
       - name: Write build metadata for MacOS build
         if: matrix.os == 'macos-15'
@@ -186,14 +207,20 @@ jobs:
             export CFLAGS="-mmacosx-version-min=$mac_min -I$BREW_PREFIX/include"
             export CXXFLAGS="-mmacosx-version-min=$mac_min -I$BREW_PREFIX/include"
             export LDFLAGS="-mmacosx-version-min=$mac_min -L$BREW_PREFIX/lib"
+            # macOS gets VST3 and AU (AU is macOS-only, so Linux skips it).
             make TARGET=vst3
-            # Bundle non-system dylibs into the .vst3 and rewrite install
+            make TARGET=au
+            # Bundle non-system dylibs into each bundle and rewrite install
             # names. This is needed because otherwise it is required for the
-            # user to have them installed separately on their machine.
-            dylibbundler -od -b \
-              -x "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME" \
-              -d "bin/$PLUGIN_NAME.vst3/Contents/Frameworks" \
-              -p "@loader_path/../Frameworks/"
+            # user to have them installed separately on their machine. Each
+            # bundle gets its own private copy under Contents/Frameworks, so
+            # that VST3 and AU can be installed independently of each other.
+            for BUNDLE in "$PLUGIN_NAME.vst3" "$PLUGIN_NAME.component"; do
+              dylibbundler -od -b \
+                -x "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME" \
+                -d "bin/$BUNDLE/Contents/Frameworks" \
+                -p "@loader_path/../Frameworks/"
+            done
           else
             make TARGET=lv2_sep
             make TARGET=vst3
@@ -203,20 +230,47 @@ jobs:
       - name: Log contents of Mac binary
         if: matrix.platform == 'macos'
         run: |
-          lipo -info bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
-          otool -L bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME
+          for BUNDLE in "$PLUGIN_NAME.vst3" "$PLUGIN_NAME.component"; do
+            echo "=== $BUNDLE ==="
+            lipo -info "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
+            otool -L "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
+          done
 
-      # 6b. Upload the raw (pre-packaging, single-arch) .vst3 bundle so the
-      #     merge-macos-universal job below can lipo it together with the
-      #     other architecture.
-      #     Upload the parent bin/ instead of the .vst folder itself, as
-      #     otherwise the folder name gets left out.
-      - name: Upload raw VST3 bundle (for MacOS universal merge)
+      # 6b. Upload the raw (pre-packaging, single-arch) .vst3 and .component
+      #     bundles so the merge-macos-universal job below can lipo them
+      #     together with the other architecture.
+      #     Upload the parent bin/ instead of the bundle folders themselves,
+      #     as otherwise the folder names get left out.
+      - name: Upload raw plugin bundles (for MacOS universal merge)
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-vst3-raw-${{ matrix.arch }}
+          name: ${{ env.PLUGIN_NAME }}-bundles-raw-${{ matrix.arch }}
           path: bin
+
+      # 6c. Validate the AU with Apple's auval. Logic refuses AUs that fail
+      #     this, so it is the real acceptance test for the .component.
+      #     Runs on every macOS leg, i.e. natively on both arm64 and x86_64.
+      #     Subtype and manufacturer come from DistrhoPluginInfo.h (see step
+      #     2). The type is hard-coded ('aumu' = instrument) and must match
+      #     the default --au-type of ttl2preset.sh, which is likewise left
+      #     at its default in step 7.2b.
+      #     continue-on-error while this is new: auval can be finicky on CI
+      #     runners. Remove it once it has proven stable.
+      - name: Validate AU with auval
+        if: matrix.platform == 'macos'
+        continue-on-error: true
+        run: |
+          echo "Validating AU: type=$AU_TYPE subtype=$AU_SUBTYPE manufacturer=$AU_MANUFACTURER"
+
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R "bin/$PLUGIN_NAME.component" ~/Library/Audio/Plug-Ins/Components/
+          # Make sure the registrar notices the new component.
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+
+          # For diagnostics: is it listed at all?
+          auval -a || true
+          auval -v "$AU_TYPE" "$AU_SUBTYPE" "$AU_MANUFACTURER"
 
       # 7.1: Add lv2 presets to Linux bundle
       - name: Add LV2 presets to Linux bundle
@@ -249,9 +303,32 @@ jobs:
           mv Vstpresets ../..
           # To clean up, remove Vstpresets
 
+      # 7.2b: Create AU presets (macOS only, as AU is macOS-only).
+      #       Same driver script as above, run a second time with --format
+      #       au so the .aupreset files end up in their own directory
+      #       (Aupresets), which maps one-to-one onto the AU installer
+      #       component, just like Vstpresets does for VST3.
+      #       AU subtype/manufacturer come from DistrhoPluginInfo.h (step 2)
+      #       rather than the script's built-in defaults, so they can't go
+      #       stale. --au-type is globally in this file
+      #       vstpreset_writer.py and aupreset_writer.py must both sit next
+      #       to ttl2preset.sh in Utils/.
+      - name: Create AU presets
+        if: matrix.platform == 'macos'
+        run: |
+          cd plugins/$PLUGIN_SLUG
+          sh Utils/ttl2preset.sh \
+            --format au \
+            --au-type "$AU_TYPE" \
+            --au-subtype "$AU_SUBTYPE" \
+            --au-manufacturer "$AU_MANUFACTURER" \
+            Presets Aupresets
+          mv Aupresets ../..
+
       # 7.3: Package everything the merge-macos-universal job needs, other
-      #      than the two raw .vst3 bundles themselves, into one artifact:
-      #      the metadata file from step 4a, the Vstpresets just generated,
+      #      than the raw .vst3/.component bundles themselves, into one artifact:
+      #      the metadata file from step 4a, the Vstpresets and Aupresets just
+      #      generated,
       #      and mimid-mac-install.txt and the pdf manual.
       - name: Package merge-support artifact for MacOS
         if: matrix.os == 'macos-15'
@@ -259,6 +336,7 @@ jobs:
           mkdir -p merge-support
           cp meta/build-metadata.env merge-support/
           cp -R Vstpresets merge-support/Vstpresets
+          cp -R Aupresets merge-support/Aupresets
           cp macos/mimid-mac-install.txt "merge-support/Installation README"
           cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf merge-support/$PLUGIN_NAME.pdf
 
@@ -269,33 +347,86 @@ jobs:
           name: ${{ env.PLUGIN_NAME }}-merge-support
           path: merge-support
 
-      # 8a: Build per-architecture MacOS .pkg installer
+      # 8a: Build per-architecture MacOS .pkg installer.
+      #     This is a "product archive": one component package per plugin
+      #     format (VST3, AU), wrapped by a distribution.xml which shows the
+      #     user a format checklist as a step of the installer (customize=
+      #     "always"; the default, "allow", only offers a Customize button
+      #     that is easily clicked past). Both are selected by default. Installing both at once is not
+      #     always what people want (hosts supporting both formats will list
+      #     the plugin twice), but neither is having to pick between separate
+      #     downloads, as plenty of people use e.g. both Logic (AU only) and
+      #     Cubase (VST3 only).
       - name: Create per-architecture MacOS .pkg installer
         if: matrix.platform == 'macos'
         run: |
-            mkdir pkg_root
-            mkdir -p pkg_root/Library/Audio/Plug-Ins/CLAP
-            mkdir -p pkg_root/Library/Audio/Plug-Ins/LV2
-            mkdir -p pkg_root/Library/Audio/Plug-Ins/VST3
-            mkdir -p pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+          VERSION="${{ steps.version.outputs.version }}"
+          PKG_ID="com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG"
+          mkdir pkgs
 
-            [ -d "bin/$PLUGIN_NAME.clap" ] && cp -R bin/$PLUGIN_NAME.clap pkg_root/Library/Audio/Plug-Ins/CLAP/
-            [ -d "bin/$PLUGIN_NAME.lv2" ]  && cp -R bin/$PLUGIN_NAME.lv2  pkg_root/Library/Audio/Plug-Ins/LV2/
-            [ -d "bin/$PLUGIN_NAME.vst3" ] && cp -R bin/$PLUGIN_NAME.vst3 pkg_root/Library/Audio/Plug-Ins/VST3/
-            [ -d "Vstpresets" ] && cp -R Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+          # Each component carries its own format's presets (.vstpreset for
+          # VST3, .aupreset for AU), so unticking a format also leaves out
+          # the presets that would be useless without it.
+          #
+          # VST3 component: the bundle plus the .vstpreset files.
+          PRESET_DIR="pkg_root_vst3/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
+          mkdir -p pkg_root_vst3/Library/Audio/Plug-Ins/VST3 "$PRESET_DIR"
+          cp -R "bin/$PLUGIN_NAME.vst3" pkg_root_vst3/Library/Audio/Plug-Ins/VST3/
+          if [ -d "Vstpresets" ]; then cp -R Vstpresets "$PRESET_DIR/"; fi
+          pkgbuild --root pkg_root_vst3 \
+                   --install-location / \
+                   --identifier "$PKG_ID.vst3" \
+                   --version "$VERSION" \
+                   pkgs/vst3.pkg
 
-            pkgbuild --root pkg_root \
-                     --install-location / \
-                     --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
-                     --version "${{ steps.version.outputs.version }}" \
-                     "bin/$PLUGIN_NAME-${{ matrix.arch }}.pkg"
-            # We don't need the vst3 bundle anymore now, so remove it or
-            # it will explicitly be part of the bundle.
-            rm -r bin/$PLUGIN_NAME.vst3
-            # But it's handy to have the installation instructions at hand
-            cp macos/mimid-mac-install.txt "bin/Installation README"
-            # and the manual
-            cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
+          # AU component: the bundle plus the .aupreset files (created by
+          # step 7.2b, so a missing Aupresets dir is a bug and should fail).
+          # Installed to the same Presets/<Vendor>/<Plugin> folder as the
+          # VST3 presets; the extensions differ, so they don't collide.
+          AU_PRESET_DIR="pkg_root_au/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
+          mkdir -p pkg_root_au/Library/Audio/Plug-Ins/Components "$AU_PRESET_DIR"
+          cp -R "bin/$PLUGIN_NAME.component" pkg_root_au/Library/Audio/Plug-Ins/Components/
+          cp -R Aupresets/. "$AU_PRESET_DIR/"
+          pkgbuild --root pkg_root_au \
+                   --install-location / \
+                   --identifier "$PKG_ID.au" \
+                   --version "$VERSION" \
+                   pkgs/au.pkg
+
+          # Wrap both in a single installer with a choice per format.
+          cat > distribution.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <installer-gui-script minSpecVersion="2">
+            <title>$PLUGIN_NAME</title>
+            <options customize="always"/>
+            <choices-outline>
+              <line choice="vst3"/>
+              <line choice="au"/>
+            </choices-outline>
+            <choice id="vst3" title="VST3" start_selected="true"
+                    description="VST3 plugin (Cubase, Bitwig, Reaper, Ableton Live, ...) including factory presets.">
+              <pkg-ref id="$PKG_ID.vst3"/>
+            </choice>
+            <choice id="au" title="Audio Unit (AU)" start_selected="true"
+                    description="Audio Unit plugin (Logic Pro, GarageBand, MainStage, ...) including factory presets.">
+              <pkg-ref id="$PKG_ID.au"/>
+            </choice>
+            <pkg-ref id="$PKG_ID.vst3" version="$VERSION">vst3.pkg</pkg-ref>
+            <pkg-ref id="$PKG_ID.au" version="$VERSION">au.pkg</pkg-ref>
+          </installer-gui-script>
+          EOF
+
+          productbuild --distribution distribution.xml \
+                       --package-path pkgs \
+                       "bin/$PLUGIN_NAME-${{ matrix.arch }}.pkg"
+
+          # We don't need the plugin bundles anymore now, so remove them or
+          # they will explicitly be part of the bundle.
+          rm -r "bin/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.component"
+          # But it's handy to have the installation instructions at hand
+          cp macos/mimid-mac-install.txt "bin/Installation README"
+          # and the manual
+          cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
 
       # 8b: Build Linux .deb / .rpm installers
       - name: Create Linux installers
@@ -377,7 +508,7 @@ jobs:
     runs-on: macos-15
     steps:
       # Download installation readme and manual together with the .vst3
-      # build and Vstpresets from the earlier build stage.
+      # build and Vstpresets/Aupresets from the earlier build stage.
       - name: Download merge-support artifact
         uses: actions/download-artifact@v7
         with:
@@ -387,16 +518,16 @@ jobs:
       - name: Load build metadata
         run: cat support/build-metadata.env >> "$GITHUB_ENV"
 
-      - name: Download arm64 raw VST3
+      - name: Download arm64 raw bundles
         uses: actions/download-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-vst3-raw-arm64
+          name: ${{ env.PLUGIN_NAME }}-bundles-raw-arm64
           path: raw-arm64
 
-      - name: Download x86_64 raw VST3
+      - name: Download x86_64 raw bundles
         uses: actions/download-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-vst3-raw-x86_64
+          name: ${{ env.PLUGIN_NAME }}-bundles-raw-x86_64
           path: raw-x86_64
 
       # Start from the arm64 bundle as the directory skeleton (Info.plist,
@@ -405,64 +536,114 @@ jobs:
       # embedded - with a lipo'd universal copy. Homebrew dylibs are
       # single-arch, matching whichever runner built them, so the
       # Frameworks folder needs merging too, not just the plugin binary.
-      - name: Merge into universal (fat) VST3
+      # Done for both the .vst3 and the .component (AU) bundle.
+      - name: Merge into universal (fat) VST3 and AU
         run: |
           set -euo pipefail
-          ARM_BUNDLE="raw-arm64/$PLUGIN_NAME.vst3"
-          X86_BUNDLE="raw-x86_64/$PLUGIN_NAME.vst3"
-          OUT_BUNDLE="bin/$PLUGIN_NAME.vst3"
-
           mkdir -p bin
-          cp -R "$ARM_BUNDLE" "$OUT_BUNDLE"
 
-          make_fat() {
-            local rel="$1"
+          merge_bundle() {
+            local bundle="$1"
+            local arm="raw-arm64/$bundle"
+            local x86="raw-x86_64/$bundle"
+            local out="bin/$bundle"
+            local mismatch=0
+            local f rel
+
+            cp -R "$arm" "$out"
+
+            # Main plugin binary
             lipo -create \
-              "$ARM_BUNDLE/$rel" \
-              "$X86_BUNDLE/$rel" \
-              -output "$OUT_BUNDLE/$rel"
+              "$arm/Contents/MacOS/$PLUGIN_NAME" \
+              "$x86/Contents/MacOS/$PLUGIN_NAME" \
+              -output "$out/Contents/MacOS/$PLUGIN_NAME"
+
+            # Any bundled Homebrew dylibs (cairo, freetype, etc.). Both arch
+            # bundles should contain the same dylib names, just single-arch.
+            # Process substitution (rather than a pipe) keeps the loop in
+            # the current shell, so $mismatch survives it.
+            if [ -d "$arm/Contents/Frameworks" ]; then
+              while read -r f; do
+                rel="${f#"$arm"/}"
+                if [ -f "$x86/$rel" ]; then
+                  lipo -create "$arm/$rel" "$x86/$rel" -output "$out/$rel"
+                else
+                  echo "::error::No x86_64 counterpart for $bundle/$rel, dylib sets differ between architectures"
+                  mismatch=1
+                fi
+              done < <(find "$arm/Contents/Frameworks" -type f -name '*.dylib')
+            fi
+            return "$mismatch"
           }
 
-          # Main plugin binary
-          make_fat "Contents/MacOS/$PLUGIN_NAME"
+          merge_bundle "$PLUGIN_NAME.vst3"
+          merge_bundle "$PLUGIN_NAME.component"
 
-          # Any bundled Homebrew dylibs (cairo, freetype, etc.). Both arch
-          # bundles should contain the same dylib names, just single-arch.
-          if [ -d "$ARM_BUNDLE/Contents/Frameworks" ]; then
-            find "$ARM_BUNDLE/Contents/Frameworks" -type f -name '*.dylib' | while read -r f; do
-              rel="${f#$ARM_BUNDLE/}"
-              if [ -f "$X86_BUNDLE/$rel" ]; then
-                make_fat "$rel"
-              else
-                echo "::error::No x86_64 counterpart for $rel, dylib sets differ between architectures"
-                # Use file rather than variable because of subshell
-                touch /tmp/dylib_mismatch
-              fi
-            done
-          fi
-          [ ! -f /tmp/dylib_mismatch ] || exit 1
-
-      - name: Log contents of universal (fat) binary
+      - name: Log contents of universal (fat) binaries
         run: |
-          lipo -info "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
-          otool -L "bin/$PLUGIN_NAME.vst3/Contents/MacOS/$PLUGIN_NAME"
+          for BUNDLE in "$PLUGIN_NAME.vst3" "$PLUGIN_NAME.component"; do
+            echo "=== $BUNDLE ==="
+            lipo -info "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
+            otool -L "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
+          done
 
+      # Same product-archive layout as the per-architecture installer in
+      # step 8a: one selectable component per plugin format.
       - name: Create universal (fat) MacOS .pkg installer
         run: |
-          mkdir pkg_root
-          mkdir -p pkg_root/Library/Audio/Plug-Ins/VST3
-          mkdir -p pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
+          PKG_ID="com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG"
+          mkdir pkgs
 
-          cp -R "bin/$PLUGIN_NAME.vst3" pkg_root/Library/Audio/Plug-Ins/VST3/
-          [ -d "support/Vstpresets" ] && cp -R support/Vstpresets pkg_root/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME
-
-          pkgbuild --root pkg_root \
+          # Each component carries its own format's presets, see step 8a.
+          # VST3 component: the bundle plus the .vstpreset files.
+          PRESET_DIR="pkg_root_vst3/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
+          mkdir -p pkg_root_vst3/Library/Audio/Plug-Ins/VST3 "$PRESET_DIR"
+          cp -R "bin/$PLUGIN_NAME.vst3" pkg_root_vst3/Library/Audio/Plug-Ins/VST3/
+          if [ -d "support/Vstpresets" ]; then cp -R support/Vstpresets "$PRESET_DIR/"; fi
+          pkgbuild --root pkg_root_vst3 \
                    --install-location / \
-                   --identifier "com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG" \
+                   --identifier "$PKG_ID.vst3" \
                    --version "$VERSION" \
-                   "bin/$PLUGIN_NAME-universal.pkg"
+                   pkgs/vst3.pkg
 
-          rm -r "bin/$PLUGIN_NAME.vst3"
+          # AU component: the bundle plus the .aupreset files
+          AU_PRESET_DIR="pkg_root_au/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
+          mkdir -p pkg_root_au/Library/Audio/Plug-Ins/Components "$AU_PRESET_DIR"
+          cp -R "bin/$PLUGIN_NAME.component" pkg_root_au/Library/Audio/Plug-Ins/Components/
+          cp -R support/Aupresets/. "$AU_PRESET_DIR/"
+          pkgbuild --root pkg_root_au \
+                   --install-location / \
+                   --identifier "$PKG_ID.au" \
+                   --version "$VERSION" \
+                   pkgs/au.pkg
+
+          cat > distribution.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <installer-gui-script minSpecVersion="2">
+            <title>$PLUGIN_NAME</title>
+            <options customize="always"/>
+            <choices-outline>
+              <line choice="vst3"/>
+              <line choice="au"/>
+            </choices-outline>
+            <choice id="vst3" title="VST3" start_selected="true"
+                    description="VST3 plugin (Cubase, Bitwig, Reaper, Ableton Live, ...) including factory presets.">
+              <pkg-ref id="$PKG_ID.vst3"/>
+            </choice>
+            <choice id="au" title="Audio Unit (AU)" start_selected="true"
+                    description="Audio Unit plugin (Logic Pro, GarageBand, MainStage, ...) including factory presets.">
+              <pkg-ref id="$PKG_ID.au"/>
+            </choice>
+            <pkg-ref id="$PKG_ID.vst3" version="$VERSION">vst3.pkg</pkg-ref>
+            <pkg-ref id="$PKG_ID.au" version="$VERSION">au.pkg</pkg-ref>
+          </installer-gui-script>
+          EOF
+
+          productbuild --distribution distribution.xml \
+                       --package-path pkgs \
+                       "bin/$PLUGIN_NAME-universal.pkg"
+
+          rm -r "bin/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.component"
           cp "support/Installation README" "bin/Installation README"
           cp "support/$PLUGIN_NAME.pdf" "bin/$PLUGIN_NAME.pdf"
 
@@ -473,7 +654,7 @@ jobs:
           path: bin/
 
   # Remove the three intermediate artifacts consumed by merge-macos-universal
-  # above (vst3-raw-arm64, vst3-raw-x86_64, merge-support).
+  # above (bundles-raw-arm64, bundles-raw-x86_64, merge-support).
   cleanup-intermediate-artifacts:
     name: Delete intermediate merge artifacts
     # Only run if the merge stage succeeded, otherwise keeping the artifacts
@@ -483,13 +664,13 @@ jobs:
     permissions:
       actions: write
     steps:
-      - name: Delete MacOS raw VST3 + merge-support artifacts
+      - name: Delete MacOS raw bundle + merge-support artifacts
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           for NAME in \
-            "${PLUGIN_NAME}-vst3-raw-arm64" \
-            "${PLUGIN_NAME}-vst3-raw-x86_64" \
+            "${PLUGIN_NAME}-bundles-raw-arm64" \
+            "${PLUGIN_NAME}-bundles-raw-x86_64" \
             "${PLUGIN_NAME}-merge-support"; do
             ID=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
               --jq ".artifacts[] | select(.name == \"$NAME\") | .id")
