@@ -28,16 +28,24 @@ DESTDIR ?=
 
 # --------------------------------------------------------------
 
-# Patch DPF for loading defaults when parameters missing from patch file
+# Patch DPF for loading defaults when parameters missing from patch file.
+# The patches must be applied in this order: the AU patch depends on the option
+# introduced by the VST3/CLAP one, and is built on top of the lossy-float fix.
 
-DPF_PATCH=vst3_clap_loadprogram_backfill.patch
+DPF_PATCHES = \
+	vst3_clap_loadprogram_backfill.patch \
+	au_restore_lossy_float.patch \
+	au_loadprogram_backfill.patch
+
 apply-patch:
-	@cd dpf; if patch -p 1 --dry-run --reverse -s -f < ../$(DPF_PATCH) > /dev/null 2>&1; then \
-		echo "Patch already applied! Skipping."; \
-	else \
-		echo "Patch not found. Applying now..."; \
-		patch -p 1 < ../$(DPF_PATCH); \
-	fi
+	@cd dpf; for p in $(DPF_PATCHES); do \
+		if patch -p 1 --dry-run --reverse -s -f < ../$$p > /dev/null 2>&1; then \
+			echo "$$p already applied! Skipping."; \
+		else \
+			echo "$$p not found. Applying now..."; \
+			patch -p 1 < ../$$p || exit 1; \
+		fi; \
+	done
 
 # --------------------------------------------------------------
 
