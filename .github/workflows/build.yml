@@ -291,6 +291,16 @@ jobs:
             Presets Aupresets
           mv Aupresets ../..
 
+      # 7.2c: Add VST3 presets to Linux bundle, next to the LV2 presets added
+      #       in step 7.1, so they are also in the uploaded artifact and not
+      #       only inside the .deb/.rpm (which read them from the repo root
+      #       via nfpm). Same top-level Vstpresets/ folder as in the macOS
+      #       raw artifacts.
+      - name: Add VST3 presets to Linux bundle
+        if: matrix.platform == 'linux'
+        run: |
+          cp -R Vstpresets bin/
+
       # 7.3. Upload the raw (single-arch, not packaged) .vst3 and .component
       #      bundles together with the .vstpreset and .aupreset files, as one
       #      per-architecture artifact. "Raw" as opposed to the universal
