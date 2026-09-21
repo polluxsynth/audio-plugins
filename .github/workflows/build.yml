@@ -166,6 +166,8 @@ jobs:
             echo "VENDOR_NAME=$VENDOR_NAME"
             echo "PLUGIN_SLUG=$PLUGIN_SLUG"
             echo "VENDOR_SLUG=$VENDOR_SLUG"
+            echo "AU_SUBTYPE=$AU_SUBTYPE"
+            echo "AU_MANUFACTURER=$AU_MANUFACTURER"
             echo "VERSION=${{ steps.version.outputs.version }}"
           } > meta/build-metadata.env
 
@@ -251,15 +253,14 @@ jobs:
       # 6c. Validate the AU with Apple's auval. Logic refuses AUs that fail
       #     this, so it is the real acceptance test for the .component.
       #     Runs on every macOS leg, i.e. natively on both arm64 and x86_64.
+      #     This is the only place the x86_64 slice is actually run (the
+      #     universal bundle is validated on arm64 only, in the merge job).
       #     Subtype and manufacturer come from DistrhoPluginInfo.h (see step
-      #     2). The type is hard-coded ('aumu' = instrument) and must match
-      #     the default --au-type of ttl2preset.sh, which is likewise left
-      #     at its default in step 7.2b.
-      #     continue-on-error while this is new: auval can be finicky on CI
-      #     runners. Remove it once it has proven stable.
+      #     2), the type is AU_TYPE from the top of this file. It runs after
+      #     the raw bundle upload above, so the bundles are still available
+      #     for inspection if this fails.
       - name: Validate AU with auval
         if: matrix.platform == 'macos'
-        continue-on-error: true
         run: |
           echo "Validating AU: type=$AU_TYPE subtype=$AU_SUBTYPE manufacturer=$AU_MANUFACTURER"
 
@@ -347,88 +348,7 @@ jobs:
           name: ${{ env.PLUGIN_NAME }}-merge-support
           path: merge-support
 
-      # 8a: Build per-architecture MacOS .pkg installer.
-      #     This is a "product archive": one component package per plugin
-      #     format (VST3, AU), wrapped by a distribution.xml which shows the
-      #     user a format checklist as a step of the installer (customize=
-      #     "always"; the default, "allow", only offers a Customize button
-      #     that is easily clicked past). Both are selected by default. Installing both at once is not
-      #     always what people want (hosts supporting both formats will list
-      #     the plugin twice), but neither is having to pick between separate
-      #     downloads, as plenty of people use e.g. both Logic (AU only) and
-      #     Cubase (VST3 only).
-      - name: Create per-architecture MacOS .pkg installer
-        if: matrix.platform == 'macos'
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          PKG_ID="com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG"
-          mkdir pkgs
-
-          # Each component carries its own format's presets (.vstpreset for
-          # VST3, .aupreset for AU), so unticking a format also leaves out
-          # the presets that would be useless without it.
-          #
-          # VST3 component: the bundle plus the .vstpreset files.
-          PRESET_DIR="pkg_root_vst3/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
-          mkdir -p pkg_root_vst3/Library/Audio/Plug-Ins/VST3 "$PRESET_DIR"
-          cp -R "bin/$PLUGIN_NAME.vst3" pkg_root_vst3/Library/Audio/Plug-Ins/VST3/
-          if [ -d "Vstpresets" ]; then cp -R Vstpresets "$PRESET_DIR/"; fi
-          pkgbuild --root pkg_root_vst3 \
-                   --install-location / \
-                   --identifier "$PKG_ID.vst3" \
-                   --version "$VERSION" \
-                   pkgs/vst3.pkg
-
-          # AU component: the bundle plus the .aupreset files (created by
-          # step 7.2b, so a missing Aupresets dir is a bug and should fail).
-          # Installed to the same Presets/<Vendor>/<Plugin> folder as the
-          # VST3 presets; the extensions differ, so they don't collide.
-          AU_PRESET_DIR="pkg_root_au/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
-          mkdir -p pkg_root_au/Library/Audio/Plug-Ins/Components "$AU_PRESET_DIR"
-          cp -R "bin/$PLUGIN_NAME.component" pkg_root_au/Library/Audio/Plug-Ins/Components/
-          cp -R Aupresets/. "$AU_PRESET_DIR/"
-          pkgbuild --root pkg_root_au \
-                   --install-location / \
-                   --identifier "$PKG_ID.au" \
-                   --version "$VERSION" \
-                   pkgs/au.pkg
-
-          # Wrap both in a single installer with a choice per format.
-          cat > distribution.xml << EOF
-          <?xml version="1.0" encoding="utf-8"?>
-          <installer-gui-script minSpecVersion="2">
-            <title>$PLUGIN_NAME</title>
-            <options customize="always"/>
-            <choices-outline>
-              <line choice="vst3"/>
-              <line choice="au"/>
-            </choices-outline>
-            <choice id="vst3" title="VST3" start_selected="true"
-                    description="VST3 plugin (Cubase, Bitwig, Reaper, Ableton Live, ...) including factory presets.">
-              <pkg-ref id="$PKG_ID.vst3"/>
-            </choice>
-            <choice id="au" title="Audio Unit (AU)" start_selected="true"
-                    description="Audio Unit plugin (Logic Pro, GarageBand, MainStage, ...) including factory presets.">
-              <pkg-ref id="$PKG_ID.au"/>
-            </choice>
-            <pkg-ref id="$PKG_ID.vst3" version="$VERSION">vst3.pkg</pkg-ref>
-            <pkg-ref id="$PKG_ID.au" version="$VERSION">au.pkg</pkg-ref>
-          </installer-gui-script>
-          EOF
-
-          productbuild --distribution distribution.xml \
-                       --package-path pkgs \
-                       "bin/$PLUGIN_NAME-${{ matrix.arch }}.pkg"
-
-          # We don't need the plugin bundles anymore now, so remove them or
-          # they will explicitly be part of the bundle.
-          rm -r "bin/$PLUGIN_NAME.vst3" "bin/$PLUGIN_NAME.component"
-          # But it's handy to have the installation instructions at hand
-          cp macos/mimid-mac-install.txt "bin/Installation README"
-          # and the manual
-          cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf bin/$PLUGIN_NAME.pdf
-
-      # 8b: Build Linux .deb / .rpm installers
+      # 8: Build Linux .deb / .rpm installers
       - name: Create Linux installers
         if: matrix.platform == 'linux'
         run: |
@@ -587,14 +507,41 @@ jobs:
             otool -L "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
           done
 
-      # Same product-archive layout as the per-architecture installer in
-      # step 8a: one selectable component per plugin format.
+      # Validate the universal AU with auval, as the final check on exactly
+      # what gets shipped. The runner is arm64, so this exercises the arm64
+      # slice only; the x86_64 slice was run natively by auval on the Intel
+      # build leg, before the merge. If this fails, the raw bundles are
+      # kept (the cleanup job only runs after a successful merge).
+      - name: Validate universal AU with auval
+        run: |
+          echo "Validating AU: type=$AU_TYPE subtype=$AU_SUBTYPE manufacturer=$AU_MANUFACTURER"
+
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R "bin/$PLUGIN_NAME.component" ~/Library/Audio/Plug-Ins/Components/
+          # Make sure the registrar notices the new component.
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+
+          # For diagnostics: is it listed at all?
+          auval -a || true
+          auval -v "$AU_TYPE" "$AU_SUBTYPE" "$AU_MANUFACTURER"
+
+      # Build the MacOS installer. This is a "product archive": one
+      # component package per plugin format (VST3, AU), wrapped by a
+      # distribution.xml which shows the user a format checklist as a step
+      # of the installer (customize="always"; the default, "allow", only
+      # offers a Customize button that is easily clicked past). Both are
+      # selected by default. Installing both at once is not always what
+      # people want (hosts supporting both formats will list the plugin
+      # twice), but neither is having to pick between separate downloads,
+      # as plenty of people use e.g. both Logic (AU only) and Cubase (VST3
+      # only). Each component carries its own format's presets, so
+      # unticking a format also leaves out the presets that would be useless
+      # without it.
       - name: Create universal (fat) MacOS .pkg installer
         run: |
           PKG_ID="com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG"
           mkdir pkgs
 
-          # Each component carries its own format's presets, see step 8a.
           # VST3 component: the bundle plus the .vstpreset files.
           PRESET_DIR="pkg_root_vst3/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
           mkdir -p pkg_root_vst3/Library/Audio/Plug-Ins/VST3 "$PRESET_DIR"
