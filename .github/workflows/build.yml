@@ -156,8 +156,8 @@ jobs:
 
       # 4a. Stash the metadata/version derived above to a file so it can be
       #     bundled into the merge-support artifact later (step 7.5), once
-      #     Vstpresets/Aupresets/README/manual are also ready. Only needs to happen
-      #     once, so it's pinned to a single, specific leg of the matrix.
+      #     README/manual are also ready. Only needs to happen once, so
+      #     it's pinned to a single, specific leg of the matrix.
       - name: Write build metadata for MacOS build
         if: matrix.os == 'macos-15'
         run: |
@@ -343,17 +343,14 @@ jobs:
           auval -v "$AU_TYPE" "$AU_SUBTYPE" "$AU_MANUFACTURER"
 
       # 7.5: Package everything the merge-macos-universal job needs, other
-      #      than the raw .vst3/.component bundles themselves, into one artifact:
-      #      the metadata file from step 4a, the Vstpresets and Aupresets just
-      #      generated,
-      #      and mimid-mac-install.txt and the pdf manual.
+      #      than the raw bundles and presets from step 7.3, into one
+      #      artifact: the metadata file from step 4a, mimid-mac-install.txt
+      #      and the pdf manual.
       - name: Package merge-support artifact for MacOS
         if: matrix.os == 'macos-15'
         run: |
           mkdir -p merge-support
           cp meta/build-metadata.env merge-support/
-          cp -R Vstpresets merge-support/Vstpresets
-          cp -R Aupresets merge-support/Aupresets
           cp macos/mimid-mac-install.txt "merge-support/Installation README"
           cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf merge-support/$PLUGIN_NAME.pdf
 
@@ -446,8 +443,9 @@ jobs:
     needs: build
     runs-on: macos-15
     steps:
-      # Download installation readme and manual together with the .vst3
-      # build and Vstpresets/Aupresets from the earlier build stage.
+      # Download the metadata, installation readme and manual from the
+      # earlier build stage. The bundles and presets come from the per-arch
+      # raw artifacts, further down.
       - name: Download merge-support artifact
         uses: actions/download-artifact@v7
         with:
@@ -559,7 +557,9 @@ jobs:
       # as plenty of people use e.g. both Logic (AU only) and Cubase (VST3
       # only). Each component carries its own format's presets, so
       # unticking a format also leaves out the presets that would be useless
-      # without it.
+      # without it. The presets are taken from the arm64 raw artifact; they
+      # are identical in both raw artifacts, as they don't depend on the
+      # architecture.
       - name: Create universal (fat) MacOS .pkg installer
         run: |
           PKG_ID="com.$VENDOR_SLUG.plugins.$PLUGIN_SLUG"
@@ -569,7 +569,7 @@ jobs:
           PRESET_DIR="pkg_root_vst3/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
           mkdir -p pkg_root_vst3/Library/Audio/Plug-Ins/VST3 "$PRESET_DIR"
           cp -R "bin/$PLUGIN_NAME.vst3" pkg_root_vst3/Library/Audio/Plug-Ins/VST3/
-          if [ -d "support/Vstpresets" ]; then cp -R support/Vstpresets "$PRESET_DIR/"; fi
+          cp -R raw-arm64/Vstpresets "$PRESET_DIR/"
           pkgbuild --root pkg_root_vst3 \
                    --install-location / \
                    --identifier "$PKG_ID.vst3" \
@@ -580,7 +580,7 @@ jobs:
           AU_PRESET_DIR="pkg_root_au/Library/Audio/Presets/$VENDOR_NAME/$PLUGIN_NAME"
           mkdir -p pkg_root_au/Library/Audio/Plug-Ins/Components "$AU_PRESET_DIR"
           cp -R "bin/$PLUGIN_NAME.component" pkg_root_au/Library/Audio/Plug-Ins/Components/
-          cp -R support/Aupresets/. "$AU_PRESET_DIR/"
+          cp -R raw-arm64/Aupresets/. "$AU_PRESET_DIR/"
           pkgbuild --root pkg_root_au \
                    --install-location / \
                    --identifier "$PKG_ID.au" \
