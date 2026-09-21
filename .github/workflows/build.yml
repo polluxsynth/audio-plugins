@@ -238,16 +238,20 @@ jobs:
             otool -L "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
           done
 
-      # 6b. Upload the raw (pre-packaging, single-arch) .vst3 and .component
-      #     bundles so the merge-macos-universal job below can lipo them
-      #     together with the other architecture.
+      # 6b. Upload the raw (single-arch, not packaged) .vst3 and .component
+      #     bundles. This is the macOS counterpart of step 9: it is kept as
+      #     a build artifact for inspection, and it is also what the
+      #     merge-macos-universal job below downloads to lipo together with
+      #     the other architecture (so the name must match its downloads).
+      #     It sits before the auval step so the bundles are still available
+      #     if validation fails, which is why it isn't left to step 9.
       #     Upload the parent bin/ instead of the bundle folders themselves,
       #     as otherwise the folder names get left out.
-      - name: Upload raw plugin bundles (for MacOS universal merge)
+      - name: Upload raw plugin bundles
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-bundles-raw-${{ matrix.arch }}
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
           path: bin
 
       # 6c. Validate the AU with Apple's auval. Logic refuses AUs that fail
@@ -410,8 +414,11 @@ jobs:
           sed -i "s/^arch: .*/arch: \"$RPM_ARCH\"/" nfpm.yaml
           nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.rpm" --packager rpm
 
-      # 9. Bundle the compiled binary assets
+      # 9. Bundle the compiled binary assets (Linux; the macOS legs already
+      #    uploaded theirs in step 6b, and uploading the same name twice
+      #    would fail)
       - name: Upload Build Artifacts
+        if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
@@ -438,16 +445,18 @@ jobs:
       - name: Load build metadata
         run: cat support/build-metadata.env >> "$GITHUB_ENV"
 
+      # The per-arch bundle artifacts uploaded in step 6b of the build job
+      # (matrix artifact_suffix macos-arm64 / macos-x86_64)
       - name: Download arm64 raw bundles
         uses: actions/download-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-bundles-raw-arm64
+          name: ${{ env.PLUGIN_NAME }}-macos-arm64-${{ env.VERSION }}
           path: raw-arm64
 
       - name: Download x86_64 raw bundles
         uses: actions/download-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-bundles-raw-x86_64
+          name: ${{ env.PLUGIN_NAME }}-macos-x86_64-${{ env.VERSION }}
           path: raw-x86_64
 
       # Start from the arm64 bundle as the directory skeleton (Info.plist,
@@ -510,8 +519,9 @@ jobs:
       # Validate the universal AU with auval, as the final check on exactly
       # what gets shipped. The runner is arm64, so this exercises the arm64
       # slice only; the x86_64 slice was run natively by auval on the Intel
-      # build leg, before the merge. If this fails, the raw bundles are
-      # kept (the cleanup job only runs after a successful merge).
+      # build leg, before the merge. If this fails, the per-arch bundle
+      # artifacts are of course still there, and so is the merge-support
+      # artifact (the cleanup job only runs after a successful merge).
       - name: Validate universal AU with auval
         run: |
           echo "Validating AU: type=$AU_TYPE subtype=$AU_SUBTYPE manufacturer=$AU_MANUFACTURER"
@@ -600,31 +610,28 @@ jobs:
           name: ${{ env.PLUGIN_NAME }}-macos-universal-${{ env.VERSION }}
           path: bin/
 
-  # Remove the three intermediate artifacts consumed by merge-macos-universal
-  # above (bundles-raw-arm64, bundles-raw-x86_64, merge-support).
+  # Remove the intermediate merge-support artifact consumed by
+  # merge-macos-universal above. The per-arch bundle artifacts are kept
+  # on purpose, for inspecting the individual bundles.
   cleanup-intermediate-artifacts:
     name: Delete intermediate merge artifacts
-    # Only run if the merge stage succeeded, otherwise keeping the artifacts
+    # Only run if the merge stage succeeded, otherwise keeping the artifact
     # for debug
     needs: merge-macos-universal
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - name: Delete MacOS raw bundle + merge-support artifacts
+      - name: Delete merge-support artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for NAME in \
-            "${PLUGIN_NAME}-bundles-raw-arm64" \
-            "${PLUGIN_NAME}-bundles-raw-x86_64" \
-            "${PLUGIN_NAME}-merge-support"; do
-            ID=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-              --jq ".artifacts[] | select(.name == \"$NAME\") | .id")
-            if [ -n "$ID" ]; then
-              echo "Deleting artifact $NAME (id $ID)"
-              gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$ID"
-            else
-              echo "::warning::Artifact $NAME not found for this run, skipping"
-            fi
-          done
+          NAME="${PLUGIN_NAME}-merge-support"
+          ID=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            --jq ".artifacts[] | select(.name == \"$NAME\") | .id")
+          if [ -n "$ID" ]; then
+            echo "Deleting artifact $NAME (id $ID)"
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$ID"
+          else
+            echo "::warning::Artifact $NAME not found for this run, skipping"
+          fi
