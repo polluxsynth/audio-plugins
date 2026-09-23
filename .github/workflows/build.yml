@@ -158,7 +158,7 @@ jobs:
       #     bundled into the merge-support artifact later (step 7.5), once
       #     README/manual are also ready. Only needs to happen once, so
       #     it's pinned to a single, specific leg of the matrix.
-      - name: Write build metadata for MacOS build
+      - name: Write build metadata (from MacOS build)
         if: matrix.os == 'macos-15'
         run: |
           mkdir -p meta
@@ -249,7 +249,7 @@ jobs:
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
       # 7.2: Create VST3 preset files
-      - name: Create VST3 presets
+      - name: Create VST3 presets (MacOS and Linux)
         run: |
           # Create VST3 presets
           cd plugins/$PLUGIN_SLUG
@@ -276,10 +276,10 @@ jobs:
       #       component, just like Vstpresets does for VST3.
       #       AU subtype/manufacturer come from DistrhoPluginInfo.h (step 2)
       #       rather than the script's built-in defaults, so they can't go
-      #       stale. --au-type is globally in this file
+      #       stale. AU type is set globally in this file.
       #       vstpreset_writer.py and aupreset_writer.py must both sit next
       #       to ttl2preset.sh in Utils/.
-      - name: Create AU presets
+      - name: Create AU presets (MacOS only)
         if: matrix.platform == 'macos'
         run: |
           cd plugins/$PLUGIN_SLUG
@@ -315,14 +315,14 @@ jobs:
       #      end up at the top level of the artifact: upload-artifact roots
       #      the artifact at the common parent of all uploaded paths, which
       #      would otherwise put the bundles under bin/.
-      - name: Stage raw bundles and presets
+      - name: Stage raw bundles and presets for MacOS bundling
         if: matrix.platform == 'macos'
         run: |
           mkdir stage
           cp -R bin/. stage/
           cp -R Vstpresets Aupresets stage/
 
-      - name: Upload raw plugin bundles and presets
+      - name: Upload raw plugin bundles and presets for MacOS
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v7
         with:
@@ -338,7 +338,7 @@ jobs:
       #     2), the type is AU_TYPE from the top of this file. It runs after
       #     the raw bundle upload above, so the bundles are still available
       #     for inspection if this fails.
-      - name: Validate AU with auval
+      - name: Validate AU with auval (MacOS)
         if: matrix.platform == 'macos'
         run: |
           echo "Validating AU: type=$AU_TYPE subtype=$AU_SUBTYPE manufacturer=$AU_MANUFACTURER"
@@ -436,7 +436,7 @@ jobs:
       # 9. Bundle the compiled binary assets (Linux; the macOS legs already
       #    uploaded theirs in step 7.3, and uploading the same name twice
       #    would fail)
-      - name: Upload Build Artifacts
+      - name: Upload Build Artifacts for Linux
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v7
         with:
@@ -446,10 +446,10 @@ jobs:
   # Create fat bundle for MacOS. Although a large part of the world is
   # arm64 now, in some cases Cubase still runs under Rosetta, which means
   # that an x86_64 binary is required even on an arm64 host. To avoid users
-  # having to keep track of what architecture is actually used, we crate
+  # having to keep track of what architecture is actually used, we create
   # a universal (fat) package.
   merge-macos-universal:
-    name: Cread universal (fat) MacOS bundle (arm64 + x86_64)
+    name: Create universal (fat) MacOS bundle (arm64 + x86_64)
     needs: build
     runs-on: macos-15
     steps:
@@ -468,13 +468,13 @@ jobs:
       # The per-arch "raw" artifacts (bundles + presets, no installer)
       # uploaded in step 7.3 of the build job (matrix artifact_suffix
       # macos-raw-arm64 / macos-raw-x86_64)
-      - name: Download arm64 raw bundles
+      - name: Download arm64 raw bundles for MacOS
         uses: actions/download-artifact@v7
         with:
           name: ${{ env.PLUGIN_NAME }}-macos-raw-arm64-${{ env.VERSION }}
           path: raw-arm64
 
-      - name: Download x86_64 raw bundles
+      - name: Download x86_64 raw bundles for MacOS
         uses: actions/download-artifact@v7
         with:
           name: ${{ env.PLUGIN_NAME }}-macos-raw-x86_64-${{ env.VERSION }}
@@ -529,7 +529,7 @@ jobs:
           merge_bundle "$PLUGIN_NAME.vst3"
           merge_bundle "$PLUGIN_NAME.component"
 
-      - name: Log contents of universal (fat) binaries
+      - name: Log contents of universal (fat) MacOS binaries
         run: |
           for BUNDLE in "$PLUGIN_NAME.vst3" "$PLUGIN_NAME.component"; do
             echo "=== $BUNDLE ==="
@@ -543,7 +543,7 @@ jobs:
       # build leg, before the merge. If this fails, the per-arch bundle
       # artifacts are of course still there, and so is the merge-support
       # artifact (the cleanup job only runs after a successful merge).
-      - name: Validate universal AU with auval
+      - name: Validate universal AU with auval (MacOS)
         run: |
           echo "Validating AU: type=$AU_TYPE subtype=$AU_SUBTYPE manufacturer=$AU_MANUFACTURER"
 
@@ -627,7 +627,7 @@ jobs:
           cp "support/Installation README" "bin/Installation README"
           cp "support/$PLUGIN_NAME.pdf" "bin/$PLUGIN_NAME.pdf"
 
-      - name: Upload universal build artifact
+      - name: Upload universal build artifact for MacOS
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.PLUGIN_NAME }}-macos-universal-${{ env.VERSION }}
@@ -637,7 +637,7 @@ jobs:
   # merge-macos-universal above. The per-arch bundle artifacts are kept
   # on purpose, for inspecting the individual bundles.
   cleanup-intermediate-artifacts:
-    name: Delete intermediate merge artifacts
+    name: Delete intermediate merge artifacts (MacOS)
     # Only run if the merge stage succeeded, otherwise keeping the artifact
     # for debug
     needs: merge-macos-universal
