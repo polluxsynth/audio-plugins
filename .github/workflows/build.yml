@@ -53,16 +53,16 @@ jobs:
           #  target: windows
 
     steps:
-      # 1. Checkout the repository and its submodules (DPF is usually a submodule)
+      # Checkout the repository and its submodules (DPF is usually a submodule)
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0 # Fetch all history for version tagging
 
-      # 2. Locate the DistrhoPluginInfo.h for $PLUGIN_NAME, then derive
-      #    VENDOR_NAME and both slugs from it, so only PLUGIN_NAME (above)
-      #    ever needs to be maintained by hand.
+      # Locate the DistrhoPluginInfo.h for $PLUGIN_NAME, then derive
+      # VENDOR_NAME and both slugs from it, so only PLUGIN_NAME (above)
+      # ever needs to be maintained by hand.
       - name: Extract plugin metadata
         id: meta
         run: |
@@ -127,13 +127,13 @@ jobs:
             echo "AU_MANUFACTURER=$AU_MANUFACTURER"
           } >> "$GITHUB_ENV"
 
-      # 3. Set up Python so we get a well-defined version
+      # Set up Python so we get a well-defined version
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.13'
 
-      # 4. Determine version
+      # Determine version
       - name: Determine version
         id: version
         run: |
@@ -154,10 +154,11 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $VERSION"
 
-      # 4a. Stash the metadata/version derived above to a file so it can be
-      #     bundled into the merge-support artifact later (step 7.5), once
-      #     README/manual are also ready. Only needs to happen once, so
-      #     it's pinned to a single, specific leg of the matrix.
+      # Stash the metadata/version derived in "Extract plugin metadata" and
+      # "Determine version" to a file so it can be bundled into the
+      # merge-support artifact later ("Package merge-support artifact for
+      # MacOS"), once README/manual are also ready. Only needs to happen
+      # once, so it's pinned to a single, specific leg of the matrix.
       - name: Write build metadata (from MacOS build)
         if: matrix.os == 'macos-15'
         run: |
@@ -171,7 +172,7 @@ jobs:
             echo "VERSION=${{ steps.version.outputs.version }}"
           } > meta/build-metadata.env
 
-      # 5. Install dependencies for freetype and cairo
+      # Install dependencies for freetype and cairo
       - name: Install Linux GUI dependencies
         if: matrix.platform == 'linux'
         run: |
@@ -191,7 +192,7 @@ jobs:
           # these from source and take noticeably longer.
           brew install cairo freetype pkg-config dylibbundler
 
-      # 6. Build the plugin using the DPF Makefile Action
+      # Build the plugin using the DPF Makefile Action
       - name: Build Plugin
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
@@ -228,7 +229,7 @@ jobs:
             make TARGET=vst3
           fi
 
-      # 6a. Log contents of Mac binary using lipo and otool
+      # Log contents of Mac binary using lipo and otool
       - name: Log contents of Mac binary
         if: matrix.platform == 'macos'
         run: |
@@ -238,7 +239,7 @@ jobs:
             otool -L "bin/$BUNDLE/Contents/MacOS/$PLUGIN_NAME"
           done
 
-      # 7.1: Add lv2 presets to Linux bundle
+      # Add lv2 presets to Linux bundle
       - name: Add LV2 presets to Linux bundle
         if: matrix.platform == 'linux'
         run: |
@@ -248,7 +249,7 @@ jobs:
           # Fetch the manual
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
-      # 7.2: Create VST3 preset files
+      # Create VST3 preset files
       - name: Create VST3 presets (MacOS and Linux)
         run: |
           # Create VST3 presets
@@ -269,16 +270,16 @@ jobs:
           mv Vstpresets ../..
           # To clean up, remove Vstpresets
 
-      # 7.2b: Create AU presets (macOS only, as AU is macOS-only).
-      #       Same driver script as above, run a second time with --format
-      #       au so the .aupreset files end up in their own directory
-      #       (Aupresets), which maps one-to-one onto the AU installer
-      #       component, just like Vstpresets does for VST3.
-      #       AU subtype/manufacturer come from DistrhoPluginInfo.h (step 2)
-      #       rather than the script's built-in defaults, so they can't go
-      #       stale. AU type is set globally in this file.
-      #       vstpreset_writer.py and aupreset_writer.py must both sit next
-      #       to ttl2preset.sh in Utils/.
+      # Create AU presets (macOS only, as AU is macOS-only).
+      # Same driver script as in "Create VST3 presets (MacOS and Linux)",
+      # run a second time with --format au so the .aupreset files end up in
+      # their own directory (Aupresets), which maps one-to-one onto the AU
+      # installer component, just like Vstpresets does for VST3.
+      # AU subtype/manufacturer come from DistrhoPluginInfo.h (see "Extract
+      # plugin metadata") rather than the script's built-in defaults, so they
+      # can't go stale. AU type is set globally in this file.
+      # vstpreset_writer.py and aupreset_writer.py must both sit next
+      # to ttl2preset.sh in Utils/.
       - name: Create AU presets (MacOS only)
         if: matrix.platform == 'macos'
         run: |
@@ -291,30 +292,30 @@ jobs:
             Presets Aupresets
           mv Aupresets ../..
 
-      # 7.2c: Add VST3 presets to Linux bundle, next to the LV2 presets added
-      #       in step 7.1, so they are also in the uploaded artifact and not
-      #       only inside the .deb/.rpm (which read them from the repo root
-      #       via nfpm). Same top-level Vstpresets/ folder as in the macOS
-      #       raw artifacts.
+      # Add VST3 presets to Linux bundle, next to the LV2 presets added
+      # in "Add LV2 presets to Linux bundle", so they are also in the
+      # uploaded artifact and not only inside the .deb/.rpm (which read
+      # them from the repo root via nfpm). Same top-level Vstpresets/
+      # folder as in the macOS raw artifacts.
       - name: Add VST3 presets to Linux bundle
         if: matrix.platform == 'linux'
         run: |
           cp -R Vstpresets bin/
 
-      # 7.3. Upload the raw (single-arch, not packaged) .vst3 and .component
-      #      bundles together with the .vstpreset and .aupreset files, as one
-      #      per-architecture artifact. "Raw" as opposed to the universal
-      #      installer made by the merge job. It is kept as a build artifact
-      #      for inspecting the individual components, and it is also what
-      #      the merge-macos-universal job below downloads to lipo together
-      #      with the other architecture (so the name must match its
-      #      downloads).
-      #      It sits before the auval step, so the bundles are still
-      #      available if validation fails.
-      #      Everything is staged in one directory first, so that the bundles
-      #      end up at the top level of the artifact: upload-artifact roots
-      #      the artifact at the common parent of all uploaded paths, which
-      #      would otherwise put the bundles under bin/.
+      # Upload the raw (single-arch, not packaged) .vst3 and .component
+      # bundles together with the .vstpreset and .aupreset files, as one
+      # per-architecture artifact. "Raw" as opposed to the universal
+      # installer made by the merge job. It is kept as a build artifact
+      # for inspecting the individual components, and it is also what
+      # the merge-macos-universal job below downloads to lipo together
+      # with the other architecture (so the name must match its
+      # downloads).
+      # It sits before the "Validate AU with auval (MacOS)" step, so the
+      # bundles are still available if validation fails.
+      # Everything is staged in one directory first, so that the bundles
+      # end up at the top level of the artifact: upload-artifact roots
+      # the artifact at the common parent of all uploaded paths, which
+      # would otherwise put the bundles under bin/.
       - name: Stage raw bundles and presets for MacOS bundling
         if: matrix.platform == 'macos'
         run: |
@@ -329,15 +330,16 @@ jobs:
           name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
           path: stage
 
-      # 7.4. Validate the AU with Apple's auval. Logic refuses AUs that fail
-      #     this, so it is the real acceptance test for the .component.
-      #     Runs on every macOS leg, i.e. natively on both arm64 and x86_64.
-      #     This is the only place the x86_64 slice is actually run (the
-      #     universal bundle is validated on arm64 only, in the merge job).
-      #     Subtype and manufacturer come from DistrhoPluginInfo.h (see step
-      #     2), the type is AU_TYPE from the top of this file. It runs after
-      #     the raw bundle upload above, so the bundles are still available
-      #     for inspection if this fails.
+      # Validate the AU with Apple's auval. Logic refuses AUs that fail
+      # this, so it is the real acceptance test for the .component.
+      # Runs on every macOS leg, i.e. natively on both arm64 and x86_64.
+      # This is the only place the x86_64 slice is actually run (the
+      # universal bundle is validated on arm64 only, in the merge job).
+      # Subtype and manufacturer come from DistrhoPluginInfo.h (see
+      # "Extract plugin metadata"), the type is AU_TYPE from the top of this
+      # file. It runs after "Upload raw plugin bundles and presets for
+      # MacOS", so the bundles are still available for inspection if this
+      # fails.
       - name: Validate AU with auval (MacOS)
         if: matrix.platform == 'macos'
         run: |
@@ -352,10 +354,11 @@ jobs:
           auval -a || true
           auval -v "$AU_TYPE" "$AU_SUBTYPE" "$AU_MANUFACTURER"
 
-      # 7.5: Package everything the merge-macos-universal job needs, other
-      #      than the raw bundles and presets from step 7.3, into one
-      #      artifact: the metadata file from step 4a, mimid-mac-install.txt
-      #      and the pdf manual.
+      # Package everything the merge-macos-universal job needs, other
+      # than the raw bundles and presets from "Upload raw plugin bundles
+      # and presets for MacOS", into one artifact: the metadata file from
+      # "Write build metadata (from MacOS build)", mimid-mac-install.txt
+      # and the pdf manual.
       - name: Package merge-support artifact for MacOS
         if: matrix.os == 'macos-15'
         run: |
@@ -371,7 +374,7 @@ jobs:
           name: ${{ env.PLUGIN_NAME }}-merge-support
           path: merge-support
 
-      # 8: Build Linux .deb / .rpm installers
+      # Build Linux .deb / .rpm installers
       - name: Create Linux installers
         if: matrix.platform == 'linux'
         run: |
@@ -433,9 +436,9 @@ jobs:
           sed -i "s/^arch: .*/arch: \"$RPM_ARCH\"/" nfpm.yaml
           nfpm package --config nfpm.yaml --target "bin/${PLUGIN_NAME}.rpm" --packager rpm
 
-      # 9. Bundle the compiled binary assets (Linux; the macOS legs already
-      #    uploaded theirs in step 7.3, and uploading the same name twice
-      #    would fail)
+      # Bundle the compiled binary assets (Linux; the macOS legs already
+      # uploaded theirs in "Upload raw plugin bundles and presets for
+      # MacOS", and uploading the same name twice would fail)
       - name: Upload Build Artifacts for Linux
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v7
@@ -466,7 +469,8 @@ jobs:
         run: cat support/build-metadata.env >> "$GITHUB_ENV"
 
       # The per-arch "raw" artifacts (bundles + presets, no installer)
-      # uploaded in step 7.3 of the build job (matrix artifact_suffix
+      # uploaded in the "Upload raw plugin bundles and presets for MacOS"
+      # step of the build job (matrix artifact_suffix
       # macos-raw-arm64 / macos-raw-x86_64)
       - name: Download arm64 raw bundles for MacOS
         uses: actions/download-artifact@v7
