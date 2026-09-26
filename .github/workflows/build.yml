@@ -49,10 +49,6 @@ jobs:
             platform: macos
             arch: x86_64
             artifact_suffix: macos-raw-x86_64
-          - os: windows-latest
-            platform: windows
-            arch: x86_64
-            artifact_suffix: windows-x86_64
 
     steps:
       # Checkout the repository and its submodules (DPF is usually a submodule)
@@ -196,30 +192,8 @@ jobs:
           # these from source and take noticeably longer.
           brew install cairo freetype pkg-config dylibbundler
 
-      # MinGW toolchain + GUI deps for Windows, mirroring what the Linux
-      # leg gets from apt (see "Install Linux GUI dependencies" above).
-      # MSVC was considered and rejected: DPF's Makefile-based Windows
-      # support targets MinGW, MSVC support lives only in DPF's separate
-      # CMake build files, which would mean maintaining a second,
-      # hand-written build description for this plugin indefinitely.
-      - name: Set up MSYS2/MinGW (Windows)
-        if: matrix.platform == 'windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-pkgconf
-            mingw-w64-x86_64-cairo
-            mingw-w64-x86_64-freetype
-            mingw-w64-x86_64-ntldd
-            make
-            patch
-
       # Build the plugin using the DPF Makefile Action
       - name: Build Plugin
-        if: matrix.platform != 'windows'
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
             export CC=clang
@@ -255,37 +229,6 @@ jobs:
             make TARGET=vst3
           fi
 
-      # Windows gets VST3 only for now (no LV2/AU equivalent shipped
-      # there). Only the GCC runtime (libgcc/libstdc++) is statically
-      # linked here -- Cairo/FreeType/Fontconfig (and their own
-      # transitive deps like libintl/libiconv) are compiled against
-      # their normal dynamic import libraries, so a blanket -static
-      # doesn't work for them (their headers assume a DLL will supply
-      # the symbols at runtime). Those get bundled as sidecar DLLs in
-      # the next step instead, the way dylibbundler does for macOS.
-      - name: Build Plugin (Windows)
-        if: matrix.platform == 'windows'
-        shell: msys2 {0}
-        run: |
-          make TARGET=vst3 \
-            LDFLAGS="-static-libgcc -static-libstdc++"
-
-      # winpthread wasn't statically linked above, so it and Cairo's
-      # own dependency chain (freetype, fontconfig, intl, iconv, etc.)
-      # need to ship as DLLs alongside the plugin binary. ntldd is
-      # MSYS2's ldd-equivalent for PE binaries; only DLLs actually
-      # coming from our own /mingw64 toolchain are copied -- anything
-      # else (kernel32.dll etc.) is a normal Windows system DLL that's
-      # always present and must not be bundled.
-      - name: Bundle Windows DLL dependencies
-        if: matrix.platform == 'windows'
-        shell: msys2 {0}
-        run: |
-          cd "bin/$PLUGIN_NAME.vst3/Contents/x86_64-win"
-          for dll in $(ntldd -R "$PLUGIN_NAME.vst3" | grep -i '/mingw64/' | awk '{print $3}'); do
-            cp -uv "$dll" .
-          done
-
       # Log contents of Mac binary using lipo and otool
       - name: Log contents of Mac binary
         if: matrix.platform == 'macos'
@@ -306,26 +249,20 @@ jobs:
           # Fetch the manual
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
-      # Create VST3 preset files
-      #
-      # The FUID's byte order differs on Windows (COM-style GUID field
-      # swap) vs everywhere else, so the --platform argument must track
-      # matrix.platform, not always be "linux". A preset built with the
-      # wrong byte order embeds a class ID that won't match what the
-      # plugin reports at runtime on that platform, so hosts won't
-      # associate the preset with the plugin at all.
-      - name: Create VST3 presets (all platforms)
+      # Create VST3 preset files. The FUID's byte order differs on
+      # Windows (COM-style GUID field swap) vs everywhere else; this
+      # job's matrix never includes the windows platform (see the
+      # separate build-windows/package-windows-installer jobs below,
+      # which pass --platform windows), so "linux" is correct here for
+      # every leg, including macOS.
+      - name: Create VST3 presets
         shell: bash
         run: |
           # Create VST3 presets
           cd plugins/$PLUGIN_SLUG
           # First determine Component FUID
-          FUID_PLATFORM=linux
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            FUID_PLATFORM=windows
-          fi
           fuid=$(python Utils/dpf_vst3_fuid.py \
-            --oneline --platform "$FUID_PLATFORM" DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
+            --oneline --platform linux DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
           echo "Using (Component) FUID $fuid"
           # Then read all .ttl preset files creating .vstpreset files
           sh Utils/ttl2preset.sh \
@@ -340,7 +277,7 @@ jobs:
           # To clean up, remove Vstpresets
 
       # Create AU presets (macOS only, as AU is macOS-only).
-      # Same driver script as in "Create VST3 presets (all platforms)",
+      # Same driver script as in "Create VST3 presets",
       # run a second time with --format au so the .aupreset files end up in
       # their own directory (Aupresets), which maps one-to-one onto the AU
       # installer component, just like Vstpresets does for VST3.
@@ -370,51 +307,6 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           cp -R Vstpresets bin/
-
-      # Build the Windows installer with Inno Setup, which ships
-      # preinstalled on windows-latest, so no separate tool install step
-      # is needed (ISCC.exe is a plain CLI compiler, same shape as
-      # calling pkgbuild/productbuild directly for the macOS .pkg).
-      # Windows only gets one format here (VST3 -- there's no Windows
-      # equivalent of AU to offer alongside it), so unlike the macOS
-      # .pkg there's no distribution.xml-style choice tree needed.
-      # {commoncf} is Inno Setup's "Common Files" constant, matching
-      # Steinberg's fixed C:\Program Files\Common Files\VST3 location;
-      # {commondocs} is the shared "Public\Documents" folder used for
-      # the shared/all-users .vstpreset location per the VST3 spec.
-      - name: Create Windows installer
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path bin | Out-Null
-          @"
-          [Setup]
-          AppName=$env:PLUGIN_NAME
-          AppVersion=${{ steps.version.outputs.version }}
-          AppPublisher=$env:VENDOR_NAME
-          ArchitecturesInstallIn64BitMode=x64
-          DefaultDirName={commoncf}\VST3
-          DisableDirPage=yes
-          DisableProgramGroupPage=yes
-          PrivilegesRequired=admin
-          OutputDir=bin
-          OutputBaseFilename=$env:PLUGIN_NAME-${{ steps.version.outputs.version }}-windows-installer
-          Compression=lzma
-          SolidCompression=yes
-
-          [Files]
-          Source: "bin\$env:PLUGIN_NAME.vst3\*"; DestDir: "{app}\$env:PLUGIN_NAME.vst3"; Flags: recursesubdirs ignoreversion
-          Source: "Vstpresets\*"; DestDir: "{commondocs}\VST3 Presets\$env:VENDOR_NAME\$env:PLUGIN_NAME"; Flags: recursesubdirs ignoreversion
-          "@ | Set-Content -Path installer.iss -Encoding ASCII
-
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-
-      - name: Upload Build Artifacts for Windows
-        if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
-          path: bin/
 
       # Upload the raw (single-arch, not packaged) .vst3 and .component
       # bundles together with the .vstpreset and .aupreset files, as one
@@ -559,6 +451,191 @@ jobs:
         with:
           name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
           path: bin/
+
+  # Windows VST3, cross-compiled from Linux, matching DPF's own upstream
+  # workflow. DPF's Makefile unconditionally forces a static link for any
+  # Windows target (Makefile.plugins.mk: "Always build statically on
+  # windows"), which only works cleanly against a genuinely statically
+  # built Cairo/FreeType -- not the ordinary dynamic packages MSYS2 (or
+  # any native Windows toolchain) provides. The setup-mxe-cairo composite
+  # action builds (or restores from cache) exactly that: an
+  # x86_64-w64-mingw32 GCC cross-toolchain plus a static Cairo/FreeType/
+  # Fontconfig stack, via MXE (https://mxe.cc). No DLL bundling step is
+  # needed as a result -- the output binary is fully self-contained.
+  build-windows:
+    name: Build Windows (cross-compiled from Linux)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      vendor_name: ${{ steps.meta.outputs.vendor_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # Same extraction logic as the "Extract plugin metadata" step in
+      # the build job above -- duplicated rather than shared, since each
+      # job runs on its own runner and $GITHUB_ENV doesn't cross jobs.
+      - name: Extract plugin metadata
+        id: meta
+        shell: bash
+        run: |
+          HEADER=$(grep -Ern "^#define[[:space:]]+DISTRHO_PLUGIN_NAME" plugins --include=DistrhoPluginInfo.h \
+            | grep -F "\"${PLUGIN_NAME}\"" | head -n1 | cut -d: -f1)
+
+          if [ -z "$HEADER" ]; then
+            echo "::error::No DistrhoPluginInfo.h under plugins/ declares DISTRHO_PLUGIN_NAME \"$PLUGIN_NAME\""
+            exit 1
+          fi
+          echo "Using $HEADER"
+
+          VENDOR_NAME=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_BRAND[[:space:]]+"(.*)"/\1/p' "$HEADER")
+          if [ -z "$VENDOR_NAME" ]; then
+            echo "::error::Failed to extract DISTRHO_PLUGIN_BRAND from $HEADER"
+            exit 1
+          fi
+
+          PLUGIN_SLUG=$(echo "$PLUGIN_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+
+          echo "VENDOR_NAME=$VENDOR_NAME"
+          echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+
+          {
+            echo "VENDOR_NAME=$VENDOR_NAME"
+            echo "PLUGIN_SLUG=$PLUGIN_SLUG"
+          } >> "$GITHUB_ENV"
+          echo "vendor_name=$VENDOR_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      # Same version logic as the build job above.
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          RAW_TAG=$(git describe --tags --always --long --match "[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "0.0.0-0-g0000000")
+          if [[ "$RAW_TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)$ ]]; then
+            TAG="${BASH_REMATCH[1]}"
+            DISTANCE="${BASH_REMATCH[2]}"
+            SHA="${BASH_REMATCH[3]}"
+            if [ "$DISTANCE" = "0" ]; then
+              VERSION="$TAG"
+            else
+              VERSION="${TAG}-${SHA}"
+            fi
+          else
+            VERSION=$(echo "$RAW_TAG" | sed -E 's/^v//')
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      - name: Set up MXE static Cairo/FreeType cross-toolchain
+        uses: ./.github/actions/setup-mxe-cairo
+
+      # Create VST3 presets, --platform windows for the correct FUID byte
+      # order (see the comment on the build job's own presets step).
+      - name: Create VST3 presets
+        run: |
+          cd plugins/$PLUGIN_SLUG
+          fuid=$(python Utils/dpf_vst3_fuid.py \
+            --oneline --platform windows DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
+          echo "Using (Component) FUID $fuid"
+          sh Utils/ttl2preset.sh \
+            --format vst3 \
+            --name $PLUGIN_NAME \
+            --vendor $VENDOR_NAME \
+            --fuid $fuid \
+            --category "Instrument" \
+            Presets Vstpresets
+          mv Vstpresets ../..
+
+      # CC/CXX/PKG_CONFIG point at the MXE cross-toolchain
+      # (x86_64-w64-mingw32.static-*, on PATH from setup-mxe-cairo).
+      # DPF's Makefile detects the Windows target itself from
+      # `$(CC) -dumpmachine` and, per the comment on the job above,
+      # forces -static automatically -- which now works cleanly since
+      # Cairo/FreeType really are static this time. Windows only gets
+      # VST3 for now (no LV2/AU equivalent shipped there).
+      - name: Build Plugin (Windows cross-compile)
+        run: |
+          export CC=x86_64-w64-mingw32.static-gcc
+          export CXX=x86_64-w64-mingw32.static-g++
+          export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
+          make TARGET=vst3
+
+      - name: Add VST3 presets to bundle
+        run: |
+          cp -R Vstpresets bin/
+
+      - name: Upload raw Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-windows-raw-${{ steps.version.outputs.version }}
+          path: bin/
+
+  # Package the cross-compiled Windows VST3 into an installer, on an
+  # actual Windows runner. This has to be a separate job from
+  # build-windows: Inno Setup's ISCC.exe needs a Windows host to run
+  # natively, and build-windows itself has to run on ubuntu-latest for
+  # the mingw-w64 cross-toolchain, so the two can't be the same runner.
+  package-windows-installer:
+    name: Package Windows installer
+    needs: build-windows
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.build-windows.outputs.version }}
+      VENDOR_NAME: ${{ needs.build-windows.outputs.vendor_name }}
+    steps:
+      - name: Download raw Windows build
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-windows-raw-${{ env.VERSION }}
+          path: bin
+
+      # Windows only gets one format here (VST3 -- there's no Windows
+      # equivalent of AU to offer alongside it), so unlike the macOS
+      # .pkg there's no distribution.xml-style choice tree needed.
+      # {commoncf} is Inno Setup's "Common Files" constant, matching
+      # Steinberg's fixed C:\Program Files\Common Files\VST3 location;
+      # {commondocs} is the shared "Public\Documents" folder used for
+      # the shared/all-users .vstpreset location per the VST3 spec.
+      # Inno Setup ships preinstalled on windows-latest, so no separate
+      # tool install step is needed.
+      - name: Create Windows installer
+        shell: pwsh
+        run: |
+          @"
+          [Setup]
+          AppName=$env:PLUGIN_NAME
+          AppVersion=$env:VERSION
+          AppPublisher=$env:VENDOR_NAME
+          ArchitecturesInstallIn64BitMode=x64
+          DefaultDirName={commoncf}\VST3
+          DisableDirPage=yes
+          DisableProgramGroupPage=yes
+          PrivilegesRequired=admin
+          OutputDir=installer
+          OutputBaseFilename=$env:PLUGIN_NAME-$env:VERSION-windows-installer
+          Compression=lzma
+          SolidCompression=yes
+
+          [Files]
+          Source: "bin\$env:PLUGIN_NAME.vst3\*"; DestDir: "{app}\$env:PLUGIN_NAME.vst3"; Flags: recursesubdirs ignoreversion
+          Source: "bin\Vstpresets\*"; DestDir: "{commondocs}\VST3 Presets\$env:VENDOR_NAME\$env:PLUGIN_NAME"; Flags: recursesubdirs ignoreversion
+          "@ | Set-Content -Path installer.iss -Encoding ASCII
+
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-windows-x86_64-${{ env.VERSION }}
+          path: installer/
 
   # Create fat bundle for MacOS. Although a large part of the world is
   # arm64 now, in some cases Cubase still runs under Rosetta, which means
