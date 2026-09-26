@@ -213,6 +213,7 @@ jobs:
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-freetype
+            mingw-w64-x86_64-ntldd
             make
             patch
 
@@ -255,17 +256,35 @@ jobs:
           fi
 
       # Windows gets VST3 only for now (no LV2/AU equivalent shipped
-      # there). Statically link the MinGW runtime (libgcc/libstdc++/
-      # libwinpthread) directly into the plugin binary, since unlike
-      # MSVC's vcruntime these are not preinstalled on end-user
-      # machines and would otherwise need to be bundled as sidecar
-      # DLLs next to the .vst3, the way dylibbundler does for macOS.
+      # there). Only the GCC runtime (libgcc/libstdc++) is statically
+      # linked here -- Cairo/FreeType/Fontconfig (and their own
+      # transitive deps like libintl/libiconv) are compiled against
+      # their normal dynamic import libraries, so a blanket -static
+      # doesn't work for them (their headers assume a DLL will supply
+      # the symbols at runtime). Those get bundled as sidecar DLLs in
+      # the next step instead, the way dylibbundler does for macOS.
       - name: Build Plugin (Windows)
         if: matrix.platform == 'windows'
         shell: msys2 {0}
         run: |
           make TARGET=vst3 \
-            LDFLAGS="-static-libgcc -static-libstdc++ -static -lpthread"
+            LDFLAGS="-static-libgcc -static-libstdc++"
+
+      # winpthread wasn't statically linked above, so it and Cairo's
+      # own dependency chain (freetype, fontconfig, intl, iconv, etc.)
+      # need to ship as DLLs alongside the plugin binary. ntldd is
+      # MSYS2's ldd-equivalent for PE binaries; only DLLs actually
+      # coming from our own /mingw64 toolchain are copied -- anything
+      # else (kernel32.dll etc.) is a normal Windows system DLL that's
+      # always present and must not be bundled.
+      - name: Bundle Windows DLL dependencies
+        if: matrix.platform == 'windows'
+        shell: msys2 {0}
+        run: |
+          cd "bin/$PLUGIN_NAME.vst3/Contents/x86_64-win"
+          for dll in $(ntldd -R "$PLUGIN_NAME.vst3" | grep -i '/mingw64/' | awk '{print $3}'); do
+            cp -uv "$dll" .
+          done
 
       # Log contents of Mac binary using lipo and otool
       - name: Log contents of Mac binary
