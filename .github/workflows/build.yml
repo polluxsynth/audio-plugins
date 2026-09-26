@@ -271,7 +271,12 @@ jobs:
           # Fetch the manual
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
-      # Create VST3 preset files
+      # Create VST3 preset files. The FUID's byte order differs on
+      # Windows (COM-style GUID field swap) vs everywhere else; this
+      # job's matrix never includes the windows platform (see the
+      # separate build-windows/package-windows-installer jobs below,
+      # which pass --platform windows), so "linux" is correct here for
+      # every leg, including macOS.
       - name: Create VST3 presets (MacOS and Linux)
         run: |
           # Create VST3 presets
@@ -466,7 +471,197 @@ jobs:
           name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ env.VERSION }}
           path: bin/
 
-  # Create fat bundle for MacOS. Although a large part of the world is
+  # Windows VST3, cross-compiled from Linux, matching DPF's own upstream
+  # workflow. DPF's Makefile unconditionally forces a static link for any
+  # Windows target (Makefile.plugins.mk: "Always build statically on
+  # windows"), which only works cleanly against a statically built
+  # Cairo/FreeType - not the ordinary dynamic packages that MSYS2 (or
+  # any native Windows toolchain) provides. The setup-mxe-cairo
+  # composite action builds this (or restores from cache): an
+  # x86_64-w64-mingw32 GCC cross-toolchain plus a static Cairo/FreeType/
+  # Fontconfig stack, via MXE (https://mxe.cc). No accompanying DLL's
+  # are needed - the output binary is fully self-contained.
+  build-windows:
+    name: Build for Windows (cross-compiled on Linux)
+    runs-on: ubuntu-latest
+    needs: prepare
+    # Values computed once in the prepare job.
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      VENDOR_NAME: ${{ needs.prepare.outputs.vendor_name }}
+      PLUGIN_SLUG: ${{ needs.prepare.outputs.plugin_slug }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Set up MXE static Cairo/FreeType cross-toolchain
+        uses: ./.github/actions/setup-mxe-cairo
+        with:
+          # Pinned to a known good master revision - to update, remove
+          # or set to master, and extract the new SHA from the build logs.
+          mxe-ref: a5e9fac6b46ef9d96b78094aaf4e737a2b09d848
+
+      # Create VST3 presets, --platform windows for the correct FUID byte
+      # order (see the comment on the build job's own presets step).
+      - name: Create VST3 presets (Windows)
+        run: |
+          cd plugins/$PLUGIN_SLUG
+          fuid=$(python Utils/dpf_vst3_fuid.py \
+            --oneline --platform windows DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
+          echo "Using (Component) FUID $fuid"
+          sh Utils/ttl2preset.sh \
+            --format vst3 \
+            --name $PLUGIN_NAME \
+            --vendor $VENDOR_NAME \
+            --fuid $fuid \
+            --category "Instrument" \
+            Presets Vstpresets
+          mv Vstpresets ../..
+
+      # CC/CXX/PKG_CONFIG point at the MXE cross-toolchain
+      # (x86_64-w64-mingw32.static-*, on PATH from setup-mxe-cairo).
+      # DPF's Makefile detects the Windows target itself from
+      # `$(CC) -dumpmachine` and, per the comment on the job above,
+      # forces -static automatically.
+      #
+      # PKG_CONFIG is set explicitly here, to MXE's target-prefixed
+      # wrapper (x86_64-w64-mingw32.static-pkg-config). Leaving it
+      # unset on the theory that DPF's default
+      # (PKG_CONFIG ?= pkg-config --static) would resolve to MXE's
+      # wrapper because mxe/usr/bin is on PATH fails - MXE never installs
+      # an unprefixed "pkg-config" there, only the target-prefixed one,
+      # so that plain "pkg-config" then resolves to the runner's
+      # own host pkg-config (querying the host's pkgconfig database
+      # which has no Windows Cairo in it, and in this job doesn't
+      # even have Cairo's -dev headers installed at all - that
+      # only happens in the separate Linux/macOS "build" job). The
+      # result would be DPF's `$(PKG_CONFIG) --exists cairo` check in
+      # Makefile.base.mk silently failing, HAVE_CAIRO resolving to
+      # false, and DPF skipping UI build (MimiUI.cpp) entirely.
+      # Pointing PKG_CONFIG at the real MXE wrapper (kept both as
+      # an exported env var and as an explicit `make` variable, since
+      # `make` command-line variables override the Makefile's own `?=`
+      # default) solves that. --static is passed explicitly for the same
+      # reason DPF's own default used to include it: without it,
+      # pkg-config only emits Libs, not Libs.private, dropping the
+      # static-only symbols (CoInitializeEx/CoCreateInstance) that
+      # -lole32/-luuid below work around.
+      # LDFLAGS uses += rather than = on the command line: DPF's
+      # Makefile.base.mk never sets a default for LDFLAGS itself (only
+      # LINK_FLAGS, which folds it in), so currently the two forms are
+      # equivalent; += is used regardless so this keeps working
+      # unchanged if that ever stops being true.
+      - name: Build Plugin (Windows cross-compile)
+        run: |
+          export CC=x86_64-w64-mingw32.static-gcc
+          export CXX=x86_64-w64-mingw32.static-g++
+          export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
+          make TARGET=vst3 \
+            PKG_CONFIG="x86_64-w64-mingw32.static-pkg-config --static" \
+            LDFLAGS+="-lole32 -luuid -ldwrite -lgdi32"
+
+      # Guardrail against HAVE_CAIRO regression: catch a failed Cairo
+      # detection resulting in a GUI-less build.
+      # `make features` is DPF's own introspection target and prints
+      # each HAVE_* flag.
+      - name: Verify Cairo detected (Windows cross-compile)
+        run: |
+          export CC=x86_64-w64-mingw32.static-gcc
+          export CXX=x86_64-w64-mingw32.static-g++
+          export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
+          FEATURES=$(make TARGET=vst3 PKG_CONFIG="x86_64-w64-mingw32.static-pkg-config --static" features)
+          echo "$FEATURES"
+          echo "$FEATURES" | grep -Eiq '^HAVE_CAIRO:[[:space:]]*Yes' || {
+            echo "::error::HAVE_CAIRO was not detected for the Windows cross-build - no plugin UI will be compiled in"
+            exit 1
+          }
+
+      - name: Add VST3 presets to Windows bundle
+        run: |
+          cp -R Vstpresets bin/
+
+      - name: Upload raw Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-windows-raw-${{ env.VERSION }}
+          path: bin/
+
+  # Package the cross-compiled Windows VST3 into an installer, on an
+  # actual Windows runner. This has to be a separate job from
+  # build-windows: Inno Setup's ISCC.exe needs a Windows host to run
+  # natively, and build-windows itself has to run on ubuntu-latest for
+  # the mingw-w64 cross-toolchain, so the two can't be the same runner.
+  package-windows-installer:
+    name: Package Windows installer
+    # prepare is listed explicitly: the needs context only holds direct
+    # dependencies, so its outputs aren't visible via build-windows.
+    needs: [prepare, build-windows]
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      VENDOR_NAME: ${{ needs.prepare.outputs.vendor_name }}
+    steps:
+      - name: Download raw Windows build
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-windows-raw-${{ env.VERSION }}
+          path: bin
+
+      # Windows only gets one format here (VST3 - there's no Windows
+      # equivalent of AU to offer alongside it), so unlike the macOS
+      # .pkg there's no distribution.xml-style choice tree needed.
+      # {commoncf} is Inno Setup's "Common Files" constant, matching
+      # Steinberg's fixed C:\Program Files\Common Files\VST3 location.
+      # {commonappdata} is Inno Setup's constant for CSIDL_COMMON_APPDATA
+      # (C:\ProgramData on any Windows version that matters here), which
+      # is the actual shared/all-users .vstpreset location per the VST3
+      # spec - confirmed against real-world reports of shared presets
+      # landing in C:\ProgramData\VST3 Presets\<vendor>\<plugin>, and
+      # matching what other frameworks use for this exact purpose (e.g.
+      # JUCE's File::commonApplicationDataDirectory, which likewise
+      # resolves to ProgramData on Windows).
+      # Inno Setup ships preinstalled on windows-latest, so no separate
+      # tool install step is needed.
+      - name: Create Windows installer
+        shell: pwsh
+        run: |
+          @"
+          [Setup]
+          AppName=$env:PLUGIN_NAME
+          AppVersion=$env:VERSION
+          AppPublisher=$env:VENDOR_NAME
+          ArchitecturesInstallIn64BitMode=x64
+          DefaultDirName={commoncf}\VST3
+          DisableDirPage=yes
+          DisableProgramGroupPage=yes
+          PrivilegesRequired=admin
+          OutputDir=installer
+          OutputBaseFilename=$env:PLUGIN_NAME-$env:VERSION-windows-installer
+          Compression=lzma
+          SolidCompression=yes
+
+          [Files]
+          Source: "bin\$env:PLUGIN_NAME.vst3\*"; DestDir: "{app}\$env:PLUGIN_NAME.vst3"; Flags: recursesubdirs ignoreversion
+          Source: "bin\Vstpresets\*"; DestDir: "{commonappdata}\VST3 Presets\$env:VENDOR_NAME\$env:PLUGIN_NAME"; Flags: recursesubdirs ignoreversion
+          "@ | Set-Content -Path installer.iss -Encoding ASCII
+
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-windows-x86_64-${{ env.VERSION }}
+          path: installer/
+
+  # Creates the fat bundle for MacOS. Although a large part of the world is
   # arm64 now, in some cases Cubase still runs under Rosetta, which means
   # that an x86_64 binary is required even on an arm64 host. A universal
   # (fat) package is built here so that users don't have to keep track of

@@ -1,0 +1,111 @@
+name: Set up MXE static Cairo/FreeType cross-toolchain
+description: >-
+  Builds (or restores from cache) an x86_64-w64-mingw32 MXE cross-toolchain
+  (gcc/g++/pkg-config) plus a static Cairo, FreeType, Fontconfig
+  and their dependency chain (libpng, zlib, libiconv, gettext/libintl,
+  glib, pixman, ...), built with CAIRO_WIN32_STATIC_BUILD so Cairo's
+  Windows headers don't emit __imp_-style dllimport references. This is
+  what makes DPF's "Always build statically on windows" LINK_FLAGS +=
+  -static (Makefile.plugins.mk) link cleanly, unlike an ordinary
+  dynamic Cairo package (e.g. MSYS2's mingw-w64-x86_64-cairo).
+  Adds the toolchain's bin/ directory to PATH.
+
+inputs:
+  mxe-ref:
+    description: >-
+      Git ref (commit SHA, tag, or branch) of https://github.com/mxe/mxe
+      to build. Pin to specific SHA in the calling workflow to avoid
+      needless rebuilds when master changes.
+    required: false
+    default: master
+
+runs:
+  using: composite
+  steps:
+    # MXE's own build dependencies (compiling MXE's cross-gcc and its
+    # package set from source), per MXE's published Debian/Ubuntu
+    # requirements (https://mxe.cc/#requirements-debian). This list can
+    # drift as Ubuntu package names change between runner image versions
+    # - if this step or the MXE build itself fails on a missing tool,
+    # that's the first place to look.
+    - name: Install MXE build requirements
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -yq --no-install-recommends \
+          autoconf automake autopoint bash bison bzip2 flex gettext \
+          git g++ gperf intltool libffi-dev libgdk-pixbuf2.0-dev \
+          libtool libtool-bin libltdl-dev libssl-dev libxml-parser-perl lzip make \
+          openssl p7zip-full patch perl pkg-config python3 python3-mako \
+          python3-packaging ruby sed unzip wget xz-utils
+
+    # Cached on the resolved MXE commit (not the ref, which could be a
+    # moving branch) plus the target, so a cache hit only ever restores
+    # an exact match. cairo is the requested package; MXE resolves and
+    # builds its full dependency chain (freetype, fontconfig, libpng,
+    # zlib, glib, pixman, libiconv, gettext, and its own gcc) itself.
+    - name: Resolve MXE commit
+      id: rev
+      shell: bash
+      run: |
+        SHA=$(git ls-remote https://github.com/mxe/mxe.git "${{ inputs.mxe-ref }}" | cut -f1)
+        if [ -z "$SHA" ]; then
+          # Not a branch/tag ref - assume mxe-ref is already a commit SHA.
+          SHA="${{ inputs.mxe-ref }}"
+        fi
+        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Restore MXE cache
+      id: cache
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ github.workspace }}/mxe
+        key: mxe-x86_64-w64-mingw32-static-cairo-${{ steps.rev.outputs.sha }}
+
+    - name: Clone MXE
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        # Clear the directory in case a failed restore step left
+        # something behind.
+        rm -rf "${{ github.workspace }}/mxe"
+        git clone https://github.com/mxe/mxe.git "${{ github.workspace }}/mxe"
+        cd "${{ github.workspace }}/mxe"
+        git checkout "${{ steps.rev.outputs.sha }}"
+
+    # The slow step: building MXE's own GCC cross-toolchain plus Cairo's
+    # full static dependency chain from source. Expect this to take
+    # roughly 20-50 minutes on a cache miss (observed up to ~47 minutes
+    # in practice); cached runs skip straight to "Add MXE toolchain to
+    # PATH" below.
+    - name: Build static Cairo (and its full dependency chain, incl. gcc)
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        cd "${{ github.workspace }}/mxe"
+        # 80 minutes: the build has taken as long as ~47 minutes in
+        # practice, within the 20-50 minute estimate noted above; this
+        # leaves comfortable margin over that without masking a
+        # hang for hours on the default job-level timeout (currently 6h).
+        timeout 80m make MXE_TARGETS=x86_64-w64-mingw32.static JOBS=$(nproc) cairo
+
+    # Saved here, as an ordinary step, rather than relying on the
+    # combined actions/cache action's automatic save - that save is
+    # deferred to a post-hook that runs at the very end of the *job*,
+    # and by default only fires if the job as a whole succeeds. Since
+    # this composite action runs well before the actual plugin build
+    # (a separate, later step in the calling job), a failure there would
+    # silently discard an MXE build that completed successfully.
+    # Saving immediately, right after the build, means it's captured
+    # regardless of what happens afterward.
+    - name: Save MXE cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ github.workspace }}/mxe
+        key: mxe-x86_64-w64-mingw32-static-cairo-${{ steps.rev.outputs.sha }}
+
+    - name: Add MXE toolchain to PATH
+      shell: bash
+      run: |
+        echo "${{ github.workspace }}/mxe/usr/bin" >> "$GITHUB_PATH"
