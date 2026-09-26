@@ -49,8 +49,10 @@ jobs:
             platform: macos
             arch: x86_64
             artifact_suffix: macos-raw-x86_64
-          #- os: windows-latest
-          #  target: windows
+          - os: windows-latest
+            platform: windows
+            arch: x86_64
+            artifact_suffix: windows-x86_64
 
     steps:
       # Checkout the repository and its submodules (DPF is usually a submodule)
@@ -192,8 +194,28 @@ jobs:
           # these from source and take noticeably longer.
           brew install cairo freetype pkg-config dylibbundler
 
+      # MinGW toolchain + GUI deps for Windows, mirroring what the Linux
+      # leg gets from apt (see "Install Linux GUI dependencies" above).
+      # MSVC was considered and rejected: DPF's Makefile-based Windows
+      # support targets MinGW, MSVC support lives only in DPF's separate
+      # CMake build files, which would mean maintaining a second,
+      # hand-written build description for this plugin indefinitely.
+      - name: Set up MSYS2/MinGW (Windows)
+        if: matrix.platform == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-freetype
+            make
+
       # Build the plugin using the DPF Makefile Action
       - name: Build Plugin
+        if: matrix.platform != 'windows'
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
             export CC=clang
@@ -229,6 +251,19 @@ jobs:
             make TARGET=vst3
           fi
 
+      # Windows gets VST3 only for now (no LV2/AU equivalent shipped
+      # there). Statically link the MinGW runtime (libgcc/libstdc++/
+      # libwinpthread) directly into the plugin binary, since unlike
+      # MSVC's vcruntime these are not preinstalled on end-user
+      # machines and would otherwise need to be bundled as sidecar
+      # DLLs next to the .vst3, the way dylibbundler does for macOS.
+      - name: Build Plugin (Windows)
+        if: matrix.platform == 'windows'
+        shell: msys2 {0}
+        run: |
+          make TARGET=vst3 \
+            LDFLAGS="-static-libgcc -static-libstdc++ -static -lpthread"
+
       # Log contents of Mac binary using lipo and otool
       - name: Log contents of Mac binary
         if: matrix.platform == 'macos'
@@ -250,13 +285,25 @@ jobs:
           cp plugins/$PLUGIN_SLUG/Doc/$PLUGIN_SLUG-manual.pdf bin/
 
       # Create VST3 preset files
-      - name: Create VST3 presets (MacOS and Linux)
+      #
+      # The FUID's byte order differs on Windows (COM-style GUID field
+      # swap) vs everywhere else, so the --platform argument must track
+      # matrix.platform, not always be "linux". A preset built with the
+      # wrong byte order embeds a class ID that won't match what the
+      # plugin reports at runtime on that platform, so hosts won't
+      # associate the preset with the plugin at all.
+      - name: Create VST3 presets (all platforms)
+        shell: bash
         run: |
           # Create VST3 presets
           cd plugins/$PLUGIN_SLUG
           # First determine Component FUID
+          FUID_PLATFORM=linux
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            FUID_PLATFORM=windows
+          fi
           fuid=$(python Utils/dpf_vst3_fuid.py \
-            --oneline --platform linux DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
+            --oneline --platform "$FUID_PLATFORM" DistrhoPluginInfo.h $PLUGIN_NAME.cpp)
           echo "Using (Component) FUID $fuid"
           # Then read all .ttl preset files creating .vstpreset files
           sh Utils/ttl2preset.sh \
@@ -271,7 +318,7 @@ jobs:
           # To clean up, remove Vstpresets
 
       # Create AU presets (macOS only, as AU is macOS-only).
-      # Same driver script as in "Create VST3 presets (MacOS and Linux)",
+      # Same driver script as in "Create VST3 presets (all platforms)",
       # run a second time with --format au so the .aupreset files end up in
       # their own directory (Aupresets), which maps one-to-one onto the AU
       # installer component, just like Vstpresets does for VST3.
@@ -301,6 +348,51 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           cp -R Vstpresets bin/
+
+      # Build the Windows installer with Inno Setup, which ships
+      # preinstalled on windows-latest, so no separate tool install step
+      # is needed (ISCC.exe is a plain CLI compiler, same shape as
+      # calling pkgbuild/productbuild directly for the macOS .pkg).
+      # Windows only gets one format here (VST3 -- there's no Windows
+      # equivalent of AU to offer alongside it), so unlike the macOS
+      # .pkg there's no distribution.xml-style choice tree needed.
+      # {commoncf} is Inno Setup's "Common Files" constant, matching
+      # Steinberg's fixed C:\Program Files\Common Files\VST3 location;
+      # {commondocs} is the shared "Public\Documents" folder used for
+      # the shared/all-users .vstpreset location per the VST3 spec.
+      - name: Create Windows installer
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          @"
+          [Setup]
+          AppName=$env:PLUGIN_NAME
+          AppVersion=${{ steps.version.outputs.version }}
+          AppPublisher=$env:VENDOR_NAME
+          ArchitecturesInstallIn64BitMode=x64
+          DefaultDirName={commoncf}\VST3
+          DisableDirPage=yes
+          DisableProgramGroupPage=yes
+          PrivilegesRequired=admin
+          OutputDir=bin
+          OutputBaseFilename=$env:PLUGIN_NAME-${{ steps.version.outputs.version }}-windows-installer
+          Compression=lzma
+          SolidCompression=yes
+
+          [Files]
+          Source: "bin\$env:PLUGIN_NAME.vst3\*"; DestDir: "{app}\$env:PLUGIN_NAME.vst3"; Flags: recursesubdirs ignoreversion
+          Source: "Vstpresets\*"; DestDir: "{commondocs}\VST3 Presets\$env:VENDOR_NAME\$env:PLUGIN_NAME"; Flags: recursesubdirs ignoreversion
+          "@ | Set-Content -Path installer.iss -Encoding ASCII
+
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload Build Artifacts for Windows
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
+          path: bin/
 
       # Upload the raw (single-arch, not packaged) .vst3 and .component
       # bundles together with the .vstpreset and .aupreset files, as one
