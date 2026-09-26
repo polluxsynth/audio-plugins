@@ -282,11 +282,19 @@ static void writeUISettings(const UISettings &s)
     for (size_t i = 1; i < dir.size(); i++) {
         if (dir[i] == '/') {
             dir[i] = '\0';
-            mkdir(dir.c_str(), 0755);
+            mkdir(dir.c_str() 
+#ifndef _WIN32
+                             , 0755
+#endif
+                                  );
             dir[i] = '/';
         }
     }
-    mkdir(dir.c_str(), 0755);
+    mkdir(dir.c_str() 
+#ifndef _WIN32
+                     , 0755
+#endif
+                          );
 
     FILE *f = fopen(uiSettingsPath().c_str(), "w");
     if (!f) return;
