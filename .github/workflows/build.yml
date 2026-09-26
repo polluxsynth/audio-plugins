@@ -17,7 +17,7 @@ on:
 env:
   # Plugin to build, matched against the DISTRHO_PLUGIN_NAME macro in
   # DistrhoPluginInfo.h for the plugin. VENDOR_NAME and both slugs are then
-  # derived at build time (see "Extract plugin metadata" below).
+  # derived at build time (see the prepare job below).
   # Limitation: only a single name is supported for now.
 
   PLUGIN_NAME: MiMi-d
@@ -27,38 +27,28 @@ env:
   AU_TYPE: aumu
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-            arch: x86_64
-            artifact_suffix: linux-x86_64
-          - os: ubuntu-22.04-arm
-            platform: linux
-            arch: arm64
-            artifact_suffix: linux-arm64
-          - os: macos-15
-            platform: macos
-            arch: arm64
-            artifact_suffix: macos-raw-arm64
-          - os: macos-15-intel
-            platform: macos
-            arch: x86_64
-            artifact_suffix: macos-raw-x86_64
-          #- os: windows-latest
-          #  target: windows
-
+  # Computes everything derived from the repository (plugin metadata from
+  # DistrhoPluginInfo.h, and the version from git tags) once, and exposes
+  # it as job outputs to all other jobs. $GITHUB_ENV doesn't cross job
+  # boundaries; job outputs do.
+  prepare:
+    name: Extract plugin metadata and version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      vendor_name: ${{ steps.meta.outputs.vendor_name }}
+      vendor_slug: ${{ steps.meta.outputs.vendor_slug }}
+      plugin_slug: ${{ steps.meta.outputs.plugin_slug }}
+      au_subtype: ${{ steps.meta.outputs.au_subtype }}
+      au_manufacturer: ${{ steps.meta.outputs.au_manufacturer }}
     steps:
-      # Checkout the repository and its submodules (DPF is usually a submodule)
+      # Full history and tags are needed for git describe. Submodules are
+      # not: only plugins/*/DistrhoPluginInfo.h is read here. (Add
+      # "submodules: recursive" if plugins/ moves into a submodule.)
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          submodules: recursive
-          fetch-depth: 0 # Fetch all history for version tagging
+          fetch-depth: 0
 
       # Locate the DistrhoPluginInfo.h for $PLUGIN_NAME, then derive
       # VENDOR_NAME and both slugs from it, so only PLUGIN_NAME (above)
@@ -99,15 +89,11 @@ jobs:
           # AU identifiers, needed for the .aupreset files and by auval. DPF
           # calls them DISTRHO_PLUGIN_UNIQUE_ID (= AU subtype) and
           # DISTRHO_PLUGIN_BRAND_ID (= AU manufacturer): 4-character tokens
-          # written without quotes. They must be exactly 4 characters (which
-          # also catches e.g. a d_cconst('M','i','m','d') style definition),
-          # but that is only enforced on macOS, the only place AU is built.
+          # written without quotes. The exactly-4-characters requirement is
+          # only enforced on macOS (the only place AU is built), by the
+          # "Check AU identifiers (MacOS)" step in the build job.
           AU_SUBTYPE=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_UNIQUE_ID[[:space:]]+([^[:space:]/]+).*/\1/p' "$HEADER")
           AU_MANUFACTURER=$(sed -nE 's/^#define[[:space:]]+DISTRHO_PLUGIN_BRAND_ID[[:space:]]+([^[:space:]/]+).*/\1/p' "$HEADER")
-          if [ "${{ matrix.platform }}" = "macos" ] && { [ "${#AU_SUBTYPE}" -ne 4 ] || [ "${#AU_MANUFACTURER}" -ne 4 ]; }; then
-            echo "::error::AU subtype/manufacturer must be exactly 4 characters (DISTRHO_PLUGIN_UNIQUE_ID='$AU_SUBTYPE', DISTRHO_PLUGIN_BRAND_ID='$AU_MANUFACTURER') in $HEADER"
-            exit 1
-          fi
 
           # Slug = lowercase, alphanumeric only (e.g. "MiMi-d" -> "mimid")
           PLUGIN_SLUG=$(echo "$PLUGIN_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
@@ -120,18 +106,12 @@ jobs:
           echo "AU_MANUFACTURER=$AU_MANUFACTURER"
 
           {
-            echo "VENDOR_NAME=$VENDOR_NAME"
-            echo "PLUGIN_SLUG=$PLUGIN_SLUG"
-            echo "VENDOR_SLUG=$VENDOR_SLUG"
-            echo "AU_SUBTYPE=$AU_SUBTYPE"
-            echo "AU_MANUFACTURER=$AU_MANUFACTURER"
-          } >> "$GITHUB_ENV"
-
-      # Pins a well-defined Python version for the steps below
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
+            echo "vendor_name=$VENDOR_NAME"
+            echo "vendor_slug=$VENDOR_SLUG"
+            echo "plugin_slug=$PLUGIN_SLUG"
+            echo "au_subtype=$AU_SUBTYPE"
+            echo "au_manufacturer=$AU_MANUFACTURER"
+          } >> "$GITHUB_OUTPUT"
 
       # Determine version
       - name: Determine version
@@ -154,23 +134,64 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $VERSION"
 
-      # Stash the metadata/version derived in "Extract plugin metadata" and
-      # "Determine version" to a file so it can be bundled into the
-      # merge-support artifact later ("Package merge-support artifact for
-      # MacOS"), once README/manual are also ready. Only needs to happen
-      # once, so it's pinned to a single, specific leg of the matrix.
-      - name: Write build metadata (from MacOS build)
-        if: matrix.os == 'macos-15'
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: prepare
+    # Values computed once in the prepare job.
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      VENDOR_NAME: ${{ needs.prepare.outputs.vendor_name }}
+      VENDOR_SLUG: ${{ needs.prepare.outputs.vendor_slug }}
+      PLUGIN_SLUG: ${{ needs.prepare.outputs.plugin_slug }}
+      AU_SUBTYPE: ${{ needs.prepare.outputs.au_subtype }}
+      AU_MANUFACTURER: ${{ needs.prepare.outputs.au_manufacturer }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            artifact_suffix: linux-x86_64
+          - os: ubuntu-22.04-arm
+            platform: linux
+            arch: arm64
+            artifact_suffix: linux-arm64
+          - os: macos-15
+            platform: macos
+            arch: arm64
+            artifact_suffix: macos-raw-arm64
+          - os: macos-15-intel
+            platform: macos
+            arch: x86_64
+            artifact_suffix: macos-raw-x86_64
+
+    steps:
+      # Checkout the repository and its submodules (DPF is usually a submodule)
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0 # Fetch all history for version tagging
+
+      # Pins a well-defined Python version for the steps below
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      # AU needs exactly 4 characters for subtype and manufacturer (which
+      # also catches e.g. a d_cconst('M','i','m','d') style definition).
+      # Only enforced on macOS, the only place AU is built. Values come
+      # from the prepare job; failing here is quicker than failing at the
+      # AU presets / auval stage.
+      - name: Check AU identifiers (MacOS)
+        if: matrix.platform == 'macos'
         run: |
-          mkdir -p meta
-          {
-            echo "VENDOR_NAME=$VENDOR_NAME"
-            echo "PLUGIN_SLUG=$PLUGIN_SLUG"
-            echo "VENDOR_SLUG=$VENDOR_SLUG"
-            echo "AU_SUBTYPE=$AU_SUBTYPE"
-            echo "AU_MANUFACTURER=$AU_MANUFACTURER"
-            echo "VERSION=${{ steps.version.outputs.version }}"
-          } > meta/build-metadata.env
+          if [ "${#AU_SUBTYPE}" -ne 4 ] || [ "${#AU_MANUFACTURER}" -ne 4 ]; then
+            echo "::error::AU subtype/manufacturer must be exactly 4 characters (DISTRHO_PLUGIN_UNIQUE_ID='$AU_SUBTYPE', DISTRHO_PLUGIN_BRAND_ID='$AU_MANUFACTURER')"
+            exit 1
+          fi
 
       # Install dependencies for freetype and cairo
       - name: Install Linux GUI dependencies
@@ -276,8 +297,8 @@ jobs:
       # run a second time with --format au so the .aupreset files end up in
       # their own directory (Aupresets), which maps one-to-one onto the AU
       # installer component, just like Vstpresets does for VST3.
-      # AU subtype/manufacturer come from DistrhoPluginInfo.h (see "Extract
-      # plugin metadata") rather than the script's built-in defaults, so they
+      # AU subtype/manufacturer come from DistrhoPluginInfo.h (see the
+      # prepare job) rather than the script's built-in defaults, so they
       # can't go stale. AU type is set globally in this file.
       # vstpreset_writer.py and aupreset_writer.py must both sit next
       # to ttl2preset.sh in Utils/.
@@ -328,7 +349,7 @@ jobs:
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ env.VERSION }}
           path: stage
 
       # Validate the AU with Apple's auval. Logic refuses AUs that fail
@@ -336,8 +357,8 @@ jobs:
       # Runs on every macOS leg, i.e. natively on both arm64 and x86_64.
       # This is the only place the x86_64 slice is actually run (the
       # universal bundle is validated on arm64 only, in the merge job).
-      # Subtype and manufacturer come from DistrhoPluginInfo.h (see
-      # "Extract plugin metadata"), the type is AU_TYPE from the top of this
+      # Subtype and manufacturer come from DistrhoPluginInfo.h (see the
+      # prepare job), the type is AU_TYPE from the top of this
       # file. It runs after "Upload raw plugin bundles and presets for
       # MacOS", so the bundles are still available for inspection if this
       # fails.
@@ -357,14 +378,12 @@ jobs:
 
       # Package everything the merge-macos-universal job needs, other
       # than the raw bundles and presets from "Upload raw plugin bundles
-      # and presets for MacOS", into one artifact: the metadata file from
-      # "Write build metadata (from MacOS build)", mimid-mac-install.txt
+      # and presets for MacOS", into one artifact: mimid-mac-install.txt
       # and the pdf manual.
       - name: Package merge-support artifact for MacOS
         if: matrix.os == 'macos-15'
         run: |
           mkdir -p merge-support
-          cp meta/build-metadata.env merge-support/
           cp macos/mimid-mac-install.txt "merge-support/Installation README"
           cp plugins/$PLUGIN_SLUG/Doc/mimid-manual.pdf merge-support/$PLUGIN_NAME.pdf
 
@@ -398,7 +417,7 @@ jobs:
           name: "$PLUGIN_SLUG"
           arch: "$DEB_ARCH"
           platform: "linux"
-          version: "${{ steps.version.outputs.version }}"
+          version: "$VERSION"
           maintainer: "$VENDOR_NAME"
           vendor: "$VENDOR_NAME"
           description: "$PLUGIN_NAME audio plugin"
@@ -444,7 +463,7 @@ jobs:
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ steps.version.outputs.version }}
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.artifact_suffix }}-${{ env.VERSION }}
           path: bin/
 
   # Create fat bundle for MacOS. Although a large part of the world is
@@ -454,10 +473,19 @@ jobs:
   # which architecture is actually in use.
   merge-macos-universal:
     name: Create universal (fat) MacOS bundle (arm64 + x86_64)
-    needs: build
+    # prepare is listed explicitly: see package-windows-installer.
+    needs: [prepare, build]
     runs-on: macos-15
+    # Values computed once in the prepare job.
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      VENDOR_NAME: ${{ needs.prepare.outputs.vendor_name }}
+      VENDOR_SLUG: ${{ needs.prepare.outputs.vendor_slug }}
+      PLUGIN_SLUG: ${{ needs.prepare.outputs.plugin_slug }}
+      AU_SUBTYPE: ${{ needs.prepare.outputs.au_subtype }}
+      AU_MANUFACTURER: ${{ needs.prepare.outputs.au_manufacturer }}
     steps:
-      # Download the metadata, installation readme and manual from the
+      # Download the installation readme and manual from the
       # earlier build stage. The bundles and presets come from the per-arch
       # raw artifacts, further down.
       - name: Download merge-support artifact
@@ -465,9 +493,6 @@ jobs:
         with:
           name: ${{ env.PLUGIN_NAME }}-merge-support
           path: support
-
-      - name: Load build metadata
-        run: cat support/build-metadata.env >> "$GITHUB_ENV"
 
       # The per-arch "raw" artifacts (bundles + presets, no installer)
       # uploaded in the "Upload raw plugin bundles and presets for MacOS"
