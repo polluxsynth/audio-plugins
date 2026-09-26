@@ -561,12 +561,17 @@ jobs:
       # forces -static automatically -- which now works cleanly since
       # Cairo/FreeType really are static this time. Windows only gets
       # VST3 for now (no LV2/AU equivalent shipped there).
+      # Cairo's static lib doesn't bundle its own Windows system-library
+      # dependencies -- its DirectWrite font backend (cairo-dwrite-font)
+      # and Win32 system backend need COM (ole32/uuid), DirectWrite, and
+      # GDI, which have to be supplied by whoever links against it.
       - name: Build Plugin (Windows cross-compile)
         run: |
           export CC=x86_64-w64-mingw32.static-gcc
           export CXX=x86_64-w64-mingw32.static-g++
           export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
-          make TARGET=vst3
+          make TARGET=vst3 \
+            LDFLAGS="-lole32 -luuid -ldwrite -lgdi32"
 
       - name: Add VST3 presets to bundle
         run: |
