@@ -214,6 +214,7 @@ jobs:
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-freetype
             make
+            patch
 
       # Build the plugin using the DPF Makefile Action
       - name: Build Plugin
