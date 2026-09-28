@@ -127,7 +127,7 @@ jobs:
             echo "AU_MANUFACTURER=$AU_MANUFACTURER"
           } >> "$GITHUB_ENV"
 
-      # Set up Python so we get a well-defined version
+      # Pins a well-defined Python version for the steps below
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -449,9 +449,9 @@ jobs:
 
   # Create fat bundle for MacOS. Although a large part of the world is
   # arm64 now, in some cases Cubase still runs under Rosetta, which means
-  # that an x86_64 binary is required even on an arm64 host. To avoid users
-  # having to keep track of what architecture is actually used, we create
-  # a universal (fat) package.
+  # that an x86_64 binary is required even on an arm64 host. A universal
+  # (fat) package is built here so that users don't have to keep track of
+  # which architecture is actually in use.
   merge-macos-universal:
     name: Create universal (fat) MacOS bundle (arm64 + x86_64)
     needs: build
