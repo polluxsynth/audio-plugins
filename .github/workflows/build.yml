@@ -185,11 +185,12 @@ jobs:
           # Each macos leg of the matrix runs on its own native
           # architecture (arm64 on macos-15, x86_64 on macos-15-intel).
           # Homebrew stopped building new bottles for Intel macOS as of
-          # Sept 2026 (Tier 3), (and also refuses to run on arm64 hardware
-          # which is why we no longer build 'fat' binaries, as it is too
-          # cumbersome to piece together; few machines are Intel these days
-          # so the benefit is minimal) so this leg tends to build some of
-          # these from source and take noticeably longer.
+          # Sept 2026 (Tier 3), so this leg tends to build some of these
+          # from source and take noticeably longer. An Intel Homebrew
+          # install also can't run on arm64 hardware, so a single-arch
+          # install like this one can't produce 'fat' binaries directly;
+          # each arch is instead built natively on its own runner and
+          # merged afterward, via lipo, in merge-macos-universal below.
           brew install cairo freetype pkg-config dylibbundler
 
       # Build the plugin using the DPF Makefile Action
