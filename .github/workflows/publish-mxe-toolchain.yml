@@ -1,0 +1,47 @@
+name: Publish MXE toolchain
+
+# Manual only - this is the slow (~20-50 min) build, run maybe once a
+# year when Cairo/FreeType/Fontconfig or MXE itself need updating. It
+# builds mxe/usr and uploads it as a Release asset; build-windows in
+# build.yml downloads that asset via setup-mxe-cairo-download instead
+# of rebuilding on every push.
+on:
+  workflow_dispatch:
+    inputs:
+      mxe-ref:
+        description: MXE git ref to build (branch, tag, or commit SHA)
+        required: false
+        default: master
+      release-tag:
+        description: Release tag to publish the tarball under
+        required: false
+        default: mxe-cairo-toolchain
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    name: Build MXE static Cairo toolchain and publish as a Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and publish
+        id: mxe
+        uses: ./.github/actions/setup-mxe-cairo
+        with:
+          mxe-ref: ${{ inputs.mxe-ref }}
+          release-tag: ${{ inputs.release-tag }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "### MXE toolchain published :white_check_mark:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- MXE commit: \`${{ steps.mxe.outputs.mxe-sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Asset: \`${{ steps.mxe.outputs.asset-name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA-256: \`${{ steps.mxe.outputs.sha256 }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Update \`.github/actions/setup-mxe-cairo-download/action.yml\` defaults (\`toolchain-url\` / \`toolchain-sha256\`) to point at this asset." >> "$GITHUB_STEP_SUMMARY"
