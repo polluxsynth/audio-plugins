@@ -1,0 +1,12 @@
+To update to a newer MXE version:
+
+- Run the 'publish-mxe-toolchain' workflow manually from the Github Action
+  GUI. Specify the ref (sha1 or branch) of the MXE version to be used (done
+  in the UI when triggering the workflow). This workflow uses the
+  .github/actions/setup-mxe-cairo action to complete the build.
+  - Note that any changes to the workflow file need to be pushed to the
+    default (i.e. for us, master) branch in order to take effect. 
+    (FAOD: An ordinary rebuild with no changes can be done by just
+    specifying the parameters above when triggering.)
+- Make a note of the name of the resulting tarball and SHA-256 and update
+  .github/actions/setup-mxe-cairo-download accordingly.
