@@ -1,0 +1,38 @@
+name: Set up MXE static Cairo/FreeType cross-toolchain (prebuilt)
+description: >-
+  Downloads a prebuilt x86_64-w64-mingw32 MXE static Cairo/FreeType/
+  Fontconfig cross-toolchain from a GitHub Release asset, verifies its
+  checksum, and adds its bin/ to PATH. To rebuild and republish this
+  asset (e.g. after bumping the MXE ref, or when Cairo/FreeType need
+  updating), run the "Publish MXE toolchain" workflow and update the
+  toolchain-url/toolchain-sha256 defaults below to match its output.
+
+inputs:
+  toolchain-url:
+    description: URL of the prebuilt mxe usr/ tarball (.tar.zst)
+    required: false
+    default: https://github.com/polluxsynth/audio-plugins/releases/download/mxe-cairo-toolchain-a5e9fac/mxe-x86_64-w64-mingw32-static-cairo-a5e9fac6b46ef9d96b78094aaf4e737a2b09d848.tar.zst
+  toolchain-sha256:
+    description: Expected SHA-256 of the tarball.
+    required: false
+    default: de6860ea620bd7c11ea91199bd4a6f6aca0e200be6465eece9a9dbdc4c8226b7
+
+runs:
+  using: composite
+  steps:
+    - name: Download prebuilt MXE toolchain
+      shell: bash
+      run: |
+        curl -fL --retry 3 --retry-connrefused -o mxe-toolchain.tar.zst "${{ inputs.toolchain-url }}"
+        echo "${{ inputs.toolchain-sha256 }}  mxe-toolchain.tar.zst" | sha256sum -c -
+
+    - name: Extract toolchain
+      shell: bash
+      run: |
+        mkdir -p "${{ github.workspace }}/mxe/usr"
+        tar -C "${{ github.workspace }}/mxe/usr" --zstd -xf mxe-toolchain.tar.zst
+
+    - name: Add MXE toolchain to PATH
+      shell: bash
+      run: |
+        echo "${{ github.workspace }}/mxe/usr/bin" >> "$GITHUB_PATH"

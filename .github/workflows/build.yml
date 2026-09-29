@@ -503,11 +503,13 @@ jobs:
           python-version: '3.13'
 
       - name: Set up MXE static Cairo/FreeType cross-toolchain
-        uses: ./.github/actions/setup-mxe-cairo
-        with:
-          # Pinned to a known good master revision - to update, remove
-          # or set to master, and extract the new SHA from the build logs.
-          mxe-ref: a5e9fac6b46ef9d96b78094aaf4e737a2b09d848
+        # Downloads a prebuilt toolchain published by the "Publish MXE
+        # toolchain" workflow, instead of building it (~20-50 min) on
+        # every push (albeit with caching, which has a retention of 7 days).
+        # To update the toolchain (new Cairo/FreeType, or a newer MXE ref),
+        # run that workflow manually and update the defaults in
+        # setup-mxe-cairo-download/action.yml.
+        uses: ./.github/actions/setup-mxe-cairo-download
 
       # Create VST3 presets, --platform windows for the correct FUID byte
       # order (see the comment on the build job's own presets step).
