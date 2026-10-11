@@ -850,6 +850,8 @@ public:
     // -- Keyboard ----------------------------------------------------------
     bool onKeyboard(const KeyboardEvent &ev) override
     {
+
+	fprintf(stderr, "Key pressed %d: '%c' (%d)\n", ev.press, ev.key, ev.key);
         // -- Splash / menu  -  delegate to UIMenu ---------------------------
         if (fMenu.isSplashOpen() || fMenu.isOpen()) {
             fMenu.onKey(ev.key, ev.press,
