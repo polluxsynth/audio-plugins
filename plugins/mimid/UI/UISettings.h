@@ -37,4 +37,5 @@ struct UISettings {
     ShowValue showValue = SHOW_ALL;
     bool      snapScale = true;
     bool      ghostMode = false;
+    bool      keysToHost = false; // ignore all keys; host gets them
 };

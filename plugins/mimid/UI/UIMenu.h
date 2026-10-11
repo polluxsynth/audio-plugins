@@ -37,7 +37,7 @@ enum MenuItemId {
     MENU_UI_SCALE = 0, MENU_RESTART_NOTE,
     MENU_SHOW_INDEX, MENU_SHOW_ARC, MENU_SHOW_VALUE,
     MENU_SNAP_SCALE,
-    MENU_GHOST_MODE, MENU_ABOUT, MENU_ITEM_COUNT
+    MENU_GHOST_MODE, MENU_KEYS_TO_HOST, MENU_ABOUT, MENU_ITEM_COUNT
 };
 enum MenuItemType {
     MIT_HEADER, MIT_NUMERIC, MIT_BOOL, MIT_TRISTATE, MIT_INFO, MIT_ACTION,
@@ -61,6 +61,7 @@ static const MenuItemDef kMenuItems[] = {
     { MENU_SNAP_SCALE,   MIT_BOOL,     "Snap scale"                },
     { MENU_NONE,         MIT_SEP,      nullptr                     },
     { MENU_GHOST_MODE,   MIT_BOOL,     "Ghost mode"                },
+    { MENU_KEYS_TO_HOST, MIT_BOOL,     "Keys to host"              },
     { MENU_NONE,         MIT_SEP,      nullptr                     },
     { MENU_ABOUT,        MIT_ACTION,   "About"                     },
 };
@@ -342,6 +343,9 @@ private:
                     case MENU_GHOST_MODE:
                         fSettings.ghostMode = !fSettings.ghostMode;
                         break;
+                    case MENU_KEYS_TO_HOST:
+                        fSettings.keysToHost = !fSettings.keysToHost;
+                        break;
                     default:
                         break;
                 }
@@ -568,6 +572,9 @@ private:
                     case MENU_SHOW_ARC:   val = fSettings.showArc;   break;
                     case MENU_SNAP_SCALE: val = fSettings.snapScale; break;
                     case MENU_GHOST_MODE: val = fSettings.ghostMode; break;
+                    case MENU_KEYS_TO_HOST:
+                        val = fSettings.keysToHost;
+                        break;
                     default: break;
                 }
                 if (val) indicatorTick(wc, fGeom.w, iy, ih);

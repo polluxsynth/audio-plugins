@@ -251,12 +251,14 @@ static UISettings readUISettings()
     int    sv  = (int)s.showValue;
     int    sr  = s.snapScale       ? 1 : 0;
     int    gm  = s.ghostMode       ? 1 : 0;
+    int    kh  = s.keysToHost      ? 1 : 0;
 
     FILE *f = fopen(uiSettingsPath().c_str(), "r");
     if (f) {
         char buf[SETTINGS_LINE_LEN] = {};
         if (fgets(buf, sizeof(buf), f))
-            sscanf(buf, "%f %d %d %d %d %d", &sc, &si, &sa, &sv, &sr, &gm);
+            sscanf(buf, "%f %d %d %d %d %d %d",
+                   &sc, &si, &sa, &sv, &sr, &gm, &kh);
         fclose(f);
     }
 
@@ -268,6 +270,7 @@ static UISettings readUISettings()
                 : (sv == 1) ? SHOW_STEPPED : SHOW_ALL;
     s.snapScale = sr != 0;
     s.ghostMode = gm != 0;
+    s.keysToHost = kh != 0;
     return s;
 }
 
@@ -298,13 +301,14 @@ static void writeUISettings(const UISettings &s)
 
     FILE *f = fopen(uiSettingsPath().c_str(), "w");
     if (!f) return;
-    fprintf(f, "%.2f %d %d %d %d %d\n",
+    fprintf(f, "%.2f %d %d %d %d %d %d\n",
             s.uiScale,
             s.showIndex      ? 1 : 0,
             s.showArc        ? 1 : 0,
             (int)s.showValue,
             s.snapScale      ? 1 : 0,
-            s.ghostMode      ? 1 : 0);
+            s.ghostMode      ? 1 : 0,
+            s.keysToHost     ? 1 : 0);
     fclose(f);
 }
 
@@ -858,7 +862,8 @@ public:
             return true; // always consume  -  prevent host acting on keys
         }
 
-        if (ev.key == 9) {  // Tab  -  cycle page
+        // Tab is ignored in keys-to-host mode, like all other keys.
+        if (ev.key == 9 && !fSettings.keysToHost) {  // Tab  -  cycle page
             if (ev.press) {
                 fPageBtnPressed = true;
                 requestRedraw(RedrawLevel::Full);
@@ -895,10 +900,16 @@ public:
                 fDragStartY   = fDragLastY;
             }
             fCurrentMod = newMod;
-            return true;
+            return false;  // not consumed: host may track modifiers too
         }
 
+        // Keys-to-host mode: the plugin ignores all other keys.
+        if (fSettings.keysToHost) return false;
+
         if (!ev.press) return false;
+
+        // Cmd/Alt combinations are host shortcuts, never ours.
+        if (ev.mod & (kModifierSuper | kModifierAlt)) return false;
 
         // Esc  -  clear selection, but remember it for next arrow key
         if (ev.key == 27) {
@@ -933,15 +944,15 @@ public:
 
         // '+' / 'k' / Page Up  -  increase selected parameter
         if (ev.key == '+' || ev.key == 'k' || ev.key == kKeyPageUp) {
-            if (fPage.selectedParam() >= 0)
-                adjustSelected(1, ev.mod);
+            if (fPage.selectedParam() < 0) return false;
+            adjustSelected(1, ev.mod);
             return true;
         }
 
         // '-' / 'j' / Page Down  -  decrease selected parameter
         if (ev.key == '-' || ev.key == 'j' || ev.key == kKeyPageDown) {
-            if (fPage.selectedParam() >= 0)
-                adjustSelected(-1, ev.mod);
+            if (fPage.selectedParam() < 0) return false;
+            adjustSelected(-1, ev.mod);
             return true;
         }
 
