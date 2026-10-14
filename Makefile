@@ -33,9 +33,8 @@ DESTDIR ?=
 # introduced by the VST3/CLAP one, and is built on top of the lossy-float fix.
 
 DPF_PATCHES = \
-	vst3_clap_loadprogram_backfill.patch \
-	au_restore_lossy_float.patch \
-	au_loadprogram_backfill.patch
+	backfill.patch \
+	au_restore_lossy_float.patch
 
 apply-patch:
 	@cd dpf; for p in $(DPF_PATCHES); do \
