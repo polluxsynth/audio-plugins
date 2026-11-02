@@ -724,8 +724,7 @@ jobs:
             local arm="raw-arm64/$bundle"
             local x86="raw-x86_64/$bundle"
             local out="bin/$bundle"
-            local mismatch=0
-            local f rel
+            local a x rel
 
             cp -R "$arm" "$out"
 
@@ -735,26 +734,63 @@ jobs:
               "$x86/Contents/MacOS/$PLUGIN_NAME" \
               -output "$out/Contents/MacOS/$PLUGIN_NAME"
 
-            # Any bundled Homebrew dylibs (cairo, freetype, etc.). Both arch
-            # bundles should contain the same dylib names, just single-arch.
-            # Process substitution (rather than a pipe) keeps the loop in
-            # the current shell, so $mismatch survives it.
-            if [ -d "$arm/Contents/Frameworks" ]; then
-              while read -r f; do
-                rel="${f#"$arm"/}"
-                if [ -f "$x86/$rel" ]; then
-                  lipo -create "$arm/$rel" "$x86/$rel" -output "$out/$rel"
+            # Any bundled Homebrew dylibs (cairo, freetype, etc.). The two
+            # runner images can carry different Homebrew library versions
+            # (e.g. a newer freetype that links brotli on one arch only),
+            # so the dylib sets may legitimately differ between archs. Take
+            # the union of names: lipo where both exist, otherwise keep the
+            # single-arch copy. That is safe, because each slice only ever
+            # loads its own architecture's dylibs; check_bundle below
+            # verifies that every slice's dependencies are actually present.
+            if [ -d "$arm/Contents/Frameworks" ] || [ -d "$x86/Contents/Frameworks" ]; then
+              mkdir -p "$out/Contents/Frameworks"
+              while read -r rel; do
+                a="$arm/Contents/Frameworks/$rel"
+                x="$x86/Contents/Frameworks/$rel"
+                mkdir -p "$(dirname "$out/Contents/Frameworks/$rel")"
+                if [ -f "$a" ] && [ -f "$x" ]; then
+                  lipo -create "$a" "$x" -output "$out/Contents/Frameworks/$rel"
+                elif [ -f "$a" ]; then
+                  echo "::warning::$bundle: $rel is arm64-only, keeping thin copy"
+                  cp "$a" "$out/Contents/Frameworks/$rel"
                 else
-                  echo "::error::No x86_64 counterpart for $bundle/$rel, dylib sets differ between architectures"
-                  mismatch=1
+                  echo "::warning::$bundle: $rel is x86_64-only, keeping thin copy"
+                  cp "$x" "$out/Contents/Frameworks/$rel"
                 fi
-              done < <(find "$arm/Contents/Frameworks" -type f -name '*.dylib')
+              done < <(
+                { [ -d "$arm/Contents/Frameworks" ] && (cd "$arm/Contents/Frameworks" && find . -type f -name '*.dylib' | sed 's|^\./||'); \
+                  [ -d "$x86/Contents/Frameworks" ] && (cd "$x86/Contents/Frameworks" && find . -type f -name '*.dylib' | sed 's|^\./||'); \
+                  true; } | sort -u
+              )
             fi
-            return "$mismatch"
+          }
+
+          # Verify that every slice of every Mach-O in the bundle only
+          # references @loader_path dylibs that exist in the bundle.
+          check_bundle() {
+            local b="bin/$1" arch f dep
+            for arch in arm64 x86_64; do
+              while read -r f; do
+                lipo -archs "$f" 2>/dev/null | grep -qw "$arch" || continue
+                while read -r dep; do
+                  case "$dep" in
+                    @loader_path/*)
+                      if [ ! -f "$(dirname "$f")/${dep#@loader_path/}" ]; then
+                        echo "::error::$arch slice of $f needs missing $dep"
+                        return 1
+                      fi
+                      ;;
+                  esac
+                done < <(otool -arch "$arch" -L "$f" | tail -n +2 | awk '{print $1}')
+              done < <(find "$b/Contents/MacOS" "$b/Contents/Frameworks" -type f 2>/dev/null)
+            done
           }
 
           merge_bundle "$PLUGIN_NAME.vst3"
           merge_bundle "$PLUGIN_NAME.component"
+
+          check_bundle "$PLUGIN_NAME.vst3"
+          check_bundle "$PLUGIN_NAME.component"
 
       - name: Log contents of universal (fat) MacOS binaries
         run: |
